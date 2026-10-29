@@ -3,6 +3,9 @@
 .env.*
 !.env.example
 
+# Modelos baixados pelo instalador (centenas de MB a GB; cada máquina baixa os seus).
+modelos/
+
 __pycache__/
 *.py[cod]
 .venv/

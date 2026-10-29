@@ -13,6 +13,14 @@ Gerado por `ferramentas/inventario_terceiros.py` (Python 3.12.10). Levantamento 
 | opencv-python-headless | `opencv_videoio_ffmpeg4140_64.dll` | LGPL (FFmpeg do OpenCV; ver LICENSE-3RD-PARTY.txt do pacote) |
 | soundfile | `libsndfile_x64.dll` | LGPL-2.1-or-later (libsndfile) |
 
+## Pacotes com licença proprietária
+
+Instalados do PyPI na máquina de quem usa; não podem ser redistribuídos com o harness.
+
+- nvidia-cublas-cu12 12.9.2.10: LicenseRef-NVIDIA-Proprietary
+- nvidia-cuda-nvrtc-cu12 12.9.86: LicenseRef-NVIDIA-Proprietary
+- nvidia-cudnn-cu12 9.27.0.42: LicenseRef-NVIDIA-Proprietary
+
 ## FFmpeg dentro do PyAV
 
 - PyAV 17.1.0; licença informada pelo próprio FFmpeg: **LGPL version 3 or later**; `--enable-gpl`: **não**.
@@ -27,7 +35,7 @@ Gerado por `ferramentas/inventario_terceiros.py` (Python 3.12.10). Levantamento 
 | `audio/turn/smart_turn/data/smart-turn-v3.2-cpu.onnx` | 8679182 | `2bb026316b14a660…` | não declarada (o pacote não traz arquivo de licença do modelo) |
 | `audio/vad/data/silero_vad.onnx` | 2327524 | `597d30b3ec076608…` | não declarada (o pacote não traz arquivo de licença do modelo) |
 
-## Pacotes (106)
+## Pacotes (118)
 
 | Pacote | Versão | Licença declarada | Nativas |
 |---|---|---|---|
@@ -49,6 +57,7 @@ Gerado por `ferramentas/inventario_terceiros.py` (Python 3.12.10). Levantamento 
 | click | 8.5.0 | BSD-3-Clause |  |
 | colorama | 0.4.6 | BSD License |  |
 | cryptography | 50.0.2 | Apache-2.0 OR BSD-3-Clause |  |
+| ctranslate2 | 4.8.4 | MIT | 3 |
 | detect-installer | 0.2.1 | 0BSD |  |
 | dnspython | 2.9.0 | ISC |  |
 | docopt | 0.6.2 | MIT |  |
@@ -58,16 +67,21 @@ Gerado por `ferramentas/inventario_terceiros.py` (Python 3.12.10). Levantamento 
 | fastapi-cli | 0.0.32 | MIT |  |
 | fastapi-cloud-cli | 0.26.0 | MIT |  |
 | fastar | 0.12.0 | MIT |  |
+| faster-whisper | 1.2.1 | MIT |  |
+| filelock | 4.2.4 | MIT |  |
 | flatbuffers | 25.12.19 | Apache 2.0 |  |
 | frozenlist | 1.8.0 | Apache-2.0 |  |
+| fsspec | 2026.9.0 | BSD-3-Clause |  |
 | google-crc32c | 1.9.0 | Apache-2.0 | 1 |
 | googleapis-common-protos | 1.76.0 | Apache-2.0 |  |
 | h11 | 0.16.0 | MIT |  |
+| hf-xet | 1.7.1 | Apache-2.0 |  |
 | httpcore | 1.0.9 | BSD-3-Clause |  |
 | httpcore2 | 2.16.0 | BSD-3-Clause |  |
 | httptools | 0.9.0 | MIT |  |
 | httpx | 0.28.1 | BSD-3-Clause |  |
 | httpx2 | 2.16.0 | BSD-3-Clause |  |
+| huggingface_hub | 2.4.0 | Apache-2.0 |  |
 | idna | 3.20 | BSD-3-Clause |  |
 | ifaddr | 0.2.0 | MIT |  |
 | itsdangerous | 2.2.0 | BSD License |  |
@@ -82,20 +96,24 @@ Gerado por `ferramentas/inventario_terceiros.py` (Python 3.12.10). Levantamento 
 | mdurl | 0.1.2 | MIT License |  |
 | mpmath | 1.3.0 | BSD |  |
 | multidict | 7.2.1 | Apache-2.0 |  |
+| newclaw-ivox | 0.1.0 | MIT License (texto longo no metadado) |  |
 | num2words | 0.5.14 | LGPL |  |
 | numba | 0.68.1 | BSD |  |
 | numpy | 2.5.4 | BSD-3-Clause AND 0BSD AND MIT AND Zlib AND CC0-1.0 | 2 |
+| nvidia-cublas-cu12 | 12.9.2.10 | LicenseRef-NVIDIA-Proprietary | 3 |
+| nvidia-cuda-nvrtc-cu12 | 12.9.86 | LicenseRef-NVIDIA-Proprietary | 3 |
+| nvidia-cudnn-cu12 | 9.27.0.42 | LicenseRef-NVIDIA-Proprietary | 10 |
 | onnxruntime | 1.24.4 | MIT License | 2 |
 | openai | 3.41.0 | Apache-2.0 |  |
 | opencv-python-headless | 4.14.0.94 | Apache 2.0 | 1 |
-| opentelemetry-api | 1.45.1 | Apache-2.0 |  |
-| opentelemetry-exporter-http-transport | 0.66b1 | Apache-2.0 |  |
-| opentelemetry-exporter-otlp-common | 0.66b1 | Apache-2.0 |  |
-| opentelemetry-exporter-otlp-proto-common | 1.45.1 | Apache-2.0 |  |
-| opentelemetry-exporter-otlp-proto-http | 1.45.1 | Apache-2.0 |  |
-| opentelemetry-proto | 1.45.1 | Apache-2.0 |  |
-| opentelemetry-sdk | 1.45.1 | Apache-2.0 |  |
-| opentelemetry-semantic-conventions | 0.66b1 | Apache-2.0 |  |
+| opentelemetry-api | 1.45.2 | Apache-2.0 |  |
+| opentelemetry-exporter-http-transport | 0.66b2 | Apache-2.0 |  |
+| opentelemetry-exporter-otlp-common | 0.66b2 | Apache-2.0 |  |
+| opentelemetry-exporter-otlp-proto-common | 1.45.2 | Apache-2.0 |  |
+| opentelemetry-exporter-otlp-proto-http | 1.45.2 | Apache-2.0 |  |
+| opentelemetry-proto | 1.45.2 | Apache-2.0 |  |
+| opentelemetry-sdk | 1.45.2 | Apache-2.0 |  |
+| opentelemetry-semantic-conventions | 0.66b2 | Apache-2.0 |  |
 | packaging | 26.3 | Apache-2.0 OR BSD-2-Clause |  |
 | pillow | 12.3.0 | MIT-CMU |  |
 | pipecat-ai | 1.12.0 | BSD-2-Clause |  |
@@ -127,6 +145,8 @@ Gerado por `ferramentas/inventario_terceiros.py` (Python 3.12.10). Levantamento 
 | soxr | 1.0.0 | LGPL-2.1-or-later |  |
 | starlette | 1.10.0 | BSD-3-Clause |  |
 | sympy | 1.14.0 | BSD |  |
+| tokenizers | 0.23.3 | Apache Software License |  |
+| tqdm | 4.70.1 | MPL-2.0 AND MIT |  |
 | truststore | 0.10.5 | MIT |  |
 | typer | 0.27.3 | MIT |  |
 | typing-inspection | 0.4.4 | MIT |  |

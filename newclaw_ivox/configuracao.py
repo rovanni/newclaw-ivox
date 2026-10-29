@@ -1,8 +1,8 @@
 """Configuração do motor de voz, lida só do ambiente (e de um `.env` opcional).
 
-Regra (ADR-030, tabela 4): nenhum valor de laboratório e nenhum valor adivinhado. Variável vazia significa recurso
-desligado, e o desligamento é reportado. Modelo, voz e idioma nunca têm padrão no código: sem escolha do usuário, a
-ausência aparece no diagnóstico.
+Regra (ADR-030, revisão de 29/10/2026): transcrição e síntese rodam na máquina do usuário (`local`), ou num servidor que
+ele declarar (`url`). Nada é adivinhado: modelo, voz e idioma vêm da escolha do usuário, e o que falta é reportado. Se há GPU
+é medido (`dispositivo.py`), nunca suposto.
 """
 
 from __future__ import annotations
@@ -16,8 +16,18 @@ from urllib.parse import urlparse
 # Idiomas que o `Language` do Pipecat aceita e que o NewClaw usa (ADR-030, tabela 4).
 IDIOMAS_ACEITOS = ("pt-BR", "en-US", "es-ES")
 
-# A porta é o único valor com padrão: é endereço local, não escolha de recurso. O motor escuta só em 127.0.0.1.
+LOCAL = "local"
+URL = "url"
+MOTORES = (LOCAL, URL)
+
+DISPOSITIVOS = ("auto", "cpu", "cuda")
+
+# A porta é o único valor de rede com padrão: é endereço local, não escolha de recurso. O motor escuta só em 127.0.0.1.
 PORTA_PADRAO = 7860
+
+# Pasta dos modelos baixados, relativa à raiz do harness, quando VOZ_MODELOS_DIR não é informada. É lugar de arquivo,
+# não escolha de recurso.
+PASTA_MODELOS_PADRAO = "modelos"
 
 PREFIXOS_ICE = ("stun:", "turn:", "turns:")
 
@@ -35,12 +45,13 @@ class Achado:
 
 @dataclass(frozen=True)
 class Servico:
-    """Um serviço compatível com a API OpenAI (transcrição ou síntese)."""
+    """Transcrição ou síntese: local (na máquina) ou por URL (servidor compatível com a API OpenAI)."""
 
-    url: str
-    modelo: str
-    chave: str | None
+    motor: str
+    modelo: str | None
     voz: str | None = None
+    url: str | None = None
+    chave: str | None = None
 
 
 @dataclass(frozen=True)
@@ -48,6 +59,8 @@ class Configuracao:
     stt: Servico | None
     tts: Servico | None
     idioma: str | None
+    dispositivo: str
+    modelos_dir: Path
     ice_servidores: tuple[str, ...]
     porta: int
     achados: tuple[Achado, ...] = field(default=())
@@ -81,7 +94,11 @@ def ler_arquivo_env(caminho: Path) -> dict[str, str]:
     return valores
 
 
-def carregar(ambiente: Mapping[str, str] | None = None, arquivo_env: Path | None = None) -> Configuracao:
+def carregar(
+    ambiente: Mapping[str, str] | None = None,
+    arquivo_env: Path | None = None,
+    raiz: Path | None = None,
+) -> Configuracao:
     """Monta a configuração. O ambiente do processo vence o `.env`, como de costume."""
     origem: dict[str, str] = {}
     if arquivo_env is not None:
@@ -96,24 +113,35 @@ def carregar(ambiente: Mapping[str, str] | None = None, arquivo_env: Path | None
 
     stt = _servico(
         "VOZ_STT", valor, achados,
-        desligado="Transcrição desligada (VOZ_STT_URL vazia): a janela funciona só em texto.",
-        exige_voz=False,
+        desligado="Transcrição desligada (VOZ_STT_MOTOR vazio): a janela funciona só em texto.",
+        local_exige=("MODELO",), url_exige=("URL", "MODELO"),
     )
     tts = _servico(
         "VOZ_TTS", valor, achados,
-        desligado="Síntese desligada (VOZ_TTS_URL vazia): as respostas aparecem só em texto.",
-        exige_voz=True,
+        desligado="Síntese desligada (VOZ_TTS_MOTOR vazio): as respostas aparecem só em texto.",
+        local_exige=("VOZ",), url_exige=("URL", "MODELO", "VOZ"),
     )
 
     idioma = valor("VOZ_IDIOMA")
     if idioma is not None and idioma not in IDIOMAS_ACEITOS:
         achados.append(Achado(ERRO, "VOZ_IDIOMA", f"Idioma '{idioma}' não aceito; use um de: {', '.join(IDIOMAS_ACEITOS)}."))
         idioma = None
-    elif idioma is None and stt is not None:
+    elif idioma is None and (stt is not None or tts is not None):
         achados.append(Achado(
             AVISO, "VOZ_IDIOMA",
-            "Idioma da transcrição não informado. Nenhum idioma é escolhido aqui; o servidor de transcrição decide.",
+            "Idioma não informado. Nenhum idioma é escolhido aqui; a transcrição detecta sozinha, se puder.",
         ))
+
+    dispositivo = valor("VOZ_DISPOSITIVO") or "auto"
+    if dispositivo not in DISPOSITIVOS:
+        achados.append(Achado(ERRO, "VOZ_DISPOSITIVO", f"'{dispositivo}' não aceito; use um de: {', '.join(DISPOSITIVOS)}."))
+        dispositivo = "auto"
+
+    pasta = valor("VOZ_MODELOS_DIR")
+    base = raiz or Path.cwd()
+    modelos_dir = Path(pasta) if pasta else base / PASTA_MODELOS_PADRAO
+    if not modelos_dir.is_absolute():
+        modelos_dir = base / modelos_dir
 
     ice: list[str] = []
     for item in (valor("VOZ_ICE_SERVIDORES") or "").split(","):
@@ -133,36 +161,53 @@ def carregar(ambiente: Mapping[str, str] | None = None, arquivo_env: Path | None
         else:
             achados.append(Achado(ERRO, "HARNESS_PORTA", f"Porta '{bruta}' inválida (1 a 65535)."))
 
-    return Configuracao(stt=stt, tts=tts, idioma=idioma, ice_servidores=tuple(ice), porta=porta, achados=tuple(achados))
+    return Configuracao(
+        stt=stt, tts=tts, idioma=idioma, dispositivo=dispositivo, modelos_dir=modelos_dir,
+        ice_servidores=tuple(ice), porta=porta, achados=tuple(achados),
+    )
 
 
-def _servico(prefixo: str, valor, achados: list[Achado], desligado: str, exige_voz: bool) -> Servico | None:
-    url = valor(f"{prefixo}_URL")
-    modelo = valor(f"{prefixo}_MODELO")
-    chave = valor(f"{prefixo}_CHAVE")
-    voz = valor(f"{prefixo}_VOZ") if exige_voz else None
+_EXPLICACAO = {
+    "MODELO": "Modelo não informado. Nenhum modelo é escolhido aqui.",
+    "VOZ": "Voz não informada. Nenhuma voz é escolhida aqui.",
+    "URL": "Endereço do servidor não informado.",
+}
 
-    if url is None:
-        achados.append(Achado(INFO, f"{prefixo}_URL", desligado))
-        sobras = [n for n, v in ((f"{prefixo}_MODELO", modelo), (f"{prefixo}_VOZ", voz), (f"{prefixo}_CHAVE", chave)) if v]
+
+def _servico(prefixo, valor, achados: list[Achado], desligado: str, local_exige, url_exige) -> Servico | None:
+    motor = valor(f"{prefixo}_MOTOR")
+    campos = {nome: valor(f"{prefixo}_{nome}") for nome in ("MODELO", "VOZ", "URL", "CHAVE")}
+
+    if motor is None:
+        achados.append(Achado(INFO, f"{prefixo}_MOTOR", desligado))
+        sobras = [f"{prefixo}_{n}" for n, v in campos.items() if v]
         if sobras:
-            achados.append(Achado(AVISO, f"{prefixo}_URL", f"{', '.join(sobras)} preenchida(s), mas sem URL o serviço fica desligado."))
+            achados.append(Achado(AVISO, f"{prefixo}_MOTOR", f"{', '.join(sobras)} preenchida(s), mas sem motor o serviço fica desligado."))
+        return None
+
+    if motor not in MOTORES:
+        achados.append(Achado(ERRO, f"{prefixo}_MOTOR", f"Motor '{motor}' não aceito; use '{LOCAL}' (nesta máquina) ou '{URL}' (servidor)."))
         return None
 
     ok = True
-    partes = urlparse(url)
-    if partes.scheme not in ("http", "https") or not partes.netloc:
-        achados.append(Achado(ERRO, f"{prefixo}_URL", f"'{url}' não é um endereço http(s) válido."))
-        ok = False
-    if modelo is None:
-        achados.append(Achado(ERRO, f"{prefixo}_MODELO", "Modelo não informado. Nenhum modelo é escolhido aqui; informe o do seu servidor."))
-        ok = False
-    if exige_voz and voz is None:
-        achados.append(Achado(ERRO, f"{prefixo}_VOZ", "Voz não informada. Nenhuma voz é escolhida aqui; informe uma que o seu servidor aceite."))
-        ok = False
+    for nome in local_exige if motor == LOCAL else url_exige:
+        if campos[nome] is None:
+            achados.append(Achado(ERRO, f"{prefixo}_{nome}", _EXPLICACAO[nome]))
+            ok = False
+    if motor == URL and campos["URL"] is not None:
+        partes = urlparse(campos["URL"])
+        if partes.scheme not in ("http", "https") or not partes.netloc:
+            achados.append(Achado(ERRO, f"{prefixo}_URL", f"'{campos['URL']}' não é um endereço http(s) válido."))
+            ok = False
+    if motor == LOCAL:
+        ignoradas = [f"{prefixo}_{n}" for n in ("URL", "CHAVE") if campos[n]]
+        if ignoradas:
+            achados.append(Achado(AVISO, f"{prefixo}_MOTOR", f"{', '.join(ignoradas)} só vale(m) no motor '{URL}'; ignorada(s)."))
     if not ok:
         return None
-    return Servico(url=url, modelo=modelo, chave=chave, voz=voz)
+    if motor == LOCAL:
+        return Servico(motor=LOCAL, modelo=campos["MODELO"], voz=campos["VOZ"])
+    return Servico(motor=URL, modelo=campos["MODELO"], voz=campos["VOZ"], url=campos["URL"], chave=campos["CHAVE"])
 
 
 def resumo_publico(config: Configuracao) -> dict:
@@ -171,15 +216,20 @@ def resumo_publico(config: Configuracao) -> dict:
     def servico(s: Servico | None) -> dict | None:
         if s is None:
             return None
-        saida = {"url": s.url, "modelo": s.modelo, "chave": "definida" if s.chave else "ausente"}
+        saida = {"motor": s.motor, "modelo": s.modelo}
         if s.voz is not None:
             saida["voz"] = s.voz
+        if s.motor == URL:
+            saida["url"] = s.url
+            saida["chave"] = "definida" if s.chave else "ausente"
         return saida
 
     return {
         "stt": servico(config.stt),
         "tts": servico(config.tts),
         "idioma": config.idioma,
+        "dispositivo": config.dispositivo,
+        "modelos_dir": str(config.modelos_dir),
         "ice_servidores": list(config.ice_servidores),
         "porta": config.porta,
         "achados": [{"nivel": a.nivel, "variavel": a.variavel, "mensagem": a.mensagem} for a in config.achados],

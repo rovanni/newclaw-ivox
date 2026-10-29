@@ -13,9 +13,14 @@ cota de nuvem, aviso e peço.
 |---|---|---|---|
 | 1 — Base sem dependências | Repositório; configuração da tabela 4 com ausência reportada; texto → frases para a fala (H2/D4); protocolo `falar`/`interromper`; `diagnostico` com saída 0/1/2 | Nada além do Python 3.10+ | **feita** (29/10) |
 | 2 — Pipecat no Windows | Instalar o Pipecat num ambiente isolado (`.venv` do projeto); conferir os binários (PyAV/FFmpeg e codecs, ONNX) e as licenças instaladas; fixar as versões | **OK para instalar** (dado em 29/10) | **feita** (29/10) |
-| 3 — Pipeline do motor | `VAD → STT → user-transcription` e `client-message falar → TTS frase a frase`, com o servidor HTTP só em `127.0.0.1`; teste com áudio gravado no lugar do microfone | Um servidor de STT e um de TTS que você indicar | a fazer |
-| 4 — Interrupção por voz real | VAD do usuário corta a fala; prova com microfone de verdade | Você falando no microfone | a fazer |
-| 5 — Linux | Repetir as provas 2–4 numa máquina Linux | Qual máquina usar (indicação sua) | a fazer |
+| 3 — Instalador + transcrição local | `python instalar.py`: mede a máquina, pergunta, instala, baixa o modelo e testa; transcrição com faster-whisper, GPU medida | OK para instalar e baixar; modelo escolhido por você (`large-v3-turbo`, 29/10) | **feita** (29/10) |
+| 4 — Síntese local | Kokoro na máquina, frase a frase; o instalador passa a perguntar a voz | OK para baixar o Kokoro | a fazer |
+| 5 — Fluxo completo + interrupção real | `VAD → STT → user-transcription` e `falar → TTS`; a fala do usuário corta a do motor; prova com microfone de verdade | Você falando no microfone | a fazer |
+| 6 — Linux | Repetir as provas 2–5 numa máquina Linux | Qual máquina usar (indicação sua) | a fazer |
+
+Revisão de 29/10/2026 (ADR-030 do NewClaw, "voz na máquina do usuário"): as sprints 3 a 6 substituem o plano anterior,
+que dependia de servidores de transcrição e síntese noutra máquina. A ideia do instalador já nesta sprint é da operadora:
+cada sprint é testada do jeito que uma pessoa nova vai instalar.
 
 ## Sprint 1 — resultado (29/10/2026)
 
@@ -87,3 +92,62 @@ cota de nuvem, aviso e peço.
 - Tudo isto vale para o Windows; o Linux é a Sprint 5.
 - Só há o arquivo de versões fixas para Windows.
 - O extra `runner` entra só como apoio de desenvolvimento para a Sprint 3. O servidor próprio do harness é a Etapa 3.
+
+## Sprint 3 — resultado (29/10/2026)
+
+**Instalador** (`python instalar.py`, ou `--simular` para só ver os passos):
+- **Base:** só a biblioteca padrão, um arquivo para Windows, Linux e macOS. Segue os passos do instalador do NewClaw: medir →
+  instalar → baixar modelo → configurar → testar → resumo.
+- **Mede:** sistema, Python, GPU NVIDIA (`nvidia-smi`) e espaço livre.
+- **Pergunta, sem resposta padrão:**
+  - onde transcrever: nesta máquina, num servidor ou desligada;
+  - qual modelo, com a lista vinda do faster-whisper e os tamanhos medidos na hora no Hugging Face;
+  - qual idioma.
+- **Instala** no `.venv` os extras `motor` e `stt-local`, mais o `cuda` só quando mede uma GPU NVIDIA. Antes, mostra o que
+  vai instalar e as licenças, e pergunta.
+- **Baixa** o modelo para `modelos/` só depois de mostrar o tamanho e perguntar; se o modelo já existe, não baixa de novo.
+- **Grava** o `.env` só nas chaves de voz e preserva o resto.
+- **No final**, roda o diagnóstico e `testar-stt`.
+
+**Transcrição local:**
+- `stt_local.py` monta o `WhisperSTTService` do Pipecat com modelo, idioma, dispositivo e tipo de cálculo sempre explícitos.
+  Sem isso, o Pipecat cairia no padrão dele: um modelo só de inglês, com o idioma em inglês.
+- `dispositivo.py` mede a GPU pelo CTranslate2 e registra as DLLs CUDA do pip no Windows.
+  - O tipo de cálculo é escolhido entre os medidos.
+  - Nesta máquina: `cuda/float16`.
+
+**Prova real** — instalação limpa (cópia do repositório sem `.venv`), Windows 11, RTX 5060 Ti 16 GB, `large-v3-turbo`:
+
+| Medida | Resultado |
+|---|---|
+| Instalação completa (ambiente + modelo de 1,5 GB) | 1 min 53 s; o modelo baixou em 37 s. Ambiente: 2,6 GB |
+| Carga do modelo na GPU | 8,5–9,3 s |
+| Primeiríssima transcrição na placa (a NVIDIA compila e guarda os kernels) | 19,9 s, uma vez só por máquina |
+| Primeira transcrição de cada processo (aquecimento) | 1,9–3,4 s |
+| Uso, 10 s de fala (frase pt-BR gerada pela voz Maria do Windows) | 0,54–0,62 s (~18x mais rápido que a fala), texto idêntico ao falado |
+| Mesmo modelo na CPU (`cpu/int8`) | 14,3–14,5 s para 10 s de fala: **mais lento que a fala** |
+
+**Achados:**
+- **Silêncio:**
+  - o Whisper inventa texto em silêncio ("Obrigado.");
+  - o primeiro teste do instalador esperava vazio, e foi corrigido: agora mede o tempo, sem julgar o texto;
+  - no uso, o VAD só entrega trechos com fala.
+- **Ordem das mensagens:** saía trocada quando a saída ia para um pipe; consertado com `flush`.
+- **Licença proprietária:** as bibliotecas CUDA (`nvidia-cublas-cu12`, `nvidia-cudnn-cu12`, `nvidia-cuda-nvrtc-cu12`) têm
+  licença proprietária da NVIDIA.
+  - Vêm do PyPI para a máquina e não podem ser redistribuídas.
+  - O instalador diz isso, e o inventário ganhou uma seção para elas.
+- **Licença do modelo:** o `large-v3-turbo` (`mobiuslabsgmbh/faster-whisper-large-v3-turbo`, conversão do
+  `openai/whisper-large-v3-turbo`) declara MIT no Hugging Face.
+
+**Testes:**
+- 52 de unidade; sem o Pipecat, 3 deles são pulados. Com o Pipecat (`.venv`), passam os 52.
+- Os de instalador cobrem: escolha sem padrão, recusa sem executar nada, `.env` preservado e chave oculta.
+
+**Limitações e próximos passos:**
+- **Sem GPU:** o `large-v3-turbo` na CPU é mais lento que a fala. O `testar-stt` agora diz isso e sugere modelo menor ou GPU,
+  sem escolher por ninguém.
+- **Aquecimento:** o motor deve aquecer o modelo ao iniciar (Sprint 5), para a primeira fala não pagar os ~2–3 s.
+- **Avisos de terceiros na tela:** o do Hugging Face sobre requisições sem token e o do Pipecat "pt-BR not verified; usando
+  'pt'". Ficam, porque são das bibliotecas.
+- **Inventário:** `docs/terceiros/windows.md` foi refeito a partir da instalação limpa (117 pacotes).

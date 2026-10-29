@@ -197,6 +197,17 @@
    ]
   },
   {
+   "nome": "ctranslate2",
+   "versao": "4.8.4",
+   "licenca_declarada": "MIT",
+   "bibliotecas_nativas": [
+    "ctranslate2.dll",
+    "cudnn64_9.dll",
+    "libiomp5md.dll"
+   ],
+   "arquivos_de_licenca": []
+  },
+  {
    "nome": "detect-installer",
    "versao": "0.2.1",
    "licenca_declarada": "0BSD",
@@ -276,6 +287,24 @@
    ]
   },
   {
+   "nome": "faster-whisper",
+   "versao": "1.2.1",
+   "licenca_declarada": "MIT",
+   "bibliotecas_nativas": [],
+   "arquivos_de_licenca": [
+    "faster_whisper-1.2.1.dist-info/LICENSE"
+   ]
+  },
+  {
+   "nome": "filelock",
+   "versao": "4.2.4",
+   "licenca_declarada": "MIT",
+   "bibliotecas_nativas": [],
+   "arquivos_de_licenca": [
+    "filelock-4.2.4.dist-info/licenses/LICENSE"
+   ]
+  },
+  {
    "nome": "flatbuffers",
    "versao": "25.12.19",
    "licenca_declarada": "Apache 2.0",
@@ -289,6 +318,15 @@
    "bibliotecas_nativas": [],
    "arquivos_de_licenca": [
     "frozenlist-1.8.0.dist-info/licenses/LICENSE"
+   ]
+  },
+  {
+   "nome": "fsspec",
+   "versao": "2026.9.0",
+   "licenca_declarada": "BSD-3-Clause",
+   "bibliotecas_nativas": [],
+   "arquivos_de_licenca": [
+    "fsspec-2026.9.0.dist-info/licenses/LICENSE"
    ]
   },
   {
@@ -318,6 +356,15 @@
    "bibliotecas_nativas": [],
    "arquivos_de_licenca": [
     "h11-0.16.0.dist-info/licenses/LICENSE.txt"
+   ]
+  },
+  {
+   "nome": "hf-xet",
+   "versao": "1.7.1",
+   "licenca_declarada": "Apache-2.0",
+   "bibliotecas_nativas": [],
+   "arquivos_de_licenca": [
+    "hf_xet-1.7.1.dist-info/licenses/LICENSE"
    ]
   },
   {
@@ -365,6 +412,15 @@
    "bibliotecas_nativas": [],
    "arquivos_de_licenca": [
     "httpx2-2.16.0.dist-info/licenses/LICENSE.md"
+   ]
+  },
+  {
+   "nome": "huggingface_hub",
+   "versao": "2.4.0",
+   "licenca_declarada": "Apache-2.0",
+   "bibliotecas_nativas": [],
+   "arquivos_de_licenca": [
+    "huggingface_hub-2.4.0.dist-info/licenses/LICENSE"
    ]
   },
   {
@@ -497,6 +553,15 @@
    ]
   },
   {
+   "nome": "newclaw-ivox",
+   "versao": "0.1.0",
+   "licenca_declarada": "MIT License (texto longo no metadado)",
+   "bibliotecas_nativas": [],
+   "arquivos_de_licenca": [
+    "newclaw_ivox-0.1.0.dist-info/licenses/LICENSE"
+   ]
+  },
+  {
    "nome": "num2words",
    "versao": "0.5.14",
    "licenca_declarada": "LGPL",
@@ -547,6 +612,52 @@
    ]
   },
   {
+   "nome": "nvidia-cublas-cu12",
+   "versao": "12.9.2.10",
+   "licenca_declarada": "LicenseRef-NVIDIA-Proprietary",
+   "bibliotecas_nativas": [
+    "cublas64_12.dll",
+    "cublasLt64_12.dll",
+    "nvblas64_12.dll"
+   ],
+   "arquivos_de_licenca": [
+    "nvidia_cublas_cu12-12.9.2.10.dist-info/licenses/License.txt"
+   ]
+  },
+  {
+   "nome": "nvidia-cuda-nvrtc-cu12",
+   "versao": "12.9.86",
+   "licenca_declarada": "LicenseRef-NVIDIA-Proprietary",
+   "bibliotecas_nativas": [
+    "nvrtc-builtins64_129.dll",
+    "nvrtc64_120_0.alt.dll",
+    "nvrtc64_120_0.dll"
+   ],
+   "arquivos_de_licenca": [
+    "nvidia_cuda_nvrtc_cu12-12.9.86.dist-info/licenses/License.txt"
+   ]
+  },
+  {
+   "nome": "nvidia-cudnn-cu12",
+   "versao": "9.27.0.42",
+   "licenca_declarada": "LicenseRef-NVIDIA-Proprietary",
+   "bibliotecas_nativas": [
+    "cudnn64_9.dll",
+    "cudnn_adv64_9.dll",
+    "cudnn_cnn64_9.dll",
+    "cudnn_engines_precompiled64_9.dll",
+    "cudnn_engines_runtime_compiled64_9.dll",
+    "cudnn_engines_tensor_ir64_9.dll",
+    "cudnn_ext64_9.dll",
+    "cudnn_graph64_9.dll",
+    "cudnn_heuristic64_9.dll",
+    "cudnn_ops64_9.dll"
+   ],
+   "arquivos_de_licenca": [
+    "nvidia_cudnn_cu12-9.27.0.42.dist-info/licenses/License.txt"
+   ]
+  },
+  {
    "nome": "onnxruntime",
    "versao": "1.24.4",
    "licenca_declarada": "MIT License",
@@ -586,74 +697,74 @@
   },
   {
    "nome": "opentelemetry-api",
-   "versao": "1.45.1",
+   "versao": "1.45.2",
    "licenca_declarada": "Apache-2.0",
    "bibliotecas_nativas": [],
    "arquivos_de_licenca": [
-    "opentelemetry_api-1.45.1.dist-info/licenses/LICENSE"
+    "opentelemetry_api-1.45.2.dist-info/licenses/LICENSE"
    ]
   },
   {
    "nome": "opentelemetry-exporter-http-transport",
-   "versao": "0.66b1",
+   "versao": "0.66b2",
    "licenca_declarada": "Apache-2.0",
    "bibliotecas_nativas": [],
    "arquivos_de_licenca": [
-    "opentelemetry_exporter_http_transport-0.66b1.dist-info/licenses/LICENSE"
+    "opentelemetry_exporter_http_transport-0.66b2.dist-info/licenses/LICENSE"
    ]
   },
   {
    "nome": "opentelemetry-exporter-otlp-common",
-   "versao": "0.66b1",
+   "versao": "0.66b2",
    "licenca_declarada": "Apache-2.0",
    "bibliotecas_nativas": [],
    "arquivos_de_licenca": [
-    "opentelemetry_exporter_otlp_common-0.66b1.dist-info/licenses/LICENSE"
+    "opentelemetry_exporter_otlp_common-0.66b2.dist-info/licenses/LICENSE"
    ]
   },
   {
    "nome": "opentelemetry-exporter-otlp-proto-common",
-   "versao": "1.45.1",
+   "versao": "1.45.2",
    "licenca_declarada": "Apache-2.0",
    "bibliotecas_nativas": [],
    "arquivos_de_licenca": [
-    "opentelemetry_exporter_otlp_proto_common-1.45.1.dist-info/licenses/LICENSE"
+    "opentelemetry_exporter_otlp_proto_common-1.45.2.dist-info/licenses/LICENSE"
    ]
   },
   {
    "nome": "opentelemetry-exporter-otlp-proto-http",
-   "versao": "1.45.1",
+   "versao": "1.45.2",
    "licenca_declarada": "Apache-2.0",
    "bibliotecas_nativas": [],
    "arquivos_de_licenca": [
-    "opentelemetry_exporter_otlp_proto_http-1.45.1.dist-info/licenses/LICENSE"
+    "opentelemetry_exporter_otlp_proto_http-1.45.2.dist-info/licenses/LICENSE"
    ]
   },
   {
    "nome": "opentelemetry-proto",
-   "versao": "1.45.1",
+   "versao": "1.45.2",
    "licenca_declarada": "Apache-2.0",
    "bibliotecas_nativas": [],
    "arquivos_de_licenca": [
-    "opentelemetry_proto-1.45.1.dist-info/licenses/LICENSE"
+    "opentelemetry_proto-1.45.2.dist-info/licenses/LICENSE"
    ]
   },
   {
    "nome": "opentelemetry-sdk",
-   "versao": "1.45.1",
+   "versao": "1.45.2",
    "licenca_declarada": "Apache-2.0",
    "bibliotecas_nativas": [],
    "arquivos_de_licenca": [
-    "opentelemetry_sdk-1.45.1.dist-info/licenses/LICENSE"
+    "opentelemetry_sdk-1.45.2.dist-info/licenses/LICENSE"
    ]
   },
   {
    "nome": "opentelemetry-semantic-conventions",
-   "versao": "0.66b1",
+   "versao": "0.66b2",
    "licenca_declarada": "Apache-2.0",
    "bibliotecas_nativas": [],
    "arquivos_de_licenca": [
-    "opentelemetry_semantic_conventions-0.66b1.dist-info/licenses/LICENSE"
+    "opentelemetry_semantic_conventions-0.66b2.dist-info/licenses/LICENSE"
    ]
   },
   {
@@ -950,6 +1061,22 @@
     "sympy-1.14.0.dist-info/licenses/AUTHORS",
     "sympy-1.14.0.dist-info/licenses/LICENSE",
     "sympy/parsing/latex/LICENSE.txt"
+   ]
+  },
+  {
+   "nome": "tokenizers",
+   "versao": "0.23.3",
+   "licenca_declarada": "Apache Software License",
+   "bibliotecas_nativas": [],
+   "arquivos_de_licenca": []
+  },
+  {
+   "nome": "tqdm",
+   "versao": "4.70.1",
+   "licenca_declarada": "MPL-2.0 AND MIT",
+   "bibliotecas_nativas": [],
+   "arquivos_de_licenca": [
+    "tqdm-4.70.1.dist-info/licenses/LICENCE"
    ]
   },
   {

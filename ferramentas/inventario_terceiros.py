@@ -135,6 +135,13 @@ def markdown(dados: dict) -> str:
         "|---|---|---|",
     ]
     linhas += [f"| {a['pacote']} | `{a['arquivo']}` | {a['licenca_de_origem']} |" for a in dados["nativas_copyleft"]]
+    proprietarias = [p for p in dados["pacotes"] if "proprietary" in p["licenca_declarada"].lower()]
+    linhas += ["", "## Pacotes com licença proprietária", ""]
+    if proprietarias:
+        linhas += ["Instalados do PyPI na máquina de quem usa; não podem ser redistribuídos com o harness.", ""]
+        linhas += [f"- {p['nome']} {p['versao']}: {p['licenca_declarada']}" for p in proprietarias]
+    else:
+        linhas.append("Nenhum.")
     linhas += ["", "## FFmpeg dentro do PyAV", ""]
     if "ausente" in f:
         linhas.append(f"PyAV não instalado: {f['ausente']}")

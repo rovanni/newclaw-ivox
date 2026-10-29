@@ -33,10 +33,19 @@ def texto(config: cfg.Configuracao) -> str:
         s = resumo[nome]
         if s is None:
             linhas.append(f"{rotulo}: desligada")
+            continue
+        partes = [f"modelo {s['modelo']}"] if s["modelo"] else []
+        if "voz" in s:
+            partes.append(f"voz {s['voz']}")
+        if s["motor"] == cfg.URL:
+            partes.append(f"chave {s['chave']}")
+            onde = s["url"]
         else:
-            extra = f", voz {s['voz']}" if "voz" in s else ""
-            linhas.append(f"{rotulo}: {s['url']} (modelo {s['modelo']}{extra}, chave {s['chave']})")
+            onde = "nesta máquina"
+        linhas.append(f"{rotulo}: {onde} ({', '.join(partes)})")
     linhas.append(f"Idioma: {resumo['idioma'] or 'não informado'}")
+    linhas.append(f"Dispositivo: {resumo['dispositivo']}")
+    linhas.append(f"Pasta dos modelos: {resumo['modelos_dir']}")
     linhas.append(f"STUN/TURN: {', '.join(resumo['ice_servidores']) or 'nenhum'}")
     linhas.append(f"Porta local: 127.0.0.1:{resumo['porta']}")
     if config.achados:
@@ -46,8 +55,8 @@ def texto(config: cfg.Configuracao) -> str:
     linhas.append("")
     if codigo == SAIDA_NADA_CONFIGURADO:
         linhas.append(
-            "Nada a fazer: nem transcrição nem síntese configuradas. Preencha VOZ_STT_* e/ou VOZ_TTS_* "
-            "(veja .env.example) e rode de novo."
+            "Nada a fazer: nem transcrição nem síntese configuradas. Rode o instalador "
+            "(python instalar.py) ou preencha VOZ_STT_* e/ou VOZ_TTS_* (veja .env.example)."
         )
     elif codigo == SAIDA_ERRO:
         linhas.append("Corrija os erros acima antes de iniciar o motor de voz.")
@@ -58,7 +67,7 @@ def texto(config: cfg.Configuracao) -> str:
 
 def principal(argumentos: list[str], ambiente=None, raiz: Path | None = None) -> int:
     raiz = raiz or Path.cwd()
-    config = cfg.carregar(ambiente, raiz / ".env")
+    config = cfg.carregar(ambiente, raiz / ".env", raiz)
     if "--json" in argumentos:
         saida = cfg.resumo_publico(config)
         saida["codigo"] = codigo_de_saida(config)

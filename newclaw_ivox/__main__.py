@@ -2,7 +2,31 @@ import sys
 
 from . import diagnostico
 
-COMANDOS = {"diagnostico": diagnostico.principal}
+
+def _modelos(argumentos):
+    from . import comandos
+
+    return comandos.modelos(argumentos)
+
+
+def _testar_stt(argumentos):
+    from . import comandos
+
+    return comandos.testar_stt(argumentos)
+
+
+def _instalar(argumentos):
+    from . import instalador
+
+    return instalador.principal(argumentos)
+
+
+COMANDOS = {
+    "diagnostico": diagnostico.principal,
+    "instalar": _instalar,
+    "modelos": _modelos,
+    "testar-stt": _testar_stt,
+}
 
 
 def main() -> int:
@@ -11,7 +35,7 @@ def main() -> int:
     if not sys.stdout.isatty():
         sys.stdout.reconfigure(encoding="utf-8")
     if len(sys.argv) < 2 or sys.argv[1] not in COMANDOS:
-        print(f"uso: python -m newclaw_ivox <{'|'.join(COMANDOS)}> [--json]", file=sys.stderr)
+        print(f"uso: python -m newclaw_ivox <{'|'.join(COMANDOS)}> [opções]", file=sys.stderr)
         return 64
     return COMANDOS[sys.argv[1]](sys.argv[2:])
 

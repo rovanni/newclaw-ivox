@@ -12,6 +12,10 @@ dependencies = []
 # Motor de voz. Versão fixada na da Etapa 0 (ADR-030), auditada no Windows na Sprint 2: docs/terceiros/windows.md.
 # Versões exatas de todo o ambiente auditado: requisitos-motor-windows.txt.
 motor = ["pipecat-ai[webrtc,silero,openai,runner]==1.12.0"]
+# Transcrição nesta máquina (faster-whisper), ADR-030, revisão de 29/10/2026.
+stt-local = ["pipecat-ai[whisper]==1.12.0"]
+# Bibliotecas CUDA da NVIDIA pelo pip; o instalador só pede este extra quando mede uma GPU NVIDIA (fora do macOS).
+cuda = ["nvidia-cublas-cu12==12.9.2.10", "nvidia-cudnn-cu12==9.27.0.42"]
 
 [build-system]
 requires = ["setuptools>=68"]
