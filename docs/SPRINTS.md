@@ -15,7 +15,7 @@ cota de nuvem, aviso e peço.
 | 2 — Pipecat no Windows | Instalar o Pipecat num ambiente isolado (`.venv` do projeto); conferir os binários (PyAV/FFmpeg e codecs, ONNX) e as licenças instaladas; fixar as versões | **OK para instalar** (dado em 29/10) | **feita** (29/10) |
 | 3 — Instalador + transcrição local | `python instalar.py`: mede a máquina, pergunta, instala, baixa o modelo e testa; transcrição com faster-whisper, GPU medida | OK para instalar e baixar; modelo escolhido por você (`large-v3-turbo`, 29/10) | **feita** (29/10) |
 | 4 — Síntese local | Kokoro na máquina, frase a frase; o instalador passa a perguntar a voz | OK para baixar o Kokoro (dado em 29/10); a voz é escolha sua | **feita** (29/10) |
-| 5 — Fluxo completo + interrupção real | `VAD → STT → user-transcription` e `falar → TTS`; a fala do usuário corta a do motor; prova com microfone de verdade | Você falando no microfone | provado com cliente WebRTC automático; falta você no microfone |
+| 5 — Fluxo completo + interrupção real | `VAD → STT → user-transcription` e `falar → TTS`; a fala do usuário corta a do motor; prova com microfone de verdade | Você falando no microfone | **feita** (29/10): automático e com a operadora no microfone |
 | 6 — Linux | Repetir as provas 2–5 numa máquina Linux | Qual máquina usar (indicação sua) | a fazer |
 
 Revisão de 29/10/2026 (ADR-030 do NewClaw, "voz na máquina do usuário"): as sprints 3 a 6 substituem o plano anterior,
@@ -299,7 +299,7 @@ Provado com o kokoro-onnx puro, sem o newclaw-ivox: a `george-alex-2` falou.
   nome para todos esses projetos.
 - Essa troca é na infraestrutura da operadora e só acontece com o OK dela.
 
-## Sprint 5 — resultado parcial (29/10/2026)
+## Sprint 5 — resultado (29/10/2026)
 
 **Motor** (`python -m newclaw_ivox motor [--eco]`, `motor.py`): o pipeline do Pipecat montado com o que foi configurado e
 medido.
@@ -340,7 +340,18 @@ medido.
 - **Sem NewClaw:** a pausa curta que encerra o trecho é o padrão do Pipecat (VAD). Com o NewClaw, quem decide o fim do
   pedido é a janela (Etapa 4), que pode esperar mais.
 
-**Falta, para fechar a Sprint 5:** a prova com a operadora falando no microfone de verdade, pela página de teste do
-navegador.
+**Prova com a operadora no microfone** (29/10, Chrome, página de teste em `http://localhost:7860/client`, modo eco):
+- 19 falas dela transcritas, por exemplo "Olá, tudo bem com você?", "Estou interrompendo você…", "Agora fiz o teste e
+  parou.".
+- Ela falou por cima da resposta duas vezes, e o motor parou nas duas, 5 e 6 ms depois de o VAD confirmar a voz. Ela
+  confirmou ao ouvir: "parou quando eu falo".
+
+**Achado do teste real, a conferir na janela (Etapa 4):**
+- Logo depois das interrupções, o Whisper transcreveu "Você disse?" e "Eu disse.".
+- Pode ser ela repetindo, ou o microfone captando a própria voz do motor ("Você disse: …"), apesar do cancelamento de eco
+  do navegador.
+- Se for a voz do motor, ela pode disparar uma interrupção falsa ou um pedido falso ao NewClaw.
+- **A conferir:** com fone de ouvido e sem fone; cancelamento de eco ligado na janela; e, se preciso, ignorar o que chega
+  enquanto o motor fala e o VAD não confirma uma voz diferente.
 
 **Testes:** 68; sem o Pipecat, 6 são pulados.
