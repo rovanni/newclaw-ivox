@@ -28,8 +28,18 @@ def modelos(argumentos: list[str]) -> int:
         if not m.kokoro_instalado(pasta):
             print(f"Kokoro não está em {m.pasta_kokoro(pasta)}.")
             return 1
-        vozes = m.vozes_kokoro(pasta)
-        print(json.dumps(vozes) if "--json" in argumentos else "\n".join(vozes))
+        from . import tts_local
+
+        try:
+            vozes = tts_local.vozes_disponiveis(pasta)
+        except tts_local.TtsIndisponivel as e:
+            print(e)
+            return 1
+        if "--json" in argumentos:
+            print(json.dumps(vozes, ensure_ascii=False))
+        else:
+            for v in vozes:
+                print(f"{v['nome']:<16} {v['rotulo'] if v['rotulo'] != v['nome'] else ''}")
         return 0
     if "--kokoro" in argumentos:
         if "--baixar" in argumentos:

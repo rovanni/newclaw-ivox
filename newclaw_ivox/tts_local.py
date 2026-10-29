@@ -18,7 +18,9 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 from . import configuracao as cfg
-from . import modelos
+from . import misturas, modelos
+
+RAIZ = Path(__file__).resolve().parent.parent
 
 # Taxa de saída quando o serviço roda fora de um pipeline (no pipeline, quem define é o transporte).
 TAXA_PADRAO_FORA_DO_PIPELINE = 24_000
@@ -65,31 +67,69 @@ def criar_servico(config: cfg.Configuracao, taxa: int = TAXA_PADRAO_FORA_DO_PIPE
     voz = voz or config.tts.voz
     if voz is None:
         raise SemVozEscolhida("Nenhuma voz escolhida: escolha uma na interface (todas as vozes do Kokoro já estão instaladas).")
-    vozes = modelos.vozes_kokoro(config.modelos_dir)
-    if voz not in vozes:
-        raise TtsIndisponivel(f"A voz '{voz}' não está no arquivo de vozes do Kokoro ({len(vozes)} vozes).")
+    base = modelos.vozes_kokoro(config.modelos_dir)
+    lista = misturas_validas(base)
+    nomes = nomes_disponiveis(base, lista)
+    if voz not in nomes:
+        raise TtsIndisponivel(f"A voz '{voz}' não está entre as {len(nomes)} disponíveis.")
 
     from pipecat.services.kokoro.tts import KokoroTTSService
     from pipecat.transcriptions.language import Language
 
+    # O serviço confere a voz inicial no arquivo do Kokoro ao nascer; uma mistura ainda não está lá. Ele nasce com a
+    # primeira voz da mistura, recebe as misturas e troca para a pedida em seguida.
+    mistura = next((m for m in lista if m.nome == voz), None)
+    voz_de_partida = mistura.pesos[0][0] if mistura else voz
     modelo, arquivo_vozes = modelos.arquivos_kokoro(config.modelos_dir)
     servico = KokoroTTSService(
         model_path=str(modelo),
         voices_path=str(arquivo_vozes),
         sample_rate=taxa,
-        settings=KokoroTTSService.Settings(voice=voz, language=Language(config.idioma)),
+        settings=KokoroTTSService.Settings(voice=voz_de_partida, language=Language(config.idioma)),
     )
+    _acrescentar_misturas(servico, lista)
+    if mistura:
+        trocar_voz(servico, voz)
     return servico
+
+
+def misturas_validas(base: list[str]) -> list[misturas.Mistura]:
+    try:
+        return misturas.carregar(RAIZ / misturas.ARQUIVO, base)
+    except misturas.MisturaInvalida as e:
+        raise TtsIndisponivel(f"Vozes misturadas: {e}") from e
+
+
+def nomes_disponiveis(base: list[str], lista: list[misturas.Mistura]) -> list[str]:
+    return [m.nome for m in lista] + list(base)
+
+
+def vozes_disponiveis(modelos_dir: Path) -> list[dict]:
+    """Para a interface: as misturas primeiro (com rótulo), depois as vozes do Kokoro (o rótulo é o próprio nome)."""
+    base = modelos.vozes_kokoro(modelos_dir)
+    lista = misturas_validas(base)
+    return [{"nome": m.nome, "rotulo": m.rotulo, "mistura": dict(m.pesos)} for m in lista] + [
+        {"nome": v, "rotulo": v} for v in base
+    ]
+
+
+def _acrescentar_misturas(servico, lista: list[misturas.Mistura]) -> None:
+    """O kokoro-onnx guarda as vozes como vetores de estilo por nome; a mistura é a média ponderada deles."""
+    kokoro = servico._kokoro
+    vozes = {nome: kokoro.voices[nome] for nome in kokoro.voices.keys()}
+    for m in lista:
+        vozes[m.nome] = sum(vozes[v] * peso for v, peso in m.pesos)
+    kokoro.voices = vozes
 
 
 def voz_atual(servico) -> str:
     return servico._settings.voice
 
 
-def trocar_voz(servico, voz: str, vozes: list[str]) -> None:
+def trocar_voz(servico, voz: str) -> None:
     """Troca a voz sem recarregar o modelo, pelo mesmo caminho de configuração que o pipeline usa."""
-    if voz not in vozes:
-        raise TtsIndisponivel(f"A voz '{voz}' não está no arquivo de vozes do Kokoro ({len(vozes)} vozes).")
+    if voz not in servico._kokoro.voices:
+        raise TtsIndisponivel(f"A voz '{voz}' não está entre as {len(servico._kokoro.voices)} disponíveis.")
     from pipecat.services.kokoro.tts import KokoroTTSService
 
     asyncio.run(servico._update_settings(KokoroTTSService.Settings(voice=voz)))

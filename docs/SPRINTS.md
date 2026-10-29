@@ -246,3 +246,39 @@ primeira frase curta é a mais lenta em relação à própria duração.
 - Usar uma mistura na interface é passo seguinte, se ela gostar.
 
 **Testes:** 61 de unidade (3 pulados sem o Pipecat).
+
+## Vozes misturadas com nome (29/10/2026, pedido da operadora)
+
+**O arquivo de dados `vozes-misturadas.json`** declara vozes novas:
+- cada uma tem nome, rótulo para a interface e pesos que somam 1;
+- a voz é a média ponderada dos vetores de estilo de vozes do Kokoro;
+- as primeiras três são da operadora:
+
+| Nome | Rótulo na interface | Mistura |
+|---|---|---|
+| `george-alex-1` | George e Alex — versão 1 | 70% `bm_george` + 30% `pm_alex` |
+| `george-alex-2` | George e Alex — versão 2 | 50% + 50% |
+| `george-alex-3` | George e Alex — versão 3 | 30% `bm_george` + 70% `pm_alex` |
+
+**Validação** (`misturas.py`):
+- nome sem espaço, que não repete nenhuma voz existente;
+- rótulo presente;
+- pelo menos duas vozes, todas no arquivo instalado;
+- pesos positivos, somando 1.
+
+Um arquivo com erro aparece com o motivo; nunca é ignorado em silêncio.
+
+**No motor:**
+- as misturas entram na lista de vozes (`modelos --vozes`), antes das 54 do Kokoro;
+- elas podem ser a voz inicial e podem ser trocadas em execução como qualquer outra voz.
+
+**Prova:**
+- as três falaram a frase de teste;
+- o Whisper transcreveu as três de volta igual ao original;
+- o áudio de cada versão difere do das outras e do George puro.
+
+Amostras em `amostras-de-voz/george-alex-{1,2,3}.wav`, fora do git.
+
+**Licença:** as vozes de origem são do mesmo arquivo do Kokoro (Apache-2.0), e a mistura não imita nenhuma pessoa.
+
+**Testes:** 66 (4 pulados sem o Pipecat ou sem o Kokoro baixado).

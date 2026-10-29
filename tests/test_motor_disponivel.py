@@ -61,5 +61,36 @@ class TestMotorDisponivel(unittest.TestCase):
         self.assertTrue(0.0 <= confianca <= 1.0)
 
 
+RAIZ = __import__("pathlib").Path(__file__).resolve().parent.parent
+
+
+def _kokoro_baixado() -> bool:
+    if not TEM_PIPECAT:
+        return False
+    from newclaw_ivox import modelos
+
+    return modelos.kokoro_instalado(RAIZ / "modelos")
+
+
+@unittest.skipUnless(_kokoro_baixado(), "Kokoro não baixado em modelos/ (o instalador baixa)")
+class TestVozesMisturadas(unittest.TestCase):
+    def test_mistura_e_troca_em_execucao(self):
+        from newclaw_ivox import configuracao as cfg, tts_local
+
+        config = cfg.carregar({"VOZ_TTS_MOTOR": "local", "VOZ_IDIOMA": "pt-BR"}, raiz=RAIZ)
+        nomes = [v["nome"] for v in tts_local.vozes_disponiveis(config.modelos_dir)]
+        self.assertEqual(nomes[:3], ["george-alex-1", "george-alex-2", "george-alex-3"])
+
+        servico = tts_local.criar_servico(config, voz="george-alex-1")
+        self.assertEqual(tts_local.voz_atual(servico), "george-alex-1")
+        um = tts_local.sintetizar(servico, ["Teste."]).audio_pcm16
+        tts_local.trocar_voz(servico, "george-alex-3")
+        tres = tts_local.sintetizar(servico, ["Teste."]).audio_pcm16
+        self.assertTrue(um and tres)
+        self.assertNotEqual(um, tres)
+        with self.assertRaises(tts_local.TtsIndisponivel):
+            tts_local.trocar_voz(servico, "voz_do_filme")
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -1,0 +1,8 @@
+{
+  "_sobre": "Vozes novas feitas da mistura de vozes do Kokoro (média ponderada dos vetores de estilo do mesmo arquivo de vozes, Apache-2.0). Não imitam nenhuma pessoa. Cada uma aparece na interface com o rótulo; os pesos somam 1. Criadas a pedido da operadora em 29/10/2026.",
+  "vozes": [
+    {"nome": "george-alex-1", "rotulo": "George e Alex — versão 1", "mistura": {"bm_george": 0.7, "pm_alex": 0.3}},
+    {"nome": "george-alex-2", "rotulo": "George e Alex — versão 2", "mistura": {"bm_george": 0.5, "pm_alex": 0.5}},
+    {"nome": "george-alex-3", "rotulo": "George e Alex — versão 3", "mistura": {"bm_george": 0.3, "pm_alex": 0.7}}
+  ]
+}
