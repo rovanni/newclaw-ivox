@@ -24,6 +24,18 @@ python -m newclaw_ivox diagnostico
 Saída `0` = pronto, `1` = erro de configuração, `2` = nada configurado. `--json` dá a mesma informação para outro programa
 ler. A chave nunca aparece, só se ela existe.
 
+## Instalar o motor de voz
+
+O motor usa o Pipecat, instalado num ambiente só deste projeto (`.venv`, ~540 MB no Windows), com as versões auditadas:
+
+```bash
+uv venv .venv --python 3.12
+uv pip install --python .venv/Scripts/python.exe -r requisitos-motor-windows.txt
+```
+
+Antes de instalar, leia [docs/terceiros/windows.md](docs/terceiros/windows.md): o PyAV traz bibliotecas de origem GPL
+(`libx264`, `libx265`) e outras LGPL. Elas vêm do PyPI para a sua máquina; este repositório não as redistribui.
+
 ## Testes
 
 ```bash

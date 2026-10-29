@@ -5,9 +5,13 @@ description = "Interface de voz opcional para o NewClaw (harness): ouve, mostra 
 readme = "README.md"
 license = { file = "LICENSE" }
 requires-python = ">=3.10"
-# Sprint 1: só biblioteca padrão. As dependências do motor de voz (Pipecat) entram na Sprint 2, depois de
-# instaladas e auditadas no Windows e no Linux (ADR-030, decisão L1).
+# A base (configuração, frases, protocolo, diagnóstico) usa só a biblioteca padrão.
 dependencies = []
+
+[project.optional-dependencies]
+# Motor de voz. Versão fixada na da Etapa 0 (ADR-030), auditada no Windows na Sprint 2: docs/terceiros/windows.md.
+# Versões exatas de todo o ambiente auditado: requisitos-motor-windows.txt.
+motor = ["pipecat-ai[webrtc,silero,openai,runner]==1.12.0"]
 
 [build-system]
 requires = ["setuptools>=68"]
