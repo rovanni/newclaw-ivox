@@ -22,8 +22,15 @@ MOTORES = (LOCAL, URL)
 
 DISPOSITIVOS = ("auto", "cpu", "cuda")
 
-# A porta é o único valor de rede com padrão: é endereço local, não escolha de recurso. O motor escuta só em 127.0.0.1.
+# A porta é o único valor de rede com padrão: é endereço local, não escolha de recurso. O harness escuta só em 127.0.0.1,
+# a não ser que HARNESS_HOST diga outra coisa — e aí só com HTTPS (decisão H3).
 PORTA_PADRAO = 7860
+HOST_PADRAO = "127.0.0.1"
+HOSTS_LOCAIS = ("127.0.0.1", "localhost", "::1")
+
+
+def host_e_local(host: str) -> bool:
+    return host in HOSTS_LOCAIS
 
 # Pasta dos modelos baixados, relativa à raiz do harness, quando VOZ_MODELOS_DIR não é informada. É lugar de arquivo,
 # não escolha de recurso.
@@ -64,6 +71,30 @@ class Configuracao:
     ice_servidores: tuple[str, ...]
     porta: int
     achados: tuple[Achado, ...] = field(default=())
+    # Servidor do harness (Etapa 3).
+    newclaw_url: str | None = None
+    host: str = HOST_PADRAO
+    tls_cert: Path | None = None
+    tls_chave: Path | None = None
+
+    @property
+    def com_tls(self) -> bool:
+        return self.tls_cert is not None and self.tls_chave is not None
+
+    @property
+    def origem(self) -> str:
+        """A origem que o navegador manda (`Origin`) quando a página vem deste servidor."""
+        esquema = "https" if self.com_tls else "http"
+        host = f"[{self.host}]" if ":" in self.host else self.host
+        return f"{esquema}://{host}:{self.porta}"
+
+    @property
+    def origens_aceitas(self) -> tuple[str, ...]:
+        """Em loopback, `localhost` e `127.0.0.1` são a mesma máquina; o navegador manda o nome que estiver na barra."""
+        esquema = "https" if self.com_tls else "http"
+        if host_e_local(self.host):
+            return tuple(f"{esquema}://{h}:{self.porta}" for h in ("localhost", "127.0.0.1", "[::1]"))
+        return (self.origem,)
 
     @property
     def tem_erro(self) -> bool:
@@ -165,9 +196,39 @@ def carregar(
         else:
             achados.append(Achado(ERRO, "HARNESS_PORTA", f"Porta '{bruta}' inválida (1 a 65535)."))
 
+    newclaw_url = valor("NEWCLAW_URL")
+    if newclaw_url is None:
+        achados.append(Achado(INFO, "NEWCLAW_URL", "Endereço do NewClaw não informado: o motor roda sozinho, mas o servidor do harness não sobe."))
+    else:
+        partes = urlparse(newclaw_url)
+        if partes.scheme not in ("http", "https") or not partes.netloc or partes.path not in ("", "/"):
+            achados.append(Achado(ERRO, "NEWCLAW_URL", f"'{newclaw_url}' não é um endereço http(s) de servidor (ex.: http://localhost:3090)."))
+            newclaw_url = None
+        else:
+            newclaw_url = newclaw_url.rstrip("/")
+
+    host = valor("HARNESS_HOST") or HOST_PADRAO
+    tls_cert, tls_chave = valor("HARNESS_TLS_CERT"), valor("HARNESS_TLS_CHAVE")
+    cert = chave = None
+    if (tls_cert is None) != (tls_chave is None):
+        achados.append(Achado(ERRO, "HARNESS_TLS_CERT", "HTTPS precisa dos dois: HARNESS_TLS_CERT e HARNESS_TLS_CHAVE."))
+    elif tls_cert is not None:
+        for variavel, caminho in (("HARNESS_TLS_CERT", tls_cert), ("HARNESS_TLS_CHAVE", tls_chave)):
+            if not Path(caminho).is_file():
+                achados.append(Achado(ERRO, variavel, f"Arquivo '{caminho}' não encontrado."))
+        if not any(a.variavel in ("HARNESS_TLS_CERT", "HARNESS_TLS_CHAVE") and a.nivel == ERRO for a in achados):
+            cert, chave = Path(tls_cert), Path(tls_chave)
+    if not host_e_local(host) and cert is None:
+        achados.append(Achado(
+            ERRO, "HARNESS_HOST",
+            f"Escutar em '{host}' expõe o harness à rede: isso só com HTTPS (HARNESS_TLS_CERT e HARNESS_TLS_CHAVE). "
+            "Sem certificado, use 127.0.0.1 e o microfone funciona só nesta máquina.",
+        ))
+
     return Configuracao(
         stt=stt, tts=tts, idioma=idioma, dispositivo=dispositivo, modelos_dir=modelos_dir,
         ice_servidores=tuple(ice), porta=porta, achados=tuple(achados),
+        newclaw_url=newclaw_url, host=host, tls_cert=cert, tls_chave=chave,
     )
 
 
@@ -236,5 +297,8 @@ def resumo_publico(config: Configuracao) -> dict:
         "modelos_dir": str(config.modelos_dir),
         "ice_servidores": list(config.ice_servidores),
         "porta": config.porta,
+        "newclaw_url": config.newclaw_url,
+        "host": config.host,
+        "https": config.com_tls,
         "achados": [{"nivel": a.nivel, "variavel": a.variavel, "mensagem": a.mensagem} for a in config.achados],
     }

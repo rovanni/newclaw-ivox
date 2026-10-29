@@ -33,6 +33,12 @@ def _motor(argumentos):
     return motor.principal(argumentos)
 
 
+def _servidor(argumentos):
+    from . import servidor
+
+    return servidor.principal(argumentos)
+
+
 def _instalar(argumentos):
     from . import instalador
 
@@ -45,6 +51,7 @@ COMANDOS = {
     "instalar": _instalar,
     "modelos": _modelos,
     "motor": _motor,
+    "servidor": _servidor,
     "testar-stt": _testar_stt,
     "testar-tts": _testar_tts,
 }

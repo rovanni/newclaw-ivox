@@ -100,6 +100,11 @@ async def bot(runner_args):
     from . import modelos
 
     config = cfg.carregar(None, RAIZ / ".env", RAIZ)
+    if config.idioma is None and getattr(runner_args, "idioma", None):
+        # Sem VOZ_IDIOMA, o servidor do harness leu o idioma configurado no NewClaw no login.
+        import dataclasses
+
+        config = dataclasses.replace(config, idioma=runner_args.idioma)
     Interrupcao, Eco = _processadores()
 
     transporte = SmallWebRTCTransport(

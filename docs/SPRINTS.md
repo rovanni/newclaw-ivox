@@ -401,3 +401,53 @@ O Marte foi descartado antes de instalar: 451 MB livres de 3,9 GB, swap em uso e
 **Achado lateral:** o cliente de teste (`aiortc`) na VPS não recebeu as mensagens nem o áudio do motor, e houve erros de
 STUN no `aioice`. O motor recebeu o áudio do cliente normalmente. Isso fica a investigar com uma janela de verdade, na
 Etapa 4.
+
+# Etapa 3 — servidor do harness (29/10/2026)
+
+Critério da ADR-030 para considerar a Etapa 3 pronta: testes de segurança mostrando que, sem login, a resposta é 401; que
+outra origem é recusada; e que o motor de voz não pode ser alcançado pela rede.
+
+**`python -m newclaw_ivox servidor`** (`servidor.py`): um processo só, que atende uma origem (H1).
+
+| Peça | Como |
+|---|---|
+| Login | `POST /entrar {senha}` → o harness chama `/api/auth/login` do NewClaw; o **token fica no servidor do harness**; o navegador recebe só o cookie `ivox_sessao` (`HttpOnly`, `SameSite=Strict`, `Secure` com HTTPS). `POST /sair` encerra |
+| Versão | no login, `GET /api/status` → `contracts.turn` precisa ser 1 (a versão que o harness usa); outra → `409`, sem sessão |
+| Idioma | `VOZ_IDIOMA` vence; vazio, o harness lê `language` de `/api/config` no login (rota fora do contrato do turno: se faltar ou trouxer idioma não aceito, a ausência continua reportada) |
+| Repasse | `/newclaw/<rota>` → `/api/<rota>` com `Bearer`, **só as rotas do contrato**: `POST chat`, `GET chat/active`, `GET chat/outbox`, `POST chat/auth-decision`, `GET conversations`, `GET conversations/<id>/messages`. O resto (inclusive `/api/status`, que traz nome da máquina e pid) → `404` sem chegar ao NewClaw. Da resposta passam só `Content-Type` e `Retry-After` |
+| Origem | todo pedido que muda estado (`/entrar`, `/sair`, `POST /newclaw/*`, `/api/offer`) precisa de `Origin` desta origem; senão `403` |
+| Sinalização WebRTC | `POST/PATCH /api/offer` com sessão e origem; o tratador é o do Pipecat (`SmallWebRTCRequestHandler`); cada conexão monta o pipeline do motor. Uma sessão não mexe na conexão de outra (`pc_id` conferido). O motor não tem porta própria |
+| HTTPS (H3) | `HARNESS_TLS_CERT` + `HARNESS_TLS_CHAVE`; `HARNESS_HOST` fora de loopback **sem** HTTPS é erro de configuração: o servidor não sobe |
+| Cabeçalhos | `nosniff`, `no-referrer`, `X-Frame-Options: DENY`, `no-store`; sem `/docs` nem `/openapi.json` |
+| Token revogado | se o NewClaw responder 401 (senha trocada), a sessão do harness acaba também |
+
+**Testes:** 20 de segurança (`tests/test_servidor.py`) com um NewClaw falso (`httpx.MockTransport`), mais as regras de
+configuração do servidor. Suíte: 88 testes; sem o Pipecat, 21 são pulados.
+
+**Prova real:**
+- **Montagem:** NewClaw isolado (porta 3197, dados próprios, provedor local que não responde, nenhuma cota) e o harness na
+  7872. Tudo pelo HTTP de verdade, desligado no fim.
+
+| Prova | Resultado |
+|---|---|
+| `GET /newclaw/chat/active` sem login | 401 |
+| Login de outra origem / senha errada / certa | 403 / 401 / 200 em 2,1 s, `contrato_do_turno: 1`, `idioma: "pt-BR"` (lido do NewClaw) |
+| O cookie carrega o token? | não |
+| `GET /newclaw/config` (fora do contrato) / `POST /newclaw/chat` de outra origem | 404 / 403 |
+| Enviar "olá, newclaw" | 202 em 14–24 ms; estado `pending: true`, `active: []` (a fase `accepted` da Etapa 1) |
+| `/cancelar` | "⏹ Operação cancelada." e o turno: "⏹ Pedido interrompido." |
+| Histórico | a conversa aparece como `web:etapa3-voz` |
+| `/api/offer` sem sessão / com sessão | 401 / 200, e a conexão sobe |
+| Pelo WebRTC com sessão | transcrições na janela; `vozes` devolve as 57 vozes e a atual; `falar` sai em 3 frases; `voz_do_filme` → erro "não está entre as 57 disponíveis" |
+| Portas do processo | só `127.0.0.1:7872` (as outras duas são o par interno do asyncio no Windows); pelo IP da rede (`<IP desta máquina>:7872`) não conecta |
+| Depois de `/sair` | 401 |
+
+**Limitações que ficam:**
+- **Token:** o token do NewClaw continua com acesso total e sem expiração (limitação do núcleo). A defesa é ele nunca sair do
+  harness e o repasse abrir só o contrato.
+- **Sessão:** a sessão do harness vive enquanto o processo estiver de pé, e reiniciar exige novo login. Não há tempo de
+  expiração inventado.
+- **Limite de requisições:** atrás do harness, todos os usuários saem do mesmo IP e dividem os 120/min do NewClaw
+  (contrato).
+- **HTTPS:** testado pela regra de configuração, não com um certificado de verdade.
+- **Página `/`:** é só um aviso. A janela de voz é a Etapa 4.

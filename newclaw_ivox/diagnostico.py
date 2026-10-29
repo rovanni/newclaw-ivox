@@ -49,7 +49,8 @@ def texto(config: cfg.Configuracao) -> str:
     linhas.append(f"Dispositivo: {resumo['dispositivo']}")
     linhas.append(f"Pasta dos modelos: {resumo['modelos_dir']}")
     linhas.append(f"STUN/TURN: {', '.join(resumo['ice_servidores']) or 'nenhum'}")
-    linhas.append(f"Porta local: 127.0.0.1:{resumo['porta']}")
+    linhas.append(f"Harness: {'https' if resumo['https'] else 'http'}://{resumo['host']}:{resumo['porta']}")
+    linhas.append(f"NewClaw: {resumo['newclaw_url'] or 'não informado'}")
     if config.achados:
         linhas.append("")
         linhas.extend(f"[{_ROTULO[a.nivel]}] {a.variavel}: {a.mensagem}" for a in config.achados)
