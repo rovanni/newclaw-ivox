@@ -25,13 +25,14 @@ from pathlib import Path
 
 EXTENSOES_NATIVAS = (".dll", ".so", ".dylib", ".pyd")
 # Bibliotecas cuja licença de origem é GPL ou LGPL e que costumam vir embutidas em pacotes de áudio e vídeo.
+# Comparados sem o "lib" do começo: o Windows chama "avcodec-62.dll" o que no Linux é "libavcodec-….so.62".
 NATIVAS_COPYLEFT = {
-    "libx264": "GPL-2.0-or-later (x264)",
-    "libx265": "GPL-2.0-or-later (x265)",
-    "libsndfile": "LGPL-2.1-or-later (libsndfile)",
+    "x264": "GPL-2.0-or-later (x264)",
+    "x265": "GPL-2.0-or-later (x265)",
+    "sndfile": "LGPL-2.1-or-later (libsndfile)",
     "opencv_videoio_ffmpeg": "LGPL (FFmpeg do OpenCV; ver LICENSE-3RD-PARTY.txt do pacote)",
-    "avcodec": "LGPL (FFmpeg do PyAV; ver configuração abaixo)",
-    "libmp3lame": "LGPL-2.0-or-later (LAME)",
+    "avcodec": "LGPL (FFmpeg; ver a configuração do PyAV abaixo e o LICENSE-3RD-PARTY.txt do OpenCV)",
+    "mp3lame": "LGPL-2.0-or-later (LAME)",
     "espeak-ng": "GPL-3.0-or-later (eSpeak NG; carregado no processo pelo phonemizer)",
 }
 CODECS_GPL = ("libx264", "libx264rgb", "libx265", "libxvid", "libfdk_aac")
@@ -51,7 +52,12 @@ def pacotes() -> list[dict]:
     saida = []
     for d in md.distributions():
         arquivos = [str(f) for f in (d.files or [])]
-        nativas = sorted({Path(f).name for f in arquivos if f.lower().endswith(EXTENSOES_NATIVAS) and not f.lower().endswith(".pyd")})
+        # No Linux as bibliotecas costumam ter a versão no fim do nome (libx264-….so.164); o teste é por ".so" em qualquer
+        # ponto do nome, não só no fim.
+        nativas = sorted({
+            Path(f).name for f in arquivos
+            if (f.lower().endswith(EXTENSOES_NATIVAS) or re.search(r"\.so(\.\d+)+$", f.lower())) and not f.lower().endswith(".pyd")
+        })
         licencas = sorted({f for f in arquivos if re.search(r"licen[cs]e|copying|notice", f, re.I)})
         saida.append({
             "nome": d.metadata["Name"],
@@ -67,8 +73,9 @@ def copyleft_nativo(lista: list[dict]) -> list[dict]:
     achados = []
     for p in lista:
         for lib in p["bibliotecas_nativas"]:
+            nome = lib.lower().removeprefix("lib")
             for prefixo, licenca in NATIVAS_COPYLEFT.items():
-                if lib.lower().startswith(prefixo):
+                if nome.startswith(prefixo):
                     achados.append({"pacote": p["nome"], "arquivo": lib, "licenca_de_origem": licenca})
     return achados
 

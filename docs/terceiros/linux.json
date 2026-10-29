@@ -1,0 +1,1454 @@
+{
+ "sistema": "Linux-6.8.0-147-generic-x86_64-with-glibc2.39",
+ "python": "3.12.3",
+ "pacotes": [
+  {
+   "nome": "agent-detector",
+   "versao": "2.0.0",
+   "licenca_declarada": "MIT",
+   "bibliotecas_nativas": [],
+   "arquivos_de_licenca": [
+    "agent_detector-2.0.0.dist-info/licenses/LICENSE"
+   ]
+  },
+  {
+   "nome": "aiofiles",
+   "versao": "25.1.0",
+   "licenca_declarada": "Apache-2.0",
+   "bibliotecas_nativas": [],
+   "arquivos_de_licenca": [
+    "aiofiles-25.1.0.dist-info/licenses/LICENSE",
+    "aiofiles-25.1.0.dist-info/licenses/NOTICE"
+   ]
+  },
+  {
+   "nome": "aiohappyeyeballs",
+   "versao": "2.7.1",
+   "licenca_declarada": "PSF-2.0",
+   "bibliotecas_nativas": [],
+   "arquivos_de_licenca": [
+    "aiohappyeyeballs-2.7.1.dist-info/licenses/LICENSE"
+   ]
+  },
+  {
+   "nome": "aiohttp",
+   "versao": "3.14.5",
+   "licenca_declarada": "Apache-2.0 AND MIT",
+   "bibliotecas_nativas": [
+    "_http_parser.cpython-312-x86_64-linux-gnu.so",
+    "_http_writer.cpython-312-x86_64-linux-gnu.so",
+    "mask.cpython-312-x86_64-linux-gnu.so",
+    "reader_c.cpython-312-x86_64-linux-gnu.so"
+   ],
+   "arquivos_de_licenca": [
+    "aiohttp-3.14.5.dist-info/licenses/LICENSE.txt",
+    "aiohttp-3.14.5.dist-info/licenses/vendor/llhttp/LICENSE"
+   ]
+  },
+  {
+   "nome": "aioice",
+   "versao": "0.10.2",
+   "licenca_declarada": "BSD-3-Clause",
+   "bibliotecas_nativas": [],
+   "arquivos_de_licenca": [
+    "aioice-0.10.2.dist-info/licenses/LICENSE"
+   ]
+  },
+  {
+   "nome": "aiortc",
+   "versao": "1.15.0",
+   "licenca_declarada": "BSD-3-Clause",
+   "bibliotecas_nativas": [],
+   "arquivos_de_licenca": [
+    "aiortc-1.15.0.dist-info/licenses/LICENSE"
+   ]
+  },
+  {
+   "nome": "aiosignal",
+   "versao": "1.4.0",
+   "licenca_declarada": "Apache 2.0",
+   "bibliotecas_nativas": [],
+   "arquivos_de_licenca": [
+    "aiosignal-1.4.0.dist-info/licenses/LICENSE"
+   ]
+  },
+  {
+   "nome": "annotated-doc",
+   "versao": "0.0.5",
+   "licenca_declarada": "MIT",
+   "bibliotecas_nativas": [],
+   "arquivos_de_licenca": [
+    "annotated_doc-0.0.5.dist-info/licenses/LICENSE"
+   ]
+  },
+  {
+   "nome": "annotated-types",
+   "versao": "0.8.0",
+   "licenca_declarada": "MIT",
+   "bibliotecas_nativas": [],
+   "arquivos_de_licenca": [
+    "annotated_types-0.8.0.dist-info/licenses/LICENSE"
+   ]
+  },
+  {
+   "nome": "anyio",
+   "versao": "4.15.1",
+   "licenca_declarada": "MIT",
+   "bibliotecas_nativas": [],
+   "arquivos_de_licenca": [
+    "anyio-4.15.1.dist-info/licenses/LICENSE"
+   ]
+  },
+  {
+   "nome": "attrs",
+   "versao": "26.1.0",
+   "licenca_declarada": "MIT",
+   "bibliotecas_nativas": [],
+   "arquivos_de_licenca": [
+    "attrs-26.1.0.dist-info/licenses/LICENSE"
+   ]
+  },
+  {
+   "nome": "av",
+   "versao": "17.1.0",
+   "licenca_declarada": "BSD-3-Clause",
+   "bibliotecas_nativas": [
+    "_core.abi3.so",
+    "bitstream.abi3.so",
+    "buffer.abi3.so",
+    "codec.abi3.so",
+    "codeccontext.abi3.so",
+    "context.abi3.so",
+    "core.abi3.so",
+    "device.abi3.so",
+    "dictionary.abi3.so",
+    "encparams.abi3.so",
+    "error.abi3.so",
+    "fifo.abi3.so",
+    "filter.abi3.so",
+    "format.abi3.so",
+    "frame.abi3.so",
+    "graph.abi3.so",
+    "hwaccel.abi3.so",
+    "index.abi3.so",
+    "input.abi3.so",
+    "layout.abi3.so",
+    "libSvtAv1Enc-9393c086.so.4.1.0",
+    "libXau-154567c4.so.6.0.0",
+    "libasound-c7818c60.so.2.0.0",
+    "libavcodec-c3f15378.so.62.28.101",
+    "libavdevice-2cf5cc3f.so.62.3.101",
+    "libavfilter-38c1812d.so.11.14.101",
+    "libavformat-ec222fac.so.62.12.101",
+    "libavutil-04440b0f.so.60.26.101",
+    "libdav1d-f4b27961.so.7.0.0",
+    "libdrm-b0291a67.so.2.4.0",
+    "libgmp-8c6c054f.so.10.5.0",
+    "libgnutls-71454fd1.so.30.42.0",
+    "libhogweed-006f41d4.so.6.11",
+    "libmp3lame-8f9e436f.so.0.0.0",
+    "libnettle-71a806b4.so.8.11",
+    "libopencore-amrnb-d72c52e2.so.0.0.5",
+    "libopencore-amrwb-1b0ca122.so.0.0.5",
+    "libopus-114e2b1a.so.0.11.1",
+    "libsharpyuv-48a062bd.so.0.1.2",
+    "libswresample-e1033d35.so.6.3.101",
+    "libswscale-15608d2f.so.9.5.101",
+    "libunistring-9e529e5a.so.5.2.1",
+    "libvpl-e4e9cae8.so.2.16",
+    "libvpx-edb6de90.so.12.0.0",
+    "libwebp-0c5118d0.so.7.2.0",
+    "libwebpmux-e1880640.so.3.1.2",
+    "libx264-d6533a8d.so.165",
+    "libx265-f5385bb8.so.216",
+    "libxcb-5ddf6756.so.1.1.0",
+    "libxcb-shape-7716c890.so.0.0.0",
+    "libxcb-shm-0be6dfbf.so.0.0.0",
+    "libxcb-xfixes-6de855b8.so.0.0.0",
+    "link.abi3.so",
+    "logging.abi3.so",
+    "loudnorm.abi3.so",
+    "motionvectors.abi3.so",
+    "opaque.abi3.so",
+    "output.abi3.so",
+    "packet.abi3.so",
+    "plane.abi3.so",
+    "pyio.abi3.so",
+    "reformatter.abi3.so",
+    "resampler.abi3.so",
+    "sidedata.abi3.so",
+    "stream.abi3.so",
+    "streams.abi3.so",
+    "subtitle.abi3.so",
+    "utils.abi3.so"
+   ],
+   "arquivos_de_licenca": [
+    "av-17.1.0.dist-info/licenses/AUTHORS.py",
+    "av-17.1.0.dist-info/licenses/AUTHORS.rst",
+    "av-17.1.0.dist-info/licenses/LICENSE.txt",
+    "av-17.1.0.dist-info/licenses/__pycache__/AUTHORS.cpython-312.pyc"
+   ]
+  },
+  {
+   "nome": "certifi",
+   "versao": "2026.10.23",
+   "licenca_declarada": "MPL-2.0",
+   "bibliotecas_nativas": [],
+   "arquivos_de_licenca": [
+    "certifi-2026.10.23.dist-info/licenses/LICENSE"
+   ]
+  },
+  {
+   "nome": "cffi",
+   "versao": "2.1.1",
+   "licenca_declarada": "MIT-0",
+   "bibliotecas_nativas": [
+    "_cffi_backend.cpython-312-x86_64-linux-gnu.so"
+   ],
+   "arquivos_de_licenca": [
+    "cffi-2.1.1.dist-info/licenses/LICENSE"
+   ]
+  },
+  {
+   "nome": "charset-normalizer",
+   "versao": "3.5.2",
+   "licenca_declarada": "MIT",
+   "bibliotecas_nativas": [
+    "cd.cpython-312-x86_64-linux-gnu.so",
+    "md.cpython-312-x86_64-linux-gnu.so"
+   ],
+   "arquivos_de_licenca": [
+    "charset_normalizer-3.5.2.dist-info/licenses/LICENSE"
+   ]
+  },
+  {
+   "nome": "click",
+   "versao": "8.5.0",
+   "licenca_declarada": "BSD-3-Clause",
+   "bibliotecas_nativas": [],
+   "arquivos_de_licenca": [
+    "click-8.5.0.dist-info/licenses/LICENSE.txt"
+   ]
+  },
+  {
+   "nome": "cloudpickle",
+   "versao": "3.1.2",
+   "licenca_declarada": "BSD-3-Clause",
+   "bibliotecas_nativas": [],
+   "arquivos_de_licenca": [
+    "cloudpickle-3.1.2.dist-info/licenses/LICENSE"
+   ]
+  },
+  {
+   "nome": "cryptography",
+   "versao": "50.0.2",
+   "licenca_declarada": "Apache-2.0 OR BSD-3-Clause",
+   "bibliotecas_nativas": [
+    "_rust.abi3.so"
+   ],
+   "arquivos_de_licenca": [
+    "cryptography-50.0.2.dist-info/licenses/LICENSE",
+    "cryptography-50.0.2.dist-info/licenses/LICENSE.APACHE",
+    "cryptography-50.0.2.dist-info/licenses/LICENSE.BSD"
+   ]
+  },
+  {
+   "nome": "ctranslate2",
+   "versao": "4.8.4",
+   "licenca_declarada": "MIT",
+   "bibliotecas_nativas": [
+    "_ext.cpython-312-x86_64-linux-gnu.so",
+    "libctranslate2-42c542ff.so.4.8.4",
+    "libgomp-e985bcbb.so.1.0.0"
+   ],
+   "arquivos_de_licenca": []
+  },
+  {
+   "nome": "detect-installer",
+   "versao": "0.2.1",
+   "licenca_declarada": "0BSD",
+   "bibliotecas_nativas": [],
+   "arquivos_de_licenca": [
+    "detect_installer-0.2.1.dist-info/licenses/LICENSE"
+   ]
+  },
+  {
+   "nome": "dlinfo",
+   "versao": "2.0.0",
+   "licenca_declarada": "MIT",
+   "bibliotecas_nativas": [],
+   "arquivos_de_licenca": [
+    "dlinfo-2.0.0.dist-info/LICENSE"
+   ]
+  },
+  {
+   "nome": "dnspython",
+   "versao": "2.9.1",
+   "licenca_declarada": "ISC",
+   "bibliotecas_nativas": [],
+   "arquivos_de_licenca": [
+    "dnspython-2.9.1.dist-info/licenses/LICENSE"
+   ]
+  },
+  {
+   "nome": "docopt",
+   "versao": "0.6.2",
+   "licenca_declarada": "MIT",
+   "bibliotecas_nativas": [],
+   "arquivos_de_licenca": [
+    "docopt-0.6.2.dist-info/licenses/LICENSE-MIT"
+   ]
+  },
+  {
+   "nome": "docstring_parser",
+   "versao": "0.18.0",
+   "licenca_declarada": "MIT",
+   "bibliotecas_nativas": [],
+   "arquivos_de_licenca": [
+    "docstring_parser-0.18.0.dist-info/licenses/LICENSE.md"
+   ]
+  },
+  {
+   "nome": "email-validator",
+   "versao": "2.3.0",
+   "licenca_declarada": "Unlicense",
+   "bibliotecas_nativas": [],
+   "arquivos_de_licenca": [
+    "email_validator-2.3.0.dist-info/licenses/LICENSE"
+   ]
+  },
+  {
+   "nome": "espeakng-loader",
+   "versao": "0.2.4",
+   "licenca_declarada": "não declarada",
+   "bibliotecas_nativas": [
+    "libespeak-ng.so",
+    "libespeak-ng.so.1",
+    "libespeak-ng.so.1.52.0"
+   ],
+   "arquivos_de_licenca": []
+  },
+  {
+   "nome": "fastapi",
+   "versao": "0.162.0",
+   "licenca_declarada": "MIT",
+   "bibliotecas_nativas": [],
+   "arquivos_de_licenca": [
+    "fastapi-0.162.0.dist-info/licenses/LICENSE"
+   ]
+  },
+  {
+   "nome": "fastapi-cli",
+   "versao": "0.0.32",
+   "licenca_declarada": "MIT",
+   "bibliotecas_nativas": [],
+   "arquivos_de_licenca": [
+    "fastapi_cli-0.0.32.dist-info/licenses/LICENSE"
+   ]
+  },
+  {
+   "nome": "fastapi-cloud-cli",
+   "versao": "0.26.0",
+   "licenca_declarada": "MIT",
+   "bibliotecas_nativas": [],
+   "arquivos_de_licenca": [
+    "fastapi_cloud_cli-0.26.0.dist-info/licenses/LICENSE"
+   ]
+  },
+  {
+   "nome": "fastar",
+   "versao": "0.12.0",
+   "licenca_declarada": "MIT",
+   "bibliotecas_nativas": [
+    "fastar.cpython-312-x86_64-linux-gnu.so"
+   ],
+   "arquivos_de_licenca": [
+    "fastar-0.12.0.dist-info/licenses/LICENSE"
+   ]
+  },
+  {
+   "nome": "faster-whisper",
+   "versao": "1.2.1",
+   "licenca_declarada": "MIT",
+   "bibliotecas_nativas": [],
+   "arquivos_de_licenca": [
+    "faster_whisper-1.2.1.dist-info/LICENSE"
+   ]
+  },
+  {
+   "nome": "filelock",
+   "versao": "4.2.4",
+   "licenca_declarada": "MIT",
+   "bibliotecas_nativas": [],
+   "arquivos_de_licenca": [
+    "filelock-4.2.4.dist-info/licenses/LICENSE"
+   ]
+  },
+  {
+   "nome": "flatbuffers",
+   "versao": "25.12.19",
+   "licenca_declarada": "Apache 2.0",
+   "bibliotecas_nativas": [],
+   "arquivos_de_licenca": []
+  },
+  {
+   "nome": "frozenlist",
+   "versao": "1.8.0",
+   "licenca_declarada": "Apache-2.0",
+   "bibliotecas_nativas": [
+    "_frozenlist.cpython-312-x86_64-linux-gnu.so"
+   ],
+   "arquivos_de_licenca": [
+    "frozenlist-1.8.0.dist-info/licenses/LICENSE"
+   ]
+  },
+  {
+   "nome": "fsspec",
+   "versao": "2026.9.0",
+   "licenca_declarada": "BSD-3-Clause",
+   "bibliotecas_nativas": [],
+   "arquivos_de_licenca": [
+    "fsspec-2026.9.0.dist-info/licenses/LICENSE"
+   ]
+  },
+  {
+   "nome": "google-crc32c",
+   "versao": "1.9.0",
+   "licenca_declarada": "Apache-2.0",
+   "bibliotecas_nativas": [
+    "_crc32c.cpython-312-x86_64-linux-gnu.so",
+    "libcrc32c-7ebc40c5.so.1.1.0"
+   ],
+   "arquivos_de_licenca": [
+    "google_crc32c-1.9.0.dist-info/licenses/LICENSE"
+   ]
+  },
+  {
+   "nome": "googleapis-common-protos",
+   "versao": "1.76.0",
+   "licenca_declarada": "Apache-2.0",
+   "bibliotecas_nativas": [],
+   "arquivos_de_licenca": [
+    "googleapis_common_protos-1.76.0.dist-info/licenses/LICENSE"
+   ]
+  },
+  {
+   "nome": "h11",
+   "versao": "0.16.0",
+   "licenca_declarada": "MIT",
+   "bibliotecas_nativas": [],
+   "arquivos_de_licenca": [
+    "h11-0.16.0.dist-info/licenses/LICENSE.txt"
+   ]
+  },
+  {
+   "nome": "hf-xet",
+   "versao": "1.7.1",
+   "licenca_declarada": "Apache-2.0",
+   "bibliotecas_nativas": [
+    "hf_xet.abi3.so"
+   ],
+   "arquivos_de_licenca": [
+    "hf_xet-1.7.1.dist-info/licenses/LICENSE"
+   ]
+  },
+  {
+   "nome": "httpcore",
+   "versao": "1.0.9",
+   "licenca_declarada": "BSD-3-Clause",
+   "bibliotecas_nativas": [],
+   "arquivos_de_licenca": [
+    "httpcore-1.0.9.dist-info/licenses/LICENSE.md"
+   ]
+  },
+  {
+   "nome": "httpcore2",
+   "versao": "2.16.0",
+   "licenca_declarada": "BSD-3-Clause",
+   "bibliotecas_nativas": [],
+   "arquivos_de_licenca": [
+    "httpcore2-2.16.0.dist-info/licenses/LICENSE.md"
+   ]
+  },
+  {
+   "nome": "httptools",
+   "versao": "0.9.0",
+   "licenca_declarada": "MIT",
+   "bibliotecas_nativas": [
+    "parser.cpython-312-x86_64-linux-gnu.so",
+    "url_parser.cpython-312-x86_64-linux-gnu.so"
+   ],
+   "arquivos_de_licenca": [
+    "httptools-0.9.0.dist-info/licenses/LICENSE",
+    "httptools-0.9.0.dist-info/licenses/vendor/http-parser/LICENSE-MIT",
+    "httptools-0.9.0.dist-info/licenses/vendor/llhttp/LICENSE"
+   ]
+  },
+  {
+   "nome": "httpx",
+   "versao": "0.28.1",
+   "licenca_declarada": "BSD-3-Clause",
+   "bibliotecas_nativas": [],
+   "arquivos_de_licenca": [
+    "httpx-0.28.1.dist-info/licenses/LICENSE.md"
+   ]
+  },
+  {
+   "nome": "httpx2",
+   "versao": "2.16.0",
+   "licenca_declarada": "BSD-3-Clause",
+   "bibliotecas_nativas": [],
+   "arquivos_de_licenca": [
+    "httpx2-2.16.0.dist-info/licenses/LICENSE.md"
+   ]
+  },
+  {
+   "nome": "huggingface_hub",
+   "versao": "2.4.0",
+   "licenca_declarada": "Apache-2.0",
+   "bibliotecas_nativas": [],
+   "arquivos_de_licenca": [
+    "huggingface_hub-2.4.0.dist-info/licenses/LICENSE"
+   ]
+  },
+  {
+   "nome": "idna",
+   "versao": "3.20",
+   "licenca_declarada": "BSD-3-Clause",
+   "bibliotecas_nativas": [],
+   "arquivos_de_licenca": [
+    "idna-3.20.dist-info/licenses/LICENSE.md"
+   ]
+  },
+  {
+   "nome": "ifaddr",
+   "versao": "0.2.0",
+   "licenca_declarada": "MIT",
+   "bibliotecas_nativas": [],
+   "arquivos_de_licenca": [
+    "ifaddr-0.2.0.dist-info/LICENSE.txt"
+   ]
+  },
+  {
+   "nome": "itsdangerous",
+   "versao": "2.2.0",
+   "licenca_declarada": "BSD License",
+   "bibliotecas_nativas": [],
+   "arquivos_de_licenca": [
+    "itsdangerous-2.2.0.dist-info/LICENSE.txt"
+   ]
+  },
+  {
+   "nome": "Jinja2",
+   "versao": "3.1.6",
+   "licenca_declarada": "BSD License",
+   "bibliotecas_nativas": [],
+   "arquivos_de_licenca": [
+    "jinja2-3.1.6.dist-info/licenses/LICENSE.txt"
+   ]
+  },
+  {
+   "nome": "jiter",
+   "versao": "0.18.0",
+   "licenca_declarada": "MIT",
+   "bibliotecas_nativas": [
+    "jiter.cpython-312-x86_64-linux-gnu.so"
+   ],
+   "arquivos_de_licenca": [
+    "jiter-0.18.0.dist-info/licenses/LICENSE"
+   ]
+  },
+  {
+   "nome": "joblib",
+   "versao": "1.6.0",
+   "licenca_declarada": "BSD-3-Clause",
+   "bibliotecas_nativas": [],
+   "arquivos_de_licenca": [
+    "joblib-1.6.0.dist-info/licenses/LICENSE.txt"
+   ]
+  },
+  {
+   "nome": "kokoro-onnx",
+   "versao": "0.6.1",
+   "licenca_declarada": "não declarada",
+   "bibliotecas_nativas": [],
+   "arquivos_de_licenca": [
+    "kokoro_onnx-0.6.1.dist-info/licenses/LICENSE"
+   ]
+  },
+  {
+   "nome": "llvmlite",
+   "versao": "0.50.0",
+   "licenca_declarada": "BSD-2-Clause AND Apache-2.0 WITH LLVM-exception",
+   "bibliotecas_nativas": [
+    "libllvmlite.so"
+   ],
+   "arquivos_de_licenca": [
+    "llvmlite-0.50.0.dist-info/licenses/LICENSE",
+    "llvmlite-0.50.0.dist-info/licenses/LICENSE.thirdparty"
+   ]
+  },
+  {
+   "nome": "loguru",
+   "versao": "0.7.3",
+   "licenca_declarada": "MIT License",
+   "bibliotecas_nativas": [],
+   "arquivos_de_licenca": []
+  },
+  {
+   "nome": "loudness",
+   "versao": "0.2.0",
+   "licenca_declarada": "MIT",
+   "bibliotecas_nativas": [
+    "loudness.cpython-312-x86_64-linux-gnu.so"
+   ],
+   "arquivos_de_licenca": [
+    "loudness-0.2.0.dist-info/licenses/LICENSE"
+   ]
+  },
+  {
+   "nome": "Markdown",
+   "versao": "3.11.2",
+   "licenca_declarada": "BSD-3-Clause",
+   "bibliotecas_nativas": [],
+   "arquivos_de_licenca": [
+    "markdown-3.11.2.dist-info/licenses/LICENSE.md"
+   ]
+  },
+  {
+   "nome": "markdown-it-py",
+   "versao": "4.2.0",
+   "licenca_declarada": "MIT License",
+   "bibliotecas_nativas": [],
+   "arquivos_de_licenca": [
+    "markdown_it_py-4.2.0.dist-info/licenses/LICENSE",
+    "markdown_it_py-4.2.0.dist-info/licenses/LICENSE.markdown-it"
+   ]
+  },
+  {
+   "nome": "MarkupSafe",
+   "versao": "3.0.4",
+   "licenca_declarada": "BSD-3-Clause",
+   "bibliotecas_nativas": [
+    "_speedups.cpython-312-x86_64-linux-gnu.so"
+   ],
+   "arquivos_de_licenca": [
+    "markupsafe-3.0.4.dist-info/licenses/LICENSE.txt"
+   ]
+  },
+  {
+   "nome": "mdurl",
+   "versao": "0.1.2",
+   "licenca_declarada": "MIT License",
+   "bibliotecas_nativas": [],
+   "arquivos_de_licenca": [
+    "mdurl-0.1.2.dist-info/LICENSE"
+   ]
+  },
+  {
+   "nome": "mpmath",
+   "versao": "1.3.0",
+   "licenca_declarada": "BSD",
+   "bibliotecas_nativas": [],
+   "arquivos_de_licenca": [
+    "mpmath-1.3.0.dist-info/LICENSE"
+   ]
+  },
+  {
+   "nome": "multidict",
+   "versao": "7.2.1",
+   "licenca_declarada": "Apache-2.0",
+   "bibliotecas_nativas": [
+    "_multidict.cpython-312-x86_64-linux-gnu.so",
+    "_testcapi.cpython-312-x86_64-linux-gnu.so"
+   ],
+   "arquivos_de_licenca": [
+    "multidict-7.2.1.dist-info/licenses/LICENSE"
+   ]
+  },
+  {
+   "nome": "newclaw-ivox",
+   "versao": "0.1.0",
+   "licenca_declarada": "MIT License (texto longo no metadado)",
+   "bibliotecas_nativas": [],
+   "arquivos_de_licenca": [
+    "newclaw_ivox-0.1.0.dist-info/licenses/LICENSE"
+   ]
+  },
+  {
+   "nome": "num2words",
+   "versao": "0.5.14",
+   "licenca_declarada": "LGPL",
+   "bibliotecas_nativas": [],
+   "arquivos_de_licenca": [
+    "num2words-0.5.14.dist-info/COPYING"
+   ]
+  },
+  {
+   "nome": "numba",
+   "versao": "0.68.1",
+   "licenca_declarada": "BSD",
+   "bibliotecas_nativas": [
+    "_box.cpython-312-x86_64-linux-gnu.so",
+    "_devicearray.cpython-312-x86_64-linux-gnu.so",
+    "_dispatcher.cpython-312-x86_64-linux-gnu.so",
+    "_dynfunc.cpython-312-x86_64-linux-gnu.so",
+    "_extras.cpython-312-x86_64-linux-gnu.so",
+    "_helperlib.cpython-312-x86_64-linux-gnu.so",
+    "_internal.cpython-312-x86_64-linux-gnu.so",
+    "_nrt_python.cpython-312-x86_64-linux-gnu.so",
+    "_num_threads.cpython-312-x86_64-linux-gnu.so",
+    "_typeconv.cpython-312-x86_64-linux-gnu.so",
+    "mviewbuf.cpython-312-x86_64-linux-gnu.so",
+    "omppool.cpython-312-x86_64-linux-gnu.so",
+    "tbbpool.cpython-312-x86_64-linux-gnu.so",
+    "workqueue.cpython-312-x86_64-linux-gnu.so"
+   ],
+   "arquivos_de_licenca": [
+    "numba-0.68.1.dist-info/licenses/LICENSE",
+    "numba-0.68.1.dist-info/licenses/LICENSES.third-party"
+   ]
+  },
+  {
+   "nome": "numpy",
+   "versao": "2.5.4",
+   "licenca_declarada": "BSD-3-Clause AND 0BSD AND MIT AND Zlib AND CC0-1.0",
+   "bibliotecas_nativas": [
+    "_bounded_integers.cpython-312-x86_64-linux-gnu.so",
+    "_common.cpython-312-x86_64-linux-gnu.so",
+    "_generator.cpython-312-x86_64-linux-gnu.so",
+    "_mt19937.cpython-312-x86_64-linux-gnu.so",
+    "_multiarray_tests.cpython-312-x86_64-linux-gnu.so",
+    "_multiarray_umath.cpython-312-x86_64-linux-gnu.so",
+    "_operand_flag_tests.cpython-312-x86_64-linux-gnu.so",
+    "_pcg64.cpython-312-x86_64-linux-gnu.so",
+    "_philox.cpython-312-x86_64-linux-gnu.so",
+    "_pocketfft_umath.cpython-312-x86_64-linux-gnu.so",
+    "_rational_tests.cpython-312-x86_64-linux-gnu.so",
+    "_sfc64.cpython-312-x86_64-linux-gnu.so",
+    "_simd.cpython-312-x86_64-linux-gnu.so",
+    "_struct_ufunc_tests.cpython-312-x86_64-linux-gnu.so",
+    "_umath_linalg.cpython-312-x86_64-linux-gnu.so",
+    "_umath_tests.cpython-312-x86_64-linux-gnu.so",
+    "bit_generator.cpython-312-x86_64-linux-gnu.so",
+    "lapack_lite.cpython-312-x86_64-linux-gnu.so",
+    "libgfortran-83c28eba-468e71e5.so.5.0.0",
+    "libquadmath-2284e583-a9307bba.so.0.0.0",
+    "libscipy_openblas64_-f48b354e.so",
+    "mtrand.cpython-312-x86_64-linux-gnu.so"
+   ],
+   "arquivos_de_licenca": [
+    "numpy-2.5.4.dist-info/licenses/LICENSE.txt",
+    "numpy-2.5.4.dist-info/licenses/numpy/_core/include/numpy/libdivide/LICENSE.txt",
+    "numpy-2.5.4.dist-info/licenses/numpy/_core/src/common/pythoncapi-compat/COPYING",
+    "numpy-2.5.4.dist-info/licenses/numpy/_core/src/highway/LICENSE",
+    "numpy-2.5.4.dist-info/licenses/numpy/_core/src/multiarray/dragon4_LICENSE.txt",
+    "numpy-2.5.4.dist-info/licenses/numpy/_core/src/npysort/x86-simd-sort/LICENSE.md",
+    "numpy-2.5.4.dist-info/licenses/numpy/_core/src/umath/svml/LICENSE",
+    "numpy-2.5.4.dist-info/licenses/numpy/fft/pocketfft/LICENSE.md",
+    "numpy-2.5.4.dist-info/licenses/numpy/linalg/lapack_lite/LICENSE.txt",
+    "numpy-2.5.4.dist-info/licenses/numpy/ma/LICENSE",
+    "numpy-2.5.4.dist-info/licenses/numpy/random/LICENSE.md",
+    "numpy-2.5.4.dist-info/licenses/numpy/random/src/distributions/LICENSE.md",
+    "numpy-2.5.4.dist-info/licenses/numpy/random/src/mt19937/LICENSE.md",
+    "numpy-2.5.4.dist-info/licenses/numpy/random/src/pcg64/LICENSE.md",
+    "numpy-2.5.4.dist-info/licenses/numpy/random/src/philox/LICENSE.md",
+    "numpy-2.5.4.dist-info/licenses/numpy/random/src/sfc64/LICENSE.md",
+    "numpy-2.5.4.dist-info/licenses/numpy/random/src/splitmix64/LICENSE.md",
+    "numpy/_core/include/numpy/random/LICENSE.txt",
+    "numpy/ma/LICENSE",
+    "numpy/random/LICENSE.md"
+   ]
+  },
+  {
+   "nome": "onnxruntime",
+   "versao": "1.24.4",
+   "licenca_declarada": "MIT License",
+   "bibliotecas_nativas": [
+    "libonnxruntime.so.1.24.4",
+    "libonnxruntime_providers_shared.so",
+    "onnxruntime_pybind11_state.cpython-312-x86_64-linux-gnu.so"
+   ],
+   "arquivos_de_licenca": [
+    "onnxruntime/LICENSE",
+    "onnxruntime/ThirdPartyNotices.txt"
+   ]
+  },
+  {
+   "nome": "openai",
+   "versao": "3.41.0",
+   "licenca_declarada": "Apache-2.0",
+   "bibliotecas_nativas": [],
+   "arquivos_de_licenca": [
+    "openai-3.41.0.dist-info/licenses/LICENSE",
+    "openai/_vendor/httpx_aiohttp/LICENSE"
+   ]
+  },
+  {
+   "nome": "opencv-python-headless",
+   "versao": "4.14.0.94",
+   "licenca_declarada": "Apache 2.0",
+   "bibliotecas_nativas": [
+    "cv2.abi3.so",
+    "libaom-a0d22147.so.3.14.1",
+    "libavcodec-57aca189.so.62.28.102",
+    "libavformat-50e282e4.so.62.12.102",
+    "libavif-43e630fc.so.16.4.2",
+    "libavutil-431feb49.so.60.26.102",
+    "libdav1d-d02dd842.so.7.0.0",
+    "libdrm-b0291a67.so.2.4.0",
+    "libgfortran-83c28eba.so.5.0.0",
+    "libopenblasp-r0-59ffcd50.3.15.so",
+    "libpng16-529cb57a.so.16.58.0",
+    "libquadmath-2284e583.so.0.0.0",
+    "libswresample-b08787fc.so.6.3.102",
+    "libswscale-ca2eb2d3.so.9.5.102",
+    "libvpx-4fb239ff.so.11.0.1"
+   ],
+   "arquivos_de_licenca": [
+    "cv2/LICENSE-3RD-PARTY.txt",
+    "cv2/LICENSE.txt",
+    "cv2/data/haarcascade_license_plate_rus_16stages.xml",
+    "opencv_python_headless-4.14.0.94.dist-info/LICENSE-3RD-PARTY.txt",
+    "opencv_python_headless-4.14.0.94.dist-info/LICENSE.txt"
+   ]
+  },
+  {
+   "nome": "opentelemetry-api",
+   "versao": "1.45.2",
+   "licenca_declarada": "Apache-2.0",
+   "bibliotecas_nativas": [],
+   "arquivos_de_licenca": [
+    "opentelemetry_api-1.45.2.dist-info/licenses/LICENSE"
+   ]
+  },
+  {
+   "nome": "opentelemetry-exporter-http-transport",
+   "versao": "0.66b2",
+   "licenca_declarada": "Apache-2.0",
+   "bibliotecas_nativas": [],
+   "arquivos_de_licenca": [
+    "opentelemetry_exporter_http_transport-0.66b2.dist-info/licenses/LICENSE"
+   ]
+  },
+  {
+   "nome": "opentelemetry-exporter-otlp-common",
+   "versao": "0.66b2",
+   "licenca_declarada": "Apache-2.0",
+   "bibliotecas_nativas": [],
+   "arquivos_de_licenca": [
+    "opentelemetry_exporter_otlp_common-0.66b2.dist-info/licenses/LICENSE"
+   ]
+  },
+  {
+   "nome": "opentelemetry-exporter-otlp-proto-common",
+   "versao": "1.45.2",
+   "licenca_declarada": "Apache-2.0",
+   "bibliotecas_nativas": [],
+   "arquivos_de_licenca": [
+    "opentelemetry_exporter_otlp_proto_common-1.45.2.dist-info/licenses/LICENSE"
+   ]
+  },
+  {
+   "nome": "opentelemetry-exporter-otlp-proto-http",
+   "versao": "1.45.2",
+   "licenca_declarada": "Apache-2.0",
+   "bibliotecas_nativas": [],
+   "arquivos_de_licenca": [
+    "opentelemetry_exporter_otlp_proto_http-1.45.2.dist-info/licenses/LICENSE"
+   ]
+  },
+  {
+   "nome": "opentelemetry-proto",
+   "versao": "1.45.2",
+   "licenca_declarada": "Apache-2.0",
+   "bibliotecas_nativas": [],
+   "arquivos_de_licenca": [
+    "opentelemetry_proto-1.45.2.dist-info/licenses/LICENSE"
+   ]
+  },
+  {
+   "nome": "opentelemetry-sdk",
+   "versao": "1.45.2",
+   "licenca_declarada": "Apache-2.0",
+   "bibliotecas_nativas": [],
+   "arquivos_de_licenca": [
+    "opentelemetry_sdk-1.45.2.dist-info/licenses/LICENSE"
+   ]
+  },
+  {
+   "nome": "opentelemetry-semantic-conventions",
+   "versao": "0.66b2",
+   "licenca_declarada": "Apache-2.0",
+   "bibliotecas_nativas": [],
+   "arquivos_de_licenca": [
+    "opentelemetry_semantic_conventions-0.66b2.dist-info/licenses/LICENSE"
+   ]
+  },
+  {
+   "nome": "packaging",
+   "versao": "26.3",
+   "licenca_declarada": "Apache-2.0 OR BSD-2-Clause",
+   "bibliotecas_nativas": [],
+   "arquivos_de_licenca": [
+    "packaging-26.3.dist-info/licenses/LICENSE",
+    "packaging-26.3.dist-info/licenses/LICENSE.APACHE",
+    "packaging-26.3.dist-info/licenses/LICENSE.BSD",
+    "packaging/licenses/__init__.py",
+    "packaging/licenses/__pycache__/__init__.cpython-312.pyc",
+    "packaging/licenses/__pycache__/_spdx.cpython-312.pyc",
+    "packaging/licenses/_spdx.py"
+   ]
+  },
+  {
+   "nome": "phonemizer",
+   "versao": "3.4.0",
+   "licenca_declarada": "GNU GENERAL PUBLIC LICENSE (texto longo no metadado)",
+   "bibliotecas_nativas": [],
+   "arquivos_de_licenca": [
+    "phonemizer-3.4.0.dist-info/licenses/LICENSE"
+   ]
+  },
+  {
+   "nome": "pillow",
+   "versao": "12.3.0",
+   "licenca_declarada": "MIT-CMU",
+   "bibliotecas_nativas": [
+    "_avif.cpython-312-x86_64-linux-gnu.so",
+    "_imaging.cpython-312-x86_64-linux-gnu.so",
+    "_imagingcms.cpython-312-x86_64-linux-gnu.so",
+    "_imagingft.cpython-312-x86_64-linux-gnu.so",
+    "_imagingmath.cpython-312-x86_64-linux-gnu.so",
+    "_imagingmorph.cpython-312-x86_64-linux-gnu.so",
+    "_imagingtk.cpython-312-x86_64-linux-gnu.so",
+    "_webp.cpython-312-x86_64-linux-gnu.so",
+    "libXau-154567c4.so.6.0.0",
+    "libavif-8a7f9d56.so.16.4.2",
+    "libbrotlicommon-53534446.so.1.2.0",
+    "libbrotlidec-7e5462ba.so.1.2.0",
+    "libfreetype-9fc94c80.so.6.20.6",
+    "libharfbuzz-172d1f63.so.0.61421.0",
+    "libjpeg-31e2ca52.so.62.4.0",
+    "liblcms2-dade1fbf.so.2.0.19",
+    "liblzma-2be87c3e.so.5.8.3",
+    "libopenjp2-b07f72ad.so.2.5.4",
+    "libpng16-abb096d5.so.16.58.0",
+    "libsharpyuv-0066295b.so.0.1.2",
+    "libtiff-fc87e79d.so.6.2.0",
+    "libwebp-51b0b3f7.so.7.2.0",
+    "libwebpdemux-9fe2abcc.so.2.0.17",
+    "libwebpmux-8fb1c9f6.so.3.1.2",
+    "libxcb-ad31f5a3.so.1.1.0",
+    "libzstd-44be1190.so.1.5.7"
+   ],
+   "arquivos_de_licenca": [
+    "pillow-12.3.0.dist-info/licenses/LICENSE"
+   ]
+  },
+  {
+   "nome": "pip",
+   "versao": "24.0",
+   "licenca_declarada": "MIT",
+   "bibliotecas_nativas": [],
+   "arquivos_de_licenca": [
+    "pip-24.0.dist-info/LICENSE.txt"
+   ]
+  },
+  {
+   "nome": "pipecat-ai",
+   "versao": "1.12.0",
+   "licenca_declarada": "BSD-2-Clause",
+   "bibliotecas_nativas": [],
+   "arquivos_de_licenca": [
+    "pipecat_ai-1.12.0.dist-info/licenses/LICENSE"
+   ]
+  },
+  {
+   "nome": "pipecat-ai-prebuilt",
+   "versao": "1.3.0",
+   "licenca_declarada": "BSD 2-Clause License",
+   "bibliotecas_nativas": [],
+   "arquivos_de_licenca": [
+    "pipecat_ai_prebuilt-1.3.0.dist-info/licenses/LICENSE",
+    "pipecat_ai_prebuilt/client/dist/THIRD_PARTY_NOTICES.txt"
+   ]
+  },
+  {
+   "nome": "propcache",
+   "versao": "0.5.4",
+   "licenca_declarada": "Apache-2.0",
+   "bibliotecas_nativas": [
+    "_helpers_c.cpython-312-x86_64-linux-gnu.so"
+   ],
+   "arquivos_de_licenca": [
+    "propcache-0.5.4.dist-info/licenses/LICENSE",
+    "propcache-0.5.4.dist-info/licenses/NOTICE"
+   ]
+  },
+  {
+   "nome": "protobuf",
+   "versao": "6.33.6",
+   "licenca_declarada": "3-Clause BSD License",
+   "bibliotecas_nativas": [
+    "_message.abi3.so"
+   ],
+   "arquivos_de_licenca": [
+    "protobuf-6.33.6.dist-info/LICENSE"
+   ]
+  },
+  {
+   "nome": "pycparser",
+   "versao": "3.12",
+   "licenca_declarada": "BSD-3-Clause",
+   "bibliotecas_nativas": [],
+   "arquivos_de_licenca": [
+    "pycparser-3.12.dist-info/licenses/LICENSE"
+   ]
+  },
+  {
+   "nome": "pydantic",
+   "versao": "2.14.2",
+   "licenca_declarada": "MIT",
+   "bibliotecas_nativas": [],
+   "arquivos_de_licenca": [
+    "pydantic-2.14.2.dist-info/licenses/LICENSE"
+   ]
+  },
+  {
+   "nome": "pydantic-extra-types",
+   "versao": "2.11.1",
+   "licenca_declarada": "MIT",
+   "bibliotecas_nativas": [],
+   "arquivos_de_licenca": [
+    "pydantic_extra_types-2.11.1.dist-info/licenses/LICENSE"
+   ]
+  },
+  {
+   "nome": "pydantic-settings",
+   "versao": "2.16.2",
+   "licenca_declarada": "MIT",
+   "bibliotecas_nativas": [],
+   "arquivos_de_licenca": [
+    "pydantic_settings-2.16.2.dist-info/licenses/LICENSE"
+   ]
+  },
+  {
+   "nome": "pydantic_core",
+   "versao": "2.50.2",
+   "licenca_declarada": "MIT",
+   "bibliotecas_nativas": [
+    "_pydantic_core.cpython-312-x86_64-linux-gnu.so"
+   ],
+   "arquivos_de_licenca": [
+    "pydantic_core-2.50.2.dist-info/licenses/LICENSE"
+   ]
+  },
+  {
+   "nome": "pyee",
+   "versao": "16.0.0",
+   "licenca_declarada": "MIT",
+   "bibliotecas_nativas": [],
+   "arquivos_de_licenca": [
+    "pyee-16.0.0.dist-info/licenses/LICENSE"
+   ]
+  },
+  {
+   "nome": "Pygments",
+   "versao": "2.21.0",
+   "licenca_declarada": "BSD-2-Clause",
+   "bibliotecas_nativas": [],
+   "arquivos_de_licenca": [
+    "pygments-2.21.0.dist-info/licenses/AUTHORS",
+    "pygments-2.21.0.dist-info/licenses/LICENSE"
+   ]
+  },
+  {
+   "nome": "pylibsrtp",
+   "versao": "1.0.0",
+   "licenca_declarada": "BSD-3-Clause",
+   "bibliotecas_nativas": [
+    "_binding.abi3.so"
+   ],
+   "arquivos_de_licenca": [
+    "pylibsrtp-1.0.0.dist-info/licenses/LICENSE"
+   ]
+  },
+  {
+   "nome": "pyOpenSSL",
+   "versao": "26.4.0",
+   "licenca_declarada": "Apache License, Version 2.0",
+   "bibliotecas_nativas": [],
+   "arquivos_de_licenca": [
+    "pyopenssl-26.4.0.dist-info/licenses/LICENSE"
+   ]
+  },
+  {
+   "nome": "python-dotenv",
+   "versao": "1.2.4",
+   "licenca_declarada": "BSD-3-Clause",
+   "bibliotecas_nativas": [],
+   "arquivos_de_licenca": [
+    "python_dotenv-1.2.4.dist-info/licenses/LICENSE"
+   ]
+  },
+  {
+   "nome": "python-multipart",
+   "versao": "0.0.32",
+   "licenca_declarada": "Apache-2.0",
+   "bibliotecas_nativas": [],
+   "arquivos_de_licenca": [
+    "python_multipart-0.0.32.dist-info/licenses/LICENSE.txt"
+   ]
+  },
+  {
+   "nome": "PyYAML",
+   "versao": "6.0.3",
+   "licenca_declarada": "MIT",
+   "bibliotecas_nativas": [
+    "_yaml.cpython-312-x86_64-linux-gnu.so"
+   ],
+   "arquivos_de_licenca": [
+    "pyyaml-6.0.3.dist-info/licenses/LICENSE"
+   ]
+  },
+  {
+   "nome": "requests",
+   "versao": "2.34.2",
+   "licenca_declarada": "Apache-2.0",
+   "bibliotecas_nativas": [],
+   "arquivos_de_licenca": [
+    "requests-2.34.2.dist-info/licenses/LICENSE",
+    "requests-2.34.2.dist-info/licenses/NOTICE"
+   ]
+  },
+  {
+   "nome": "resampy",
+   "versao": "0.4.3",
+   "licenca_declarada": "ISC",
+   "bibliotecas_nativas": [],
+   "arquivos_de_licenca": [
+    "resampy-0.4.3.dist-info/LICENSE.md"
+   ]
+  },
+  {
+   "nome": "rich",
+   "versao": "15.0.0",
+   "licenca_declarada": "MIT",
+   "bibliotecas_nativas": [],
+   "arquivos_de_licenca": [
+    "rich-15.0.0.dist-info/licenses/LICENSE"
+   ]
+  },
+  {
+   "nome": "rich-toolkit",
+   "versao": "0.20.6",
+   "licenca_declarada": "MIT",
+   "bibliotecas_nativas": [],
+   "arquivos_de_licenca": [
+    "rich_toolkit-0.20.6.dist-info/licenses/LICENSE",
+    "rich_toolkit-0.20.6.dist-info/licenses/LICENSE-THIRD-PARTY"
+   ]
+  },
+  {
+   "nome": "rignore",
+   "versao": "0.8.1",
+   "licenca_declarada": "MIT",
+   "bibliotecas_nativas": [
+    "rignore.cpython-312-x86_64-linux-gnu.so"
+   ],
+   "arquivos_de_licenca": [
+    "rignore-0.8.1.dist-info/licenses/LICENSE"
+   ]
+  },
+  {
+   "nome": "sentencex",
+   "versao": "1.0.31",
+   "licenca_declarada": "MIT",
+   "bibliotecas_nativas": [
+    "sentencex.cpython-312-x86_64-linux-gnu.so"
+   ],
+   "arquivos_de_licenca": []
+  },
+  {
+   "nome": "sentry-sdk",
+   "versao": "2.73.0",
+   "licenca_declarada": "MIT",
+   "bibliotecas_nativas": [],
+   "arquivos_de_licenca": [
+    "sentry_sdk-2.73.0.dist-info/licenses/LICENSE"
+   ]
+  },
+  {
+   "nome": "shellingham",
+   "versao": "1.5.4",
+   "licenca_declarada": "ISC License",
+   "bibliotecas_nativas": [],
+   "arquivos_de_licenca": [
+    "shellingham-1.5.4.dist-info/LICENSE"
+   ]
+  },
+  {
+   "nome": "sniffio",
+   "versao": "1.3.1",
+   "licenca_declarada": "MIT OR Apache-2.0",
+   "bibliotecas_nativas": [],
+   "arquivos_de_licenca": [
+    "sniffio-1.3.1.dist-info/LICENSE",
+    "sniffio-1.3.1.dist-info/LICENSE.APACHE2",
+    "sniffio-1.3.1.dist-info/LICENSE.MIT"
+   ]
+  },
+  {
+   "nome": "soundfile",
+   "versao": "0.13.1",
+   "licenca_declarada": "BSD 3-Clause License",
+   "bibliotecas_nativas": [
+    "libsndfile_x86_64.so"
+   ],
+   "arquivos_de_licenca": [
+    "_soundfile_data/COPYING",
+    "soundfile-0.13.1.dist-info/LICENSE"
+   ]
+  },
+  {
+   "nome": "soxr",
+   "versao": "1.0.0",
+   "licenca_declarada": "LGPL-2.1-or-later",
+   "bibliotecas_nativas": [
+    "soxr_ext.abi3.so"
+   ],
+   "arquivos_de_licenca": [
+    "soxr-1.0.0.dist-info/licenses/COPYING.LGPL",
+    "soxr-1.0.0.dist-info/licenses/LICENSE-PFFFT.txt",
+    "soxr-1.0.0.dist-info/licenses/LICENSE-libsoxr.txt",
+    "soxr-1.0.0.dist-info/licenses/LICENSE.txt"
+   ]
+  },
+  {
+   "nome": "starlette",
+   "versao": "1.10.0",
+   "licenca_declarada": "BSD-3-Clause",
+   "bibliotecas_nativas": [],
+   "arquivos_de_licenca": [
+    "starlette-1.10.0.dist-info/licenses/LICENSE.md"
+   ]
+  },
+  {
+   "nome": "sympy",
+   "versao": "1.14.0",
+   "licenca_declarada": "BSD",
+   "bibliotecas_nativas": [],
+   "arquivos_de_licenca": [
+    "sympy-1.14.0.dist-info/licenses/AUTHORS",
+    "sympy-1.14.0.dist-info/licenses/LICENSE",
+    "sympy/parsing/latex/LICENSE.txt"
+   ]
+  },
+  {
+   "nome": "tokenizers",
+   "versao": "0.23.3",
+   "licenca_declarada": "Apache Software License",
+   "bibliotecas_nativas": [
+    "tokenizers.abi3.so"
+   ],
+   "arquivos_de_licenca": []
+  },
+  {
+   "nome": "tqdm",
+   "versao": "4.70.1",
+   "licenca_declarada": "MPL-2.0 AND MIT",
+   "bibliotecas_nativas": [],
+   "arquivos_de_licenca": [
+    "tqdm-4.70.1.dist-info/licenses/LICENCE"
+   ]
+  },
+  {
+   "nome": "truststore",
+   "versao": "0.10.5",
+   "licenca_declarada": "MIT",
+   "bibliotecas_nativas": [],
+   "arquivos_de_licenca": [
+    "truststore-0.10.5.dist-info/licenses/LICENSE"
+   ]
+  },
+  {
+   "nome": "typer",
+   "versao": "0.27.3",
+   "licenca_declarada": "MIT",
+   "bibliotecas_nativas": [],
+   "arquivos_de_licenca": [
+    "typer-0.27.3.dist-info/licenses/LICENSE",
+    "typer/_click/LICENSE.txt"
+   ]
+  },
+  {
+   "nome": "typing-inspection",
+   "versao": "0.4.4",
+   "licenca_declarada": "MIT",
+   "bibliotecas_nativas": [],
+   "arquivos_de_licenca": [
+    "typing_inspection-0.4.4.dist-info/licenses/LICENSE"
+   ]
+  },
+  {
+   "nome": "typing_extensions",
+   "versao": "4.16.0",
+   "licenca_declarada": "PSF-2.0",
+   "bibliotecas_nativas": [],
+   "arquivos_de_licenca": [
+    "typing_extensions-4.16.0.dist-info/licenses/LICENSE"
+   ]
+  },
+  {
+   "nome": "urllib3",
+   "versao": "2.8.0",
+   "licenca_declarada": "MIT",
+   "bibliotecas_nativas": [],
+   "arquivos_de_licenca": [
+    "urllib3-2.8.0.dist-info/licenses/LICENSE.txt"
+   ]
+  },
+  {
+   "nome": "uvicorn",
+   "versao": "0.54.0",
+   "licenca_declarada": "BSD-3-Clause",
+   "bibliotecas_nativas": [],
+   "arquivos_de_licenca": [
+    "uvicorn-0.54.0.dist-info/licenses/LICENSE.md"
+   ]
+  },
+  {
+   "nome": "uvloop",
+   "versao": "0.23.0",
+   "licenca_declarada": "MIT License",
+   "bibliotecas_nativas": [
+    "loop.cpython-312-x86_64-linux-gnu.so"
+   ],
+   "arquivos_de_licenca": [
+    "uvloop-0.23.0.dist-info/licenses/LICENSE-APACHE",
+    "uvloop-0.23.0.dist-info/licenses/LICENSE-MIT"
+   ]
+  },
+  {
+   "nome": "watchfiles",
+   "versao": "1.3.0",
+   "licenca_declarada": "MIT",
+   "bibliotecas_nativas": [
+    "_rust_notify.abi3.so"
+   ],
+   "arquivos_de_licenca": [
+    "watchfiles-1.3.0.dist-info/licenses/LICENSE"
+   ]
+  },
+  {
+   "nome": "websockets",
+   "versao": "17.3",
+   "licenca_declarada": "BSD-3-Clause",
+   "bibliotecas_nativas": [
+    "speedups.cpython-312-x86_64-linux-gnu.so"
+   ],
+   "arquivos_de_licenca": [
+    "websockets-17.3.dist-info/licenses/LICENSE"
+   ]
+  },
+  {
+   "nome": "yarl",
+   "versao": "1.25.1",
+   "licenca_declarada": "Apache-2.0",
+   "bibliotecas_nativas": [
+    "_quoting_c.cpython-312-x86_64-linux-gnu.so"
+   ],
+   "arquivos_de_licenca": [
+    "yarl-1.25.1.dist-info/licenses/LICENSE",
+    "yarl-1.25.1.dist-info/licenses/NOTICE"
+   ]
+  }
+ ],
+ "nativas_copyleft": [
+  {
+   "pacote": "av",
+   "arquivo": "libavcodec-c3f15378.so.62.28.101",
+   "licenca_de_origem": "LGPL (FFmpeg; ver a configuração do PyAV abaixo e o LICENSE-3RD-PARTY.txt do OpenCV)"
+  },
+  {
+   "pacote": "av",
+   "arquivo": "libmp3lame-8f9e436f.so.0.0.0",
+   "licenca_de_origem": "LGPL-2.0-or-later (LAME)"
+  },
+  {
+   "pacote": "av",
+   "arquivo": "libx264-d6533a8d.so.165",
+   "licenca_de_origem": "GPL-2.0-or-later (x264)"
+  },
+  {
+   "pacote": "av",
+   "arquivo": "libx265-f5385bb8.so.216",
+   "licenca_de_origem": "GPL-2.0-or-later (x265)"
+  },
+  {
+   "pacote": "espeakng-loader",
+   "arquivo": "libespeak-ng.so",
+   "licenca_de_origem": "GPL-3.0-or-later (eSpeak NG; carregado no processo pelo phonemizer)"
+  },
+  {
+   "pacote": "espeakng-loader",
+   "arquivo": "libespeak-ng.so.1",
+   "licenca_de_origem": "GPL-3.0-or-later (eSpeak NG; carregado no processo pelo phonemizer)"
+  },
+  {
+   "pacote": "espeakng-loader",
+   "arquivo": "libespeak-ng.so.1.52.0",
+   "licenca_de_origem": "GPL-3.0-or-later (eSpeak NG; carregado no processo pelo phonemizer)"
+  },
+  {
+   "pacote": "opencv-python-headless",
+   "arquivo": "libavcodec-57aca189.so.62.28.102",
+   "licenca_de_origem": "LGPL (FFmpeg; ver a configuração do PyAV abaixo e o LICENSE-3RD-PARTY.txt do OpenCV)"
+  },
+  {
+   "pacote": "soundfile",
+   "arquivo": "libsndfile_x86_64.so",
+   "licenca_de_origem": "LGPL-2.1-or-later (libsndfile)"
+  }
+ ],
+ "ffmpeg_pyav": {
+  "pyav": "17.1.0",
+  "licenca_informada_pelo_ffmpeg": "LGPL version 3 or later",
+  "enable_gpl": false,
+  "bibliotecas_externas_habilitadas": [
+   "libdav1d",
+   "libmp3lame",
+   "libopencore-amrnb",
+   "libopencore-amrwb",
+   "libopus",
+   "libsvtav1",
+   "libvpl",
+   "libvpx",
+   "libwebp",
+   "libx264",
+   "libx265",
+   "libxcb"
+  ],
+  "codecs_gpl_presentes": [
+   "libx264",
+   "libx264rgb",
+   "libx265"
+  ],
+  "opus": true,
+  "configuracao": "--disable-static --enable-shared --libdir=/tmp/vendor/lib --prefix=/tmp/vendor --disable-programs --disable-doc --disable-libxml2 --disable-lzma --disable-libtheora --disable-libfreetype --disable-libfontconfig --disable-libbluray --disable-libopenjpeg --disable-mediafoundation --enable-version3 --enable-alsa --enable-gnutls --enable-libdav1d --enable-libmp3lame --enable-libopencore-amrnb --enable-libopencore-amrwb --enable-libopus --enable-libsvtav1 --enable-libvpx --enable-libwebp --enable-libxcb --enable-zlib --enable-libx264 --enable-libx265 --enable-nvenc --enable-nvdec --enable-amf --enable-libvpl --disable-encoder='avui,dca,mlp,opus,s302m,sonic,sonic_ls,truehd' --disable-decoder=sonic --disable-libjack --disable-indev=jack --disable-filter=gfxcapture"
+ },
+ "modelos_onnx": [
+  {
+   "arquivo": "audio/turn/smart_turn/data/smart-turn-v3.2-cpu.onnx",
+   "bytes": 8679182,
+   "sha256": "2bb026316b14a660486a75b1733cd3fbab8c2fd0314dc9af7be49f8cca967e4f",
+   "licenca_no_pacote": "não declarada (o pacote não traz arquivo de licença do modelo)"
+  },
+  {
+   "arquivo": "audio/vad/data/silero_vad.onnx",
+   "bytes": 2327524,
+   "sha256": "597d30b3ec076608d059477bb14cfeffdf951bf5cae370d38f65d33bbfe82004",
+   "licenca_no_pacote": "não declarada (o pacote não traz arquivo de licença do modelo)"
+  }
+ ]
+}

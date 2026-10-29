@@ -23,6 +23,7 @@ from . import configuracao as cfg
 from . import dispositivo as disp
 
 PYTHON_MINIMO = (3, 10)
+ARQUIVO_MISTURAS = "vozes-misturadas.json"
 CHAVES_DE_VOZ = (
     "VOZ_STT_MOTOR", "VOZ_STT_MODELO", "VOZ_STT_URL", "VOZ_STT_CHAVE",
     "VOZ_TTS_MOTOR", "VOZ_TTS_MODELO", "VOZ_TTS_VOZ", "VOZ_TTS_URL", "VOZ_TTS_CHAVE",
@@ -232,8 +233,11 @@ class Instalador:
         if resultado.returncode != 0:
             raise RuntimeError("Não consegui ler as vozes: " + (resultado.stderr.strip().splitlines() or ["sem detalhe"])[-1])
         vozes = json.loads(resultado.stdout)
-        self.info(f"{len(vozes)} vozes instaladas, todas no mesmo arquivo do Kokoro. A voz é escolhida na interface e pode")
-        self.info("ser trocada a qualquer momento; para ouvir uma: python -m newclaw_ivox testar-tts --voz <nome>")
+        misturadas = sum(1 for v in vozes if "mistura" in v)
+        self.info(f"{len(vozes) - misturadas} vozes do Kokoro instaladas (num arquivo só) e {misturadas} vozes misturadas"
+                  f" ({ARQUIVO_MISTURAS}).")
+        self.info("A voz é escolhida na interface e pode ser trocada a qualquer momento; para ouvir uma:"
+                  " python -m newclaw_ivox testar-tts --voz <nome>")
 
     def perguntar_idioma(self) -> str:
         self.titulo("Idioma")

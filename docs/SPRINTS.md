@@ -16,7 +16,7 @@ cota de nuvem, aviso e peço.
 | 3 — Instalador + transcrição local | `python instalar.py`: mede a máquina, pergunta, instala, baixa o modelo e testa; transcrição com faster-whisper, GPU medida | OK para instalar e baixar; modelo escolhido por você (`large-v3-turbo`, 29/10) | **feita** (29/10) |
 | 4 — Síntese local | Kokoro na máquina, frase a frase; o instalador passa a perguntar a voz | OK para baixar o Kokoro (dado em 29/10); a voz é escolha sua | **feita** (29/10) |
 | 5 — Fluxo completo + interrupção real | `VAD → STT → user-transcription` e `falar → TTS`; a fala do usuário corta a do motor; prova com microfone de verdade | Você falando no microfone | **feita** (29/10): automático e com a operadora no microfone |
-| 6 — Linux | Repetir as provas 2–5 numa máquina Linux | Qual máquina usar (indicação sua) | a fazer |
+| 6 — Linux | Repetir as provas 2–5 numa máquina Linux | Qual máquina usar (indicação sua) | **feita** (29/10, VPS <IP da VPS>): funciona; sem GPU, o large-v3-turbo é lento demais |
 
 Revisão de 29/10/2026 (ADR-030 do NewClaw, "voz na máquina do usuário"): as sprints 3 a 6 substituem o plano anterior,
 que dependia de servidores de transcrição e síntese noutra máquina. A ideia do instalador já nesta sprint é da operadora:
@@ -355,3 +355,49 @@ medido.
   enquanto o motor fala e o VAD não confirma uma voz diferente.
 
 **Testes:** 68; sem o Pipecat, 6 são pulados.
+
+## Sprint 6 — Linux (29/10/2026, na VPS `<IP da VPS>`, a pedido da operadora)
+
+**Máquina** (medida antes de instalar):
+- Ubuntu 24.04, Python 3.12.3, Intel Xeon E5-2670 v3 com 4 núcleos, **sem GPU**;
+- 7,9 GB de memória, 6,2 GB livres;
+- sem `uv`.
+
+É a produção do NewClaw. Por isso:
+- pasta separada (`~/newclaw-ivox-teste`);
+- porta 7871, nada na 3090;
+- NewClaw e PM2 intactos;
+- motor desligado no fim de cada teste.
+
+O Marte foi descartado antes de instalar: 451 MB livres de 3,9 GB, swap em uso e o OpenClaw rodando.
+
+| Prova | Resultado |
+|---|---|
+| Instalador (`python3 instalar.py`, sem `uv`: `venv` + `pip`) | completo em 5 min 45 s, código 0; ambiente 1,1 GB (sem CUDA, porque não há GPU NVIDIA), modelos 1,9 GB |
+| Transcrição `large-v3-turbo` na CPU (`cpu/int8`) | texto **idêntico** ao falado, mas 38 s para 10 s de fala (0,3x) |
+| Hipótese "o Pipecat usa um núcleo só" | **descartada**: `cpu_threads` 0 e 4 deram o mesmo tempo (38–39 s). O limite é a própria CPU para esse modelo |
+| Síntese (`george-alex-2`) e ida e volta | texto idêntico; 1,4–3,4 s por frase, **mais lento que a fala** |
+| Frase de 160 caracteres no Kokoro | 12,6 s na VPS (aqui no Windows: 4,1 s) |
+| Motor completo por WebRTC (eco) | o motor ouviu e transcreveu, mas **não falou**: o Kokoro ficou 40 s sem produzir áudio enquanto o Whisper transcrevia o trecho seguinte, até o Pipecat encerrar a frase |
+
+**Corrigido nesta sprint:**
+- **Espera por frase:** o Pipecat desiste de uma frase se o áudio não chega em 3 s.
+  - Agora o motor mede a frase mais longa ao iniciar e espera 2x esse tempo.
+  - Medido: 8,2 s no Windows e 25,3 s na VPS.
+  - Isso valia também no Windows: uma frase de 160 caracteres já passava dos 3 s.
+- **Inventário no Linux:**
+  - as bibliotecas têm versão no nome (`….so.165`) e o prefixo `lib`; o filtro perdia o FFmpeg, o x264/x265 e o espeak-ng;
+  - agora `docs/terceiros/linux.md` lista as mesmas bibliotecas de origem GPL/LGPL do Windows;
+  - no Linux não há pacotes proprietários, porque não há CUDA.
+- **Mensagem das vozes no instalador:** separa as 54 do Kokoro das 3 misturadas.
+
+**Conclusão:**
+- **Funciona no Linux:** a instalação, a transcrição, a síntese, as misturas e o protocolo funcionam iguais ao Windows.
+- **O que não funciona nessa VPS:** com o `large-v3-turbo` e sem GPU, a CPU não dá conta de transcrever e falar ao mesmo
+  tempo em tempo real. O motivo é o tamanho do modelo para aquela CPU, não o Linux.
+- **O que fazer:** o modelo é escolha de quem instala. O `testar-stt` já avisa quando fica mais lento que a fala. Fica para
+  a operadora decidir se mede lá um modelo menor.
+
+**Achado lateral:** o cliente de teste (`aiortc`) na VPS não recebeu as mensagens nem o áudio do motor, e houve erros de
+STUN no `aioice`. O motor recebeu o áudio do cliente normalmente. Isso fica a investigar com uma janela de verdade, na
+Etapa 4.

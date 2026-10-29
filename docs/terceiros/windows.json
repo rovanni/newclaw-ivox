@@ -1232,7 +1232,7 @@
   {
    "pacote": "av",
    "arquivo": "avcodec-62-0f4d449c1bbaaa5eeb9f8a10b4cc7e85.dll",
-   "licenca_de_origem": "LGPL (FFmpeg do PyAV; ver configuração abaixo)"
+   "licenca_de_origem": "LGPL (FFmpeg; ver a configuração do PyAV abaixo e o LICENSE-3RD-PARTY.txt do OpenCV)"
   },
   {
    "pacote": "av",

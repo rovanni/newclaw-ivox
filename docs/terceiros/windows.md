@@ -6,7 +6,7 @@ Gerado por `ferramentas/inventario_terceiros.py` (Python 3.12.10). Levantamento 
 
 | Pacote | Arquivo | Licença de origem |
 |---|---|---|
-| av | `avcodec-62-0f4d449c1bbaaa5eeb9f8a10b4cc7e85.dll` | LGPL (FFmpeg do PyAV; ver configuração abaixo) |
+| av | `avcodec-62-0f4d449c1bbaaa5eeb9f8a10b4cc7e85.dll` | LGPL (FFmpeg; ver a configuração do PyAV abaixo e o LICENSE-3RD-PARTY.txt do OpenCV) |
 | av | `libmp3lame-0-7a64829d195e8823e9b581d29ebd8775.dll` | LGPL-2.0-or-later (LAME) |
 | av | `libx264-165-71900781b680e0e06a1b966b46fee000.dll` | GPL-2.0-or-later (x264) |
 | av | `libx265-7e74dd5103fd9dad5114dffeefd474ce.dll` | GPL-2.0-or-later (x265) |
