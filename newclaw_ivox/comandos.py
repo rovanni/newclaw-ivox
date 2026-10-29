@@ -80,6 +80,43 @@ def modelos(argumentos: list[str]) -> int:
     return 0
 
 
+def exportar_vozes(argumentos: list[str]) -> int:
+    """`exportar-vozes --saida arquivo.bin` — grava um arquivo de vozes do Kokoro com as 54 vozes e as misturas.
+
+    O formato é o mesmo do `voices-v1.0.bin` (um .npz de vetores de estilo por nome), então qualquer programa que use o
+    kokoro-onnx com esse arquivo passa a conhecer as misturas pelo nome (ex.: `george-alex-1`).
+    """
+    import numpy as np
+
+    from . import modelos as m
+    from . import tts_local
+
+    destino = _valor(argumentos, "--saida")
+    if not destino:
+        print("uso: exportar-vozes --saida arquivo.bin")
+        return 64
+    pasta = cfg.carregar(None, RAIZ / ".env", RAIZ).modelos_dir
+    if not m.kokoro_instalado(pasta):
+        print(f"Kokoro não está em {m.pasta_kokoro(pasta)}.")
+        return 1
+    _, arquivo_vozes = m.arquivos_kokoro(pasta)
+    with np.load(arquivo_vozes) as original:
+        vozes = {nome: original[nome] for nome in original.files}
+    lista = tts_local.misturas_validas(sorted(vozes))
+    for mistura in lista:
+        vozes[mistura.nome] = sum(vozes[v] * peso for v, peso in mistura.pesos).astype(vozes[mistura.pesos[0][0]].dtype)
+    caminho = Path(destino)
+    with open(caminho, "wb") as f:  # arquivo aberto: o numpy não acrescenta ".npz" ao nome
+        np.savez(f, **vozes)
+    with np.load(caminho) as conferencia:
+        faltando = [mistura.nome for mistura in lista if mistura.nome not in conferencia.files]
+    if faltando:
+        print(f"Falha: {faltando} não ficaram no arquivo.")
+        return 1
+    print(f"{len(vozes)} vozes ({len(lista)} misturas: {', '.join(x.nome for x in lista)}) gravadas em {caminho}.")
+    return 0
+
+
 # Frase do teste de síntese, uma por idioma aceito. É conteúdo de teste, não escolha de recurso.
 FRASE_DE_TESTE = {
     "pt-BR": "Pronto! Criei o relatório com três tópicos. Quer que eu envie por e-mail?",

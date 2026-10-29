@@ -282,3 +282,19 @@ Amostras em `amostras-de-voz/george-alex-{1,2,3}.wav`, fora do git.
 **Licença:** as vozes de origem são do mesmo arquivo do Kokoro (Apache-2.0), e a mistura não imita nenhuma pessoa.
 
 **Testes:** 66 (4 pulados sem o Pipecat ou sem o Kokoro baixado).
+
+### Usar as vozes misturadas em outros projetos
+
+`python -m newclaw_ivox exportar-vozes --saida arquivo.bin`:
+- grava um arquivo de vozes no mesmo formato do `voices-v1.0.bin`: as 54 vozes mais as misturas, num total de 57;
+- qualquer programa que use o kokoro-onnx com esse arquivo chama a mistura pelo nome.
+
+Provado com o kokoro-onnx puro, sem o newclaw-ivox: a `george-alex-2` falou.
+
+**Achado (29/10):**
+- O Voice-Studio, o bot do OpenClaw no Marte e o NewClaw (`KOKORO_TTS_URL`) usam o servidor Kokoro do Sol
+  (`<IP do servidor de vozes>:8199`).
+- Esse servidor recusa misturas no pedido: `bm_george(0.7)+pm_alex(0.3)` e `bm_george+pm_alex` voltam 500, "not found".
+- O erro é o do kokoro-onnx. Indica que trocar o arquivo de vozes dele pelo exportado deixaria as misturas disponíveis por
+  nome para todos esses projetos.
+- Essa troca é na infraestrutura da operadora e só acontece com o OK dela.

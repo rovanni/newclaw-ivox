@@ -21,6 +21,12 @@ def _testar_tts(argumentos):
     return comandos.testar_tts(argumentos)
 
 
+def _exportar_vozes(argumentos):
+    from . import comandos
+
+    return comandos.exportar_vozes(argumentos)
+
+
 def _instalar(argumentos):
     from . import instalador
 
@@ -29,6 +35,7 @@ def _instalar(argumentos):
 
 COMANDOS = {
     "diagnostico": diagnostico.principal,
+    "exportar-vozes": _exportar_vozes,
     "instalar": _instalar,
     "modelos": _modelos,
     "testar-stt": _testar_stt,
