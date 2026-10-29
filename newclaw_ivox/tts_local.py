@@ -140,9 +140,44 @@ def trocar_voz(servico, voz: str) -> None:
 
 
 def sintetizar(servico, frases: list[str]) -> Resultado:
+    """Versão para fora de um laço asyncio (comandos de teste)."""
+    return asyncio.run(sintetizar_async(servico, frases))
+
+
+# Margem sobre o tempo medido da frase mais longa, para a espera do Pipecat pelo áudio de uma frase. O padrão dele (3 s)
+# vale como mínimo; numa CPU lenta, o Kokoro passa disso e o Pipecat desiste da frase ("completed with no audio",
+# achado da Sprint 6 numa VPS sem GPU).
+MARGEM_DA_ESPERA = 2.0
+
+
+async def ajustar_espera_pela_medicao(servico, idioma: str, limite: int) -> tuple[float, float]:
+    """Sintetiza uma frase do tamanho máximo que o motor manda (o limite de `frases.py`) e ajusta a espera do serviço.
+
+    Devolve (segundos medidos, espera escolhida). A espera nunca fica abaixo do padrão do Pipecat.
+    """
+    base = FRASES_DE_MEDIDA[idioma]
+    texto = (base + " ") * (limite // len(base) + 1)
+    texto = texto[:limite].rsplit(" ", 1)[0]
+    resultado = await sintetizar_async(servico, [texto])
+    medido = resultado.falas[0].segundos_para_sintetizar
+    espera = max(servico._stop_frame_timeout_s, medido * MARGEM_DA_ESPERA)
+    servico._stop_frame_timeout_s = espera
+    return medido, espera
+
+
+# Frases só para medir o tempo de síntese, sem pontuação final no meio (viram uma frase só), uma por idioma aceito.
+FRASES_DE_MEDIDA = {
+    "pt-BR": "o relatório foi criado com três tópicos e uma lista de pendências para a reunião da equipe",
+    "en-US": "the report was created with three topics and a list of open items for the team meeting",
+    "es-ES": "el informe fue creado con tres temas y una lista de pendientes para la reunión del equipo",
+}
+
+
+async def sintetizar_async(servico, frases: list[str]) -> Resultado:
     """Sintetiza frase a frase (H2), pelo mesmo `run_tts` que o pipeline usa, e mede cada uma."""
     from pipecat.frames.frames import ErrorFrame, TTSAudioRawFrame
 
+    taxa_original = servico._sample_rate
     if not servico.sample_rate:
         # No pipeline, a taxa é definida quando ele inicia; fora dele, vale a pedida na criação.
         servico._sample_rate = servico._init_sample_rate or TAXA_PADRAO_FORA_DO_PIPELINE
@@ -163,10 +198,10 @@ def sintetizar(servico, frases: list[str]) -> Resultado:
         total = time.perf_counter() - inicio
         return Fala(frase, b"".join(pedacos), servico.sample_rate, primeiro if primeiro is not None else total, total)
 
-    async def todas():
-        return [await uma(f, i) for i, f in enumerate(frases)]
-
-    return Resultado(tuple(asyncio.run(todas())))
+    falas = [await uma(f, i) for i, f in enumerate(frases)]
+    if not taxa_original:
+        servico._sample_rate = taxa_original  # o pipeline define a taxa dele ao iniciar
+    return Resultado(tuple(falas))
 
 
 def gravar_wav(caminho: Path, audio_pcm16: bytes, taxa: int) -> None:

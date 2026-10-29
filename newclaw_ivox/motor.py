@@ -130,7 +130,12 @@ async def bot(runner_args):
         vozes = tuple(v["nome"] for v in tts_local.vozes_disponiveis(config.modelos_dir))
         try:
             tts = await asyncio.to_thread(tts_local.criar_servico, config, None)
-            print(f"[motor] Kokoro pronto, voz {tts_local.voz_atual(tts)}", flush=True)
+            medido, espera = await tts_local.ajustar_espera_pela_medicao(tts, config.idioma, controle.LIMITE_PADRAO)
+            print(
+                f"[motor] Kokoro pronto, voz {tts_local.voz_atual(tts)}; frase mais longa em {medido:.1f} s "
+                f"→ espera por frase {espera:.1f} s",
+                flush=True,
+            )
         except tts_local.SemVozEscolhida as e:
             print(f"[motor] {e}", flush=True)
         if tts is not None:
