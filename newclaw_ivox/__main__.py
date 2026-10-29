@@ -27,6 +27,12 @@ def _exportar_vozes(argumentos):
     return comandos.exportar_vozes(argumentos)
 
 
+def _motor(argumentos):
+    from . import motor
+
+    return motor.principal(argumentos)
+
+
 def _instalar(argumentos):
     from . import instalador
 
@@ -38,6 +44,7 @@ COMANDOS = {
     "exportar-vozes": _exportar_vozes,
     "instalar": _instalar,
     "modelos": _modelos,
+    "motor": _motor,
     "testar-stt": _testar_stt,
     "testar-tts": _testar_tts,
 }

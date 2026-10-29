@@ -15,7 +15,7 @@ cota de nuvem, aviso e peço.
 | 2 — Pipecat no Windows | Instalar o Pipecat num ambiente isolado (`.venv` do projeto); conferir os binários (PyAV/FFmpeg e codecs, ONNX) e as licenças instaladas; fixar as versões | **OK para instalar** (dado em 29/10) | **feita** (29/10) |
 | 3 — Instalador + transcrição local | `python instalar.py`: mede a máquina, pergunta, instala, baixa o modelo e testa; transcrição com faster-whisper, GPU medida | OK para instalar e baixar; modelo escolhido por você (`large-v3-turbo`, 29/10) | **feita** (29/10) |
 | 4 — Síntese local | Kokoro na máquina, frase a frase; o instalador passa a perguntar a voz | OK para baixar o Kokoro (dado em 29/10); a voz é escolha sua | **feita** (29/10) |
-| 5 — Fluxo completo + interrupção real | `VAD → STT → user-transcription` e `falar → TTS`; a fala do usuário corta a do motor; prova com microfone de verdade | Você falando no microfone | a fazer |
+| 5 — Fluxo completo + interrupção real | `VAD → STT → user-transcription` e `falar → TTS`; a fala do usuário corta a do motor; prova com microfone de verdade | Você falando no microfone | provado com cliente WebRTC automático; falta você no microfone |
 | 6 — Linux | Repetir as provas 2–5 numa máquina Linux | Qual máquina usar (indicação sua) | a fazer |
 
 Revisão de 29/10/2026 (ADR-030 do NewClaw, "voz na máquina do usuário"): as sprints 3 a 6 substituem o plano anterior,
@@ -298,3 +298,49 @@ Provado com o kokoro-onnx puro, sem o newclaw-ivox: a `george-alex-2` falou.
 - O erro é o do kokoro-onnx. Indica que trocar o arquivo de vozes dele pelo exportado deixaria as misturas disponíveis por
   nome para todos esses projetos.
 - Essa troca é na infraestrutura da operadora e só acontece com o OK dela.
+
+## Sprint 5 — resultado parcial (29/10/2026)
+
+**Motor** (`python -m newclaw_ivox motor [--eco]`, `motor.py`): o pipeline do Pipecat montado com o que foi configurado e
+medido.
+
+    transporte WebRTC (entrada) → VAD Silero → Interrupção → Whisper → [Eco] → Kokoro → transporte (saída)
+
+- **Interrupção pela voz** (processador `Interrupcao`): o VAD detecta a pessoa falando enquanto o motor fala, e o motor
+  manda parar (`broadcast_interruption`). O pedido no NewClaw não é cancelado: interromper só corta o áudio (D3).
+- **Mensagens da janela pelo RTVI** (`on_client_message` → `controle.interpretar`):
+  - `falar` vira `TTSSpeakFrame` frase a frase;
+  - `interromper` corta a fala;
+  - `vozes` responde a lista, com as misturas e os rótulos;
+  - `voz` vira `TTSUpdateSettingsFrame`;
+  - o que é inválido volta como erro, com o motivo.
+- **Modo eco** (`--eco`), só para testar sem o NewClaw: o motor repete o que ouviu.
+- **Whisper:** é carregado uma vez por processo (`WhisperComModeloReaproveitado`) e aquecido na primeira conexão. A carga
+  roda numa thread, e o servidor não trava enquanto carrega.
+- **Servidor:** o runner de desenvolvimento do Pipecat, em `127.0.0.1:7860` com origem restrita, mais a página de teste
+  pronta em `/client`. O servidor próprio do harness é a Etapa 3.
+
+**Prova automática por WebRTC real**:
+- **Como:** um cliente `aiortc` faz o papel do navegador e manda um WAV no lugar do microfone. A fala é uma frase longa;
+  depois, outra frase por cima da resposta.
+- **Fala usada:** gerada pela voz Maria do Windows.
+- **Motor:** voz `bm_george`, Whisper `large-v3-turbo` na GPU.
+
+| Medida | Resultado |
+|---|---|
+| Transcrições chegando à janela (`user-transcription`) | "Bom dia.", "Quero saber a previsão do tempo para amanhã em São Paulo e depois criar um relatório com três tópicos.", "Espera.", "Pode parar um pouco.": iguais ao falado |
+| Interrupção pela voz | 3 de 3; a fala do motor parou **4–7 ms** depois de o VAD confirmar a voz da pessoa (o VAD leva ~0,2 s de fala para confirmar, o padrão dele) |
+| Depois da interrupção | o motor seguiu normal: ouviu e respondeu a frase seguinte |
+| Primeira conexão do processo | pronto em ~12 s (Whisper 6,4 s de carga + aquecimento + Kokoro) |
+| Conexões seguintes | pronto em 1,9 s (Whisper reaproveitado: 0,0 s; Kokoro ~1,9 s) |
+
+**Achados:**
+- **Pausas viram trechos:** a voz do Windows faz pausa entre frases, e o VAD separa cada uma como um trecho próprio. No eco,
+  o motor começa a responder o primeiro trecho e é interrompido pelo seguinte; é o comportamento certo.
+- **Sem NewClaw:** a pausa curta que encerra o trecho é o padrão do Pipecat (VAD). Com o NewClaw, quem decide o fim do
+  pedido é a janela (Etapa 4), que pode esperar mais.
+
+**Falta, para fechar a Sprint 5:** a prova com a operadora falando no microfone de verdade, pela página de teste do
+navegador.
+
+**Testes:** 68; sem o Pipecat, 6 são pulados.

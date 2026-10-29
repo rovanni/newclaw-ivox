@@ -89,7 +89,8 @@ def criar_servico(config: cfg.Configuracao, taxa: int = TAXA_PADRAO_FORA_DO_PIPE
     )
     _acrescentar_misturas(servico, lista)
     if mistura:
-        trocar_voz(servico, voz)
+        # Ainda não há laço rodando nem áudio em curso: a voz é só um campo da configuração do serviço.
+        servico._settings.voice = voz
     return servico
 
 
@@ -127,7 +128,8 @@ def voz_atual(servico) -> str:
 
 
 def trocar_voz(servico, voz: str) -> None:
-    """Troca a voz sem recarregar o modelo, pelo mesmo caminho de configuração que o pipeline usa."""
+    """Troca a voz sem recarregar o modelo, pelo mesmo caminho de configuração que o pipeline usa (fora de um laço;
+    dentro do pipeline, a troca vai como `TTSUpdateSettingsFrame`)."""
     if voz not in servico._kokoro.voices:
         raise TtsIndisponivel(f"A voz '{voz}' não está entre as {len(servico._kokoro.voices)} disponíveis.")
     from pipecat.services.kokoro.tts import KokoroTTSService

@@ -43,18 +43,44 @@ def criar_servico(config: cfg.Configuracao):
     if escolha.dispositivo is None:
         raise SttIndisponivel(escolha.motivo)
 
-    from pipecat.services.whisper.stt import WhisperSTTService
     from pipecat.transcriptions.language import Language
 
-    servico = WhisperSTTService(
+    servico = _classe_com_cache()(
         device=escolha.dispositivo,
         compute_type=escolha.tipo,
-        settings=WhisperSTTService.Settings(
+        settings=_classe_com_cache().Settings(
             model=str(modelos.pasta_do_modelo(config.modelos_dir, nome)),
             language=Language(config.idioma) if config.idioma else None,
         ),
     )
     return servico, escolha
+
+
+# Um modelo do Whisper carregado por processo: cada conexão da janela monta um serviço novo (o pipeline é por conexão),
+# mas carregar o modelo leva ~9 s e ocupa a memória da GPU; o modelo em si não guarda nada da conversa.
+_MODELOS_CARREGADOS: dict[tuple, object] = {}
+_CLASSE = None
+
+
+def _classe_com_cache():
+    global _CLASSE
+    if _CLASSE is None:
+        from pipecat.services.whisper.stt import WhisperSTTService
+
+        class WhisperComModeloReaproveitado(WhisperSTTService):
+            def _load(self):
+                chave = (self._settings.model, self._device, self._compute_type)
+                if chave in _MODELOS_CARREGADOS:
+                    self._model = _MODELOS_CARREGADOS[chave]
+                    problema = self._unsupported_language()
+                    if problema:
+                        raise ValueError(problema)
+                    return
+                super()._load()
+                _MODELOS_CARREGADOS[chave] = self._model
+
+        _CLASSE = WhisperComModeloReaproveitado
+    return _CLASSE
 
 
 def ler_wav_pcm16(caminho: Path) -> tuple[bytes, int]:
@@ -66,22 +92,23 @@ def ler_wav_pcm16(caminho: Path) -> tuple[bytes, int]:
 
 
 def transcrever(servico, escolha: disp.Escolha, audio_pcm16: bytes, taxa: int) -> Transcricao:
+    """Versão para fora de um laço asyncio (comandos de teste)."""
+    return asyncio.run(transcrever_async(servico, escolha, audio_pcm16, taxa))
+
+
+async def transcrever_async(servico, escolha: disp.Escolha, audio_pcm16: bytes, taxa: int) -> Transcricao:
     """Transcreve um trecho inteiro pelo mesmo `run_stt` que o pipeline usa. O Whisper espera 16 kHz."""
     if taxa != 16_000:
         raise ValueError(f"O Whisper espera áudio a 16 kHz; veio {taxa} Hz.")
     from pipecat.frames.frames import ErrorFrame, TranscriptionFrame
 
-    async def rodar():
-        textos, erros = [], []
-        async for quadro in servico.run_stt(audio_pcm16):
-            if isinstance(quadro, TranscriptionFrame):
-                textos.append(quadro.text)
-            elif isinstance(quadro, ErrorFrame):
-                erros.append(quadro.error)
-        return textos, erros
-
     inicio = time.perf_counter()
-    textos, erros = asyncio.run(rodar())
+    textos, erros = [], []
+    async for quadro in servico.run_stt(audio_pcm16):
+        if isinstance(quadro, TranscriptionFrame):
+            textos.append(quadro.text)
+        elif isinstance(quadro, ErrorFrame):
+            erros.append(quadro.error)
     duracao = time.perf_counter() - inicio
     if erros:
         raise SttIndisponivel("; ".join(erros))
