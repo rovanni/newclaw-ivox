@@ -1,0 +1,17 @@
+[project]
+name = "newclaw-ivox"
+version = "0.1.0"
+description = "Interface de voz opcional para o NewClaw (harness): ouve, mostra e fala, sem modelo próprio."
+readme = "README.md"
+license = { file = "LICENSE" }
+requires-python = ">=3.10"
+# Sprint 1: só biblioteca padrão. As dependências do motor de voz (Pipecat) entram na Sprint 2, depois de
+# instaladas e auditadas no Windows e no Linux (ADR-030, decisão L1).
+dependencies = []
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = ["newclaw_ivox"]

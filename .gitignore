@@ -1,0 +1,12 @@
+# Configuração local: tem chaves em texto puro. Só o modelo sem valores entra no repositório.
+.env
+.env.*
+!.env.example
+
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+build/
+dist/
