@@ -177,6 +177,15 @@
    ]
   },
   {
+   "nome": "cloudpickle",
+   "versao": "3.1.2",
+   "licenca_declarada": "BSD-3-Clause",
+   "bibliotecas_nativas": [],
+   "arquivos_de_licenca": [
+    "cloudpickle-3.1.2.dist-info/licenses/LICENSE"
+   ]
+  },
+  {
    "nome": "colorama",
    "versao": "0.4.6",
    "licenca_declarada": "BSD License",
@@ -217,11 +226,22 @@
    ]
   },
   {
+   "nome": "dlinfo",
+   "versao": "2.0.0",
+   "licenca_declarada": "MIT",
+   "bibliotecas_nativas": [],
+   "arquivos_de_licenca": [
+    "dlinfo-2.0.0.dist-info/LICENSE"
+   ]
+  },
+  {
    "nome": "dnspython",
-   "versao": "2.9.0",
+   "versao": "2.9.1",
    "licenca_declarada": "ISC",
    "bibliotecas_nativas": [],
-   "arquivos_de_licenca": []
+   "arquivos_de_licenca": [
+    "dnspython-2.9.1.dist-info/licenses/LICENSE"
+   ]
   },
   {
    "nome": "docopt",
@@ -249,6 +269,15 @@
    "arquivos_de_licenca": [
     "email_validator-2.3.0.dist-info/licenses/LICENSE"
    ]
+  },
+  {
+   "nome": "espeakng-loader",
+   "versao": "0.2.4",
+   "licenca_declarada": "não declarada",
+   "bibliotecas_nativas": [
+    "espeak-ng.dll"
+   ],
+   "arquivos_de_licenca": []
   },
   {
    "nome": "fastapi",
@@ -466,6 +495,24 @@
    "bibliotecas_nativas": [],
    "arquivos_de_licenca": [
     "jiter-0.18.0.dist-info/licenses/LICENSE"
+   ]
+  },
+  {
+   "nome": "joblib",
+   "versao": "1.6.0",
+   "licenca_declarada": "BSD-3-Clause",
+   "bibliotecas_nativas": [],
+   "arquivos_de_licenca": [
+    "joblib-1.6.0.dist-info/licenses/LICENSE.txt"
+   ]
+  },
+  {
+   "nome": "kokoro-onnx",
+   "versao": "0.6.1",
+   "licenca_declarada": "não declarada",
+   "bibliotecas_nativas": [],
+   "arquivos_de_licenca": [
+    "kokoro_onnx-0.6.1.dist-info/licenses/LICENSE"
    ]
   },
   {
@@ -778,6 +825,15 @@
     "packaging-26.3.dist-info/licenses/LICENSE.BSD",
     "packaging/licenses/__init__.py",
     "packaging/licenses/_spdx.py"
+   ]
+  },
+  {
+   "nome": "phonemizer",
+   "versao": "3.4.0",
+   "licenca_declarada": "GNU GENERAL PUBLIC LICENSE (texto longo no metadado)",
+   "bibliotecas_nativas": [],
+   "arquivos_de_licenca": [
+    "phonemizer-3.4.0.dist-info/licenses/LICENSE"
    ]
   },
   {
@@ -1192,6 +1248,11 @@
    "pacote": "av",
    "arquivo": "libx265-7e74dd5103fd9dad5114dffeefd474ce.dll",
    "licenca_de_origem": "GPL-2.0-or-later (x265)"
+  },
+  {
+   "pacote": "espeakng-loader",
+   "arquivo": "espeak-ng.dll",
+   "licenca_de_origem": "GPL-3.0-or-later (eSpeak NG; carregado no processo pelo phonemizer)"
   },
   {
    "pacote": "opencv-python-headless",

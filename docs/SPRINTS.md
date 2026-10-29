@@ -14,7 +14,7 @@ cota de nuvem, aviso e peço.
 | 1 — Base sem dependências | Repositório; configuração da tabela 4 com ausência reportada; texto → frases para a fala (H2/D4); protocolo `falar`/`interromper`; `diagnostico` com saída 0/1/2 | Nada além do Python 3.10+ | **feita** (29/10) |
 | 2 — Pipecat no Windows | Instalar o Pipecat num ambiente isolado (`.venv` do projeto); conferir os binários (PyAV/FFmpeg e codecs, ONNX) e as licenças instaladas; fixar as versões | **OK para instalar** (dado em 29/10) | **feita** (29/10) |
 | 3 — Instalador + transcrição local | `python instalar.py`: mede a máquina, pergunta, instala, baixa o modelo e testa; transcrição com faster-whisper, GPU medida | OK para instalar e baixar; modelo escolhido por você (`large-v3-turbo`, 29/10) | **feita** (29/10) |
-| 4 — Síntese local | Kokoro na máquina, frase a frase; o instalador passa a perguntar a voz | OK para baixar o Kokoro | a fazer |
+| 4 — Síntese local | Kokoro na máquina, frase a frase; o instalador passa a perguntar a voz | OK para baixar o Kokoro (dado em 29/10); a voz é escolha sua | **feita** (29/10) |
 | 5 — Fluxo completo + interrupção real | `VAD → STT → user-transcription` e `falar → TTS`; a fala do usuário corta a do motor; prova com microfone de verdade | Você falando no microfone | a fazer |
 | 6 — Linux | Repetir as provas 2–5 numa máquina Linux | Qual máquina usar (indicação sua) | a fazer |
 
@@ -151,3 +151,68 @@ cada sprint é testada do jeito que uma pessoa nova vai instalar.
 - **Avisos de terceiros na tela:** o do Hugging Face sobre requisições sem token e o do Pipecat "pt-BR not verified; usando
   'pt'". Ficam, porque são das bibliotecas.
 - **Inventário:** `docs/terceiros/windows.md` foi refeito a partir da instalação limpa (117 pacotes).
+
+## Sprint 4 — resultado (29/10/2026)
+
+**Síntese local:**
+- `tts_local.py` monta o `KokoroTTSService` do Pipecat com os arquivos já baixados, a voz escolhida e o idioma configurado.
+  - Sem isso, o Pipecat baixaria sozinho para uma pasta dele e falaria em inglês.
+  - A voz é conferida no arquivo de vozes antes de usar.
+- A síntese é frase a frase (H2), pelo mesmo `run_tts` do pipeline, com o texto preparado por `frases.py`.
+
+**Modelos:**
+- `modelos.py` sabe o tamanho do Kokoro (perguntado ao GitHub), baixa e lista as vozes que estão de fato no arquivo.
+- Os endereços vêm das constantes do Pipecat instalado.
+- O download vai primeiro para um arquivo `.parcial`, para um download interrompido não parecer completo.
+
+**Instalador:**
+- passou a perguntar a síntese (nesta máquina, servidor ou desligada) e a voz, numa lista das vozes do arquivo, sem resposta
+  padrão;
+- pergunta antes de baixar, mostrando o tamanho;
+- avisa da licença GPL do phonemizer e do espeak-ng.
+
+**`testar-tts`:**
+- sintetiza uma frase de teste no idioma configurado e grava o WAV para ouvir;
+- se a transcrição local também estiver ligada, faz a **ida e volta**: fala → Whisper → texto.
+
+**Prova real:**
+- **Instalação:** limpa, Windows 11, RTX 5060 Ti. Só o Whisper já estava na pasta de modelos; o Kokoro foi baixado pelo
+  instalador.
+- **Voz e idioma:** `pf_dora` e `pt-BR`, escolhidos só para o teste. A voz definitiva é escolha da operadora.
+
+| Medida | Resultado |
+|---|---|
+| Instalação completa (ambiente + Kokoro) | 1 min 10 s; o Kokoro (337 MB) baixou em 11 s |
+| Carga do Kokoro (CPU) | 3,4–4,9 s |
+| "Pronto!" | pronta em 0,85–1,02 s para 0,7 s de fala |
+| "Criei o relatório com três tópicos." | pronta em 0,72–0,78 s para 2,1 s de fala |
+| "Quer que eu envie por e-mail?" | pronta em 0,56–0,58 s para 1,6 s de fala |
+| Ida e volta (Kokoro → Whisper na GPU) | "Pronto! Criei o relatório com três tópicos. Quer que eu envie por e-**mails**?": só um plural a mais |
+
+O Kokoro roda na CPU (onnxruntime) e, a partir da segunda frase, fica pronto antes de a frase anterior terminar de tocar. A
+primeira frase curta é a mais lenta em relação à própria duração.
+
+**Licenças** (inventário refeito a partir da instalação limpa, 123 pacotes):
+- **`espeak-ng.dll`** (pacote `espeakng-loader`, que não declara licença): origem GPL-3.0-or-later.
+- **`phonemizer` 3.4.0:** GPL-3.0-or-later.
+- **`kokoro-onnx` 0.6.1:** MIT.
+- **Pesos do Kokoro:** o `hexgrad/Kokoro-82M` declara Apache-2.0 no Hugging Face. O ONNX vem de uma conversão do mesmo autor
+  do `kokoro-onnx`.
+
+**Decisão pendente (antes de qualquer publicação):**
+- **O ponto:** o phonemizer e o espeak-ng (GPL-3.0) rodam dentro do mesmo processo do motor.
+- **Pesa só na distribuição:** o repositório distribui só o código-fonte MIT, e quem instala recebe os pacotes do PyPI.
+  Isso é análise técnica, não parecer jurídico.
+- **Alternativas:**
+  - manter assim;
+  - mover a síntese para um subprocesso (a H1 permite);
+  - oferecer outro motor local sem espeak-ng.
+
+**Testes:**
+- 53 de unidade (3 pulados sem o Pipecat).
+- O instalador ganhou o teste da pergunta de síntese.
+
+**Limitações:**
+- O Kokoro usa só a CPU. A GPU para ele (`onnxruntime-gpu`) não foi medida.
+- A frase de teste existe nos três idiomas aceitos, mas só o pt-BR foi testado.
+- A latência no fluxo completo (VAD → STT → NewClaw → TTS) é a Sprint 5.

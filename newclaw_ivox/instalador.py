@@ -133,18 +133,41 @@ class Instalador:
             return {"VOZ_STT_MOTOR": ""}
         return {"VOZ_STT_MOTOR": cfg.LOCAL}
 
-    def preparar_ambiente(self, sistema: disp.Sistema, com_stt_local: bool) -> None:
+    def perguntar_sintese(self) -> dict[str, str]:
+        self.titulo("Síntese (texto → fala)")
+        motor = self.escolher("Onde sintetizar a fala?", [
+            (cfg.LOCAL, "Nesta máquina (Kokoro local; não depende de outro computador)"),
+            (cfg.URL, "Num servidor que eu já tenho (compatível com a API OpenAI)"),
+            ("", "Desligada (respostas só em texto)"),
+        ])
+        if motor == cfg.URL:
+            return {
+                "VOZ_TTS_MOTOR": cfg.URL,
+                "VOZ_TTS_URL": self.perguntar("Endereço do servidor (ex.: http://servidor:porta/v1):"),
+                "VOZ_TTS_MODELO": self.perguntar("Modelo, como o servidor o chama:"),
+                "VOZ_TTS_VOZ": self.perguntar("Voz, como o servidor a chama:"),
+                "VOZ_TTS_CHAVE": self.perguntar("Chave (Enter se o servidor não pede):"),
+            }
+        if motor == "":
+            return {"VOZ_TTS_MOTOR": ""}
+        return {"VOZ_TTS_MOTOR": cfg.LOCAL}
+
+    def preparar_ambiente(self, sistema: disp.Sistema, com_stt_local: bool, com_tts_local: bool = False) -> None:
         self.titulo("Ambiente Python do motor de voz")
         extras = ["motor"]
         if com_stt_local:
             extras.append("stt-local")
             if sistema.gpus_nvidia and sys.platform != "darwin":
                 extras.append("cuda")
+        if com_tts_local:
+            extras.append("tts-local")
         self.info(f"Pasta: {self.venv}")
         self.info(f"Pacotes: newclaw-ivox[{','.join(extras)}], baixados do PyPI para dentro dessa pasta.")
         if "cuda" in extras:
             self.info("Inclui as bibliotecas CUDA da NVIDIA (~2 GB no Windows), porque uma GPU NVIDIA foi encontrada.")
             self.info("Elas têm licença proprietária da NVIDIA: vêm do PyPI para esta máquina e não podem ser redistribuídas.")
+        if "tts-local" in extras:
+            self.info("A síntese local (Kokoro) usa phonemizer e espeak-ng, de licença GPL-3.0, dentro do motor.")
         self.info("Licenças de terceiros: docs/terceiros/ (há bibliotecas GPL/LGPL; vêm do PyPI, não deste repositório).")
         if not self.confirmar("Instalar agora?"):
             raise Cancelado("instalação recusada")
@@ -184,6 +207,35 @@ class Instalador:
             raise Cancelado("download recusado")
         self.executar([str(self.python_venv), "-m", "newclaw_ivox", "modelos", "--baixar", nome, "--pasta", str(modelos_dir)])
 
+    def baixar_kokoro(self, modelos_dir: Path) -> None:
+        self.titulo("Modelo do Kokoro")
+        if self.simular:
+            self.info(f"(simulação: baixaria o modelo e as vozes do Kokoro para {modelos_dir})")
+            return
+        resultado = self.rodar_no_venv("modelos", "--kokoro", "--json", "--pasta", str(modelos_dir))
+        if resultado.returncode != 0:
+            raise RuntimeError("Não consegui consultar o Kokoro: " + (resultado.stderr.strip().splitlines() or ["sem detalhe"])[-1])
+        dados = json.loads(resultado.stdout)
+        if dados["instalado"]:
+            self.info(f"O Kokoro já está em {dados['pasta']}.")
+            return
+        if not self.confirmar(f"Baixar o modelo e as vozes do Kokoro ({dados['tamanho']}) do GitHub para {dados['pasta']}?"):
+            raise Cancelado("download recusado")
+        self.executar([str(self.python_venv), "-m", "newclaw_ivox", "modelos", "--kokoro", "--baixar", "--pasta", str(modelos_dir)])
+
+    def escolher_voz(self, modelos_dir: Path) -> str:
+        self.titulo("Voz")
+        if self.simular:
+            self.info("(simulação: a lista viria do arquivo de vozes baixado)")
+            return self.perguntar("Nome da voz:")
+        resultado = self.rodar_no_venv("modelos", "--vozes", "--json", "--pasta", str(modelos_dir))
+        if resultado.returncode != 0:
+            raise RuntimeError("Não consegui ler as vozes: " + (resultado.stderr.strip().splitlines() or ["sem detalhe"])[-1])
+        vozes = json.loads(resultado.stdout)
+        self.info(f"{len(vozes)} vozes no arquivo do Kokoro. Pelo nome que o Kokoro dá, a primeira letra indica o idioma"
+                  " (p = português, e = espanhol, a/b = inglês) e a segunda, voz feminina (f) ou masculina (m).")
+        return self.escolher("Qual voz?", [(v, v) for v in vozes])
+
     def perguntar_idioma(self) -> str:
         self.titulo("Idioma")
         return self.escolher("Em que idioma você vai falar?", [
@@ -214,15 +266,17 @@ class Instalador:
             caminho.write_text("\n".join(novas) + "\n", encoding="utf-8")
         return caminho
 
-    def testar(self, com_stt_local: bool) -> int:
+    def testar(self, com_stt_local: bool, com_tts_local: bool = False) -> int:
         self.titulo("Teste")
         if self.simular:
-            self.info("(simulação: rodaria o diagnóstico e o teste da transcrição)")
+            self.info("(simulação: rodaria o diagnóstico e os testes da transcrição e da síntese)")
             return 0
         python = str(self.python_venv) if self.python_venv.exists() else sys.executable
         codigo = subprocess.run([python, "-m", "newclaw_ivox", "diagnostico"], cwd=self.raiz).returncode
         if codigo == 0 and com_stt_local:
             codigo = subprocess.run([python, "-m", "newclaw_ivox", "testar-stt"], cwd=self.raiz).returncode
+        if codigo == 0 and com_tts_local:
+            codigo = subprocess.run([python, "-m", "newclaw_ivox", "testar-tts"], cwd=self.raiz).returncode
         return codigo
 
     def rodar(self) -> int:
@@ -231,20 +285,22 @@ class Instalador:
         valores = {chave: "" for chave in CHAVES_DE_VOZ}
         valores["VOZ_DISPOSITIVO"] = "auto"
         valores.update(self.perguntar_transcricao())
+        valores.update(self.perguntar_sintese())
         com_stt_local = valores["VOZ_STT_MOTOR"] == cfg.LOCAL
+        com_tts_local = valores["VOZ_TTS_MOTOR"] == cfg.LOCAL
 
-        self.preparar_ambiente(sistema, com_stt_local)
+        self.preparar_ambiente(sistema, com_stt_local, com_tts_local)
         config_atual = cfg.carregar({}, self.raiz / ".env", self.raiz)
         if com_stt_local:
             valores["VOZ_STT_MODELO"] = self.escolher_modelo_stt(config_atual.modelos_dir)
             self.baixar_modelo_stt(config_atual.modelos_dir, valores["VOZ_STT_MODELO"])
-
-        self.titulo("Síntese (texto → fala)")
-        self.info("A síntese local entra na próxima versão deste instalador; por enquanto fica desligada.")
+        if com_tts_local:
+            self.baixar_kokoro(config_atual.modelos_dir)
+            valores["VOZ_TTS_VOZ"] = self.escolher_voz(config_atual.modelos_dir)
 
         valores["VOZ_IDIOMA"] = self.perguntar_idioma()
         self.gravar_env(valores)
-        codigo = self.testar(com_stt_local)
+        codigo = self.testar(com_stt_local, com_tts_local)
         self.titulo("Pronto" if codigo == 0 else "Terminou com problema")
         self.info("Conferir a qualquer momento: python -m newclaw_ivox diagnostico")
         return codigo

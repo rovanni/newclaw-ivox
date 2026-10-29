@@ -32,6 +32,7 @@ NATIVAS_COPYLEFT = {
     "opencv_videoio_ffmpeg": "LGPL (FFmpeg do OpenCV; ver LICENSE-3RD-PARTY.txt do pacote)",
     "avcodec": "LGPL (FFmpeg do PyAV; ver configuração abaixo)",
     "libmp3lame": "LGPL-2.0-or-later (LAME)",
+    "espeak-ng": "GPL-3.0-or-later (eSpeak NG; carregado no processo pelo phonemizer)",
 }
 CODECS_GPL = ("libx264", "libx264rgb", "libx265", "libxvid", "libfdk_aac")
 

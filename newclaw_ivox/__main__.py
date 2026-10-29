@@ -15,6 +15,12 @@ def _testar_stt(argumentos):
     return comandos.testar_stt(argumentos)
 
 
+def _testar_tts(argumentos):
+    from . import comandos
+
+    return comandos.testar_tts(argumentos)
+
+
 def _instalar(argumentos):
     from . import instalador
 
@@ -26,6 +32,7 @@ COMANDOS = {
     "instalar": _instalar,
     "modelos": _modelos,
     "testar-stt": _testar_stt,
+    "testar-tts": _testar_tts,
 }
 
 

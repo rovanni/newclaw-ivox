@@ -20,10 +20,31 @@ def _valor(argumentos: list[str], nome: str) -> str | None:
 
 
 def modelos(argumentos: list[str]) -> int:
-    """`modelos [--json] [--pasta P] [--baixar NOME]`"""
+    """`modelos [--json] [--pasta P] [--baixar NOME]` (Whisper), `modelos --kokoro [--json] [--baixar]`, `modelos --vozes [--json]`"""
     from . import modelos as m
 
     pasta = Path(_valor(argumentos, "--pasta") or cfg.carregar(None, RAIZ / ".env", RAIZ).modelos_dir)
+    if "--vozes" in argumentos:
+        if not m.kokoro_instalado(pasta):
+            print(f"Kokoro não está em {m.pasta_kokoro(pasta)}.")
+            return 1
+        vozes = m.vozes_kokoro(pasta)
+        print(json.dumps(vozes) if "--json" in argumentos else "\n".join(vozes))
+        return 0
+    if "--kokoro" in argumentos:
+        if "--baixar" in argumentos:
+            print(f"Baixando o Kokoro para {m.pasta_kokoro(pasta)} …")
+            inicio = time.perf_counter()
+            destino = m.baixar_kokoro(pasta)
+            print(f"Pronto em {time.perf_counter() - inicio:.0f} s: {destino}")
+            return 0
+        tamanho = m.tamanho_kokoro()
+        dados = {
+            "instalado": m.kokoro_instalado(pasta), "pasta": str(m.pasta_kokoro(pasta)),
+            "bytes": tamanho, "tamanho": m.formatar_bytes(tamanho), "enderecos": list(m.enderecos_kokoro()),
+        }
+        print(json.dumps(dados, ensure_ascii=False) if "--json" in argumentos else f"{dados['tamanho']}  {dados['pasta']}")
+        return 0
     nome = _valor(argumentos, "--baixar")
     if nome:
         if nome not in m.repositorios():
@@ -46,6 +67,58 @@ def modelos(argumentos: list[str]) -> int:
     else:
         for x in lista:
             print(f"{x['nome']:<20} {x['tamanho']:>12}  {'baixado' if x['instalado'] else ''}")
+    return 0
+
+
+# Frase do teste de síntese, uma por idioma aceito. É conteúdo de teste, não escolha de recurso.
+FRASE_DE_TESTE = {
+    "pt-BR": "Pronto! Criei o relatório com três tópicos. Quer que eu envie por e-mail?",
+    "en-US": "Done! I created the report with three topics. Should I send it by email?",
+    "es-ES": "¡Listo! Creé el informe con tres temas. ¿Quieres que lo envíe por correo?",
+}
+
+
+def testar_tts(argumentos: list[str]) -> int:
+    """`testar-tts [--saida arquivo.wav]` — sintetiza a frase de teste frase a frase e mede.
+
+    Se a transcrição local também estiver configurada, faz a ida e volta: transcreve o áudio gerado e mostra o texto, para
+    comparar com o original.
+    """
+    import tempfile
+
+    from . import frases, stt_local, tts_local
+
+    config = cfg.carregar(None, RAIZ / ".env", RAIZ)
+    com_stt = config.stt is not None and config.stt.motor == cfg.LOCAL
+    taxa = 16_000 if com_stt else tts_local.TAXA_PADRAO_FORA_DO_PIPELINE  # o Whisper espera 16 kHz
+    try:
+        inicio = time.perf_counter()
+        servico = tts_local.criar_servico(config, taxa)
+        print(f"Kokoro carregado em {time.perf_counter() - inicio:.1f} s — voz {config.tts.voz}, idioma {config.idioma}.")
+    except tts_local.TtsIndisponivel as e:
+        print(f"Síntese local indisponível: {e}")
+        return 1
+
+    texto = FRASE_DE_TESTE[config.idioma]
+    resultado = tts_local.sintetizar(servico, frases.preparar_para_fala(texto))
+    for fala in resultado.falas:
+        print(
+            f"  {fala.frase!r}: pronta em {fala.segundos_para_sintetizar:.2f} s para {fala.segundos_de_audio:.1f} s de fala"
+        )
+    destino = Path(_valor(argumentos, "--saida") or Path(tempfile.gettempdir()) / "newclaw-ivox-teste.wav")
+    tts_local.gravar_wav(destino, resultado.audio_pcm16, taxa)
+    print(f"Áudio gravado em {destino} (para ouvir).")
+
+    if com_stt:
+        try:
+            stt, escolha = stt_local.criar_servico(config)
+        except stt_local.SttIndisponivel as e:
+            print(f"Ida e volta pulada: {e}")
+            return 0
+        stt_local.transcrever(stt, escolha, resultado.audio_pcm16, taxa)  # aquecimento
+        volta = stt_local.transcrever(stt, escolha, resultado.audio_pcm16, taxa)
+        print(f"Original:    {texto!r}")
+        print(f"Transcrito:  {volta.texto!r}")
     return 0
 
 

@@ -43,6 +43,18 @@ class TestConversa(unittest.TestCase):
                 {"VOZ_STT_MOTOR": "url", "VOZ_STT_URL": "http://srv:1/v1", "VOZ_STT_MODELO": "modelo-do-srv", "VOZ_STT_CHAVE": ""},
             )
 
+    def test_sintese_local_e_por_servidor(self):
+        with tempfile.TemporaryDirectory() as pasta:
+            inst, _ = instalador(pasta, ["1"])
+            self.assertEqual(inst.perguntar_sintese(), {"VOZ_TTS_MOTOR": "local"})
+            inst, _ = instalador(pasta, ["2", "http://srv:2/v1", "m", "v", "k"])
+            self.assertEqual(
+                inst.perguntar_sintese(),
+                {"VOZ_TTS_MOTOR": "url", "VOZ_TTS_URL": "http://srv:2/v1", "VOZ_TTS_MODELO": "m", "VOZ_TTS_VOZ": "v", "VOZ_TTS_CHAVE": "k"},
+            )
+            inst, _ = instalador(pasta, ["3"])
+            self.assertEqual(inst.perguntar_sintese(), {"VOZ_TTS_MOTOR": ""})
+
     def test_recusar_instalacao_cancela_sem_executar(self):
         with tempfile.TemporaryDirectory() as pasta:
             inst, saida = instalador(pasta, ["n"])

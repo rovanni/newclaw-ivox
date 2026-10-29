@@ -10,6 +10,7 @@ Gerado por `ferramentas/inventario_terceiros.py` (Python 3.12.10). Levantamento 
 | av | `libmp3lame-0-7a64829d195e8823e9b581d29ebd8775.dll` | LGPL-2.0-or-later (LAME) |
 | av | `libx264-165-71900781b680e0e06a1b966b46fee000.dll` | GPL-2.0-or-later (x264) |
 | av | `libx265-7e74dd5103fd9dad5114dffeefd474ce.dll` | GPL-2.0-or-later (x265) |
+| espeakng-loader | `espeak-ng.dll` | GPL-3.0-or-later (eSpeak NG; carregado no processo pelo phonemizer) |
 | opencv-python-headless | `opencv_videoio_ffmpeg4140_64.dll` | LGPL (FFmpeg do OpenCV; ver LICENSE-3RD-PARTY.txt do pacote) |
 | soundfile | `libsndfile_x64.dll` | LGPL-2.1-or-later (libsndfile) |
 
@@ -35,7 +36,7 @@ Instalados do PyPI na máquina de quem usa; não podem ser redistribuídos com o
 | `audio/turn/smart_turn/data/smart-turn-v3.2-cpu.onnx` | 8679182 | `2bb026316b14a660…` | não declarada (o pacote não traz arquivo de licença do modelo) |
 | `audio/vad/data/silero_vad.onnx` | 2327524 | `597d30b3ec076608…` | não declarada (o pacote não traz arquivo de licença do modelo) |
 
-## Pacotes (118)
+## Pacotes (124)
 
 | Pacote | Versão | Licença declarada | Nativas |
 |---|---|---|---|
@@ -55,14 +56,17 @@ Instalados do PyPI na máquina de quem usa; não podem ser redistribuídos com o
 | cffi | 2.1.1 | MIT-0 |  |
 | charset-normalizer | 3.5.2 | MIT |  |
 | click | 8.5.0 | BSD-3-Clause |  |
+| cloudpickle | 3.1.2 | BSD-3-Clause |  |
 | colorama | 0.4.6 | BSD License |  |
 | cryptography | 50.0.2 | Apache-2.0 OR BSD-3-Clause |  |
 | ctranslate2 | 4.8.4 | MIT | 3 |
 | detect-installer | 0.2.1 | 0BSD |  |
-| dnspython | 2.9.0 | ISC |  |
+| dlinfo | 2.0.0 | MIT |  |
+| dnspython | 2.9.1 | ISC |  |
 | docopt | 0.6.2 | MIT |  |
 | docstring_parser | 0.18.0 | MIT |  |
 | email-validator | 2.3.0 | Unlicense |  |
+| espeakng-loader | 0.2.4 | não declarada | 1 |
 | fastapi | 0.162.0 | MIT |  |
 | fastapi-cli | 0.0.32 | MIT |  |
 | fastapi-cloud-cli | 0.26.0 | MIT |  |
@@ -87,6 +91,8 @@ Instalados do PyPI na máquina de quem usa; não podem ser redistribuídos com o
 | itsdangerous | 2.2.0 | BSD License |  |
 | Jinja2 | 3.1.6 | BSD License |  |
 | jiter | 0.18.0 | MIT |  |
+| joblib | 1.6.0 | BSD-3-Clause |  |
+| kokoro-onnx | 0.6.1 | não declarada |  |
 | llvmlite | 0.50.0 | BSD-2-Clause AND Apache-2.0 WITH LLVM-exception | 2 |
 | loguru | 0.7.3 | MIT License |  |
 | loudness | 0.2.0 | MIT |  |
@@ -115,6 +121,7 @@ Instalados do PyPI na máquina de quem usa; não podem ser redistribuídos com o
 | opentelemetry-sdk | 1.45.2 | Apache-2.0 |  |
 | opentelemetry-semantic-conventions | 0.66b2 | Apache-2.0 |  |
 | packaging | 26.3 | Apache-2.0 OR BSD-2-Clause |  |
+| phonemizer | 3.4.0 | GNU GENERAL PUBLIC LICENSE (texto longo no metadado) |  |
 | pillow | 12.3.0 | MIT-CMU |  |
 | pipecat-ai | 1.12.0 | BSD-2-Clause |  |
 | pipecat-ai-prebuilt | 1.3.0 | BSD 2-Clause License |  |

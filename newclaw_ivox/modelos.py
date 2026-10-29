@@ -66,6 +66,72 @@ def baixar(modelos_dir: Path, nome: str) -> Path:
     return destino
 
 
+# ─── Síntese local (Kokoro) ──────────────────────────────────────────────────
+# Os endereços dos arquivos vêm do serviço Kokoro do Pipecat instalado (as mesmas constantes que ele usaria para baixar
+# sozinho); aqui só se escolhe a pasta, e o download só acontece quando pedido.
+
+ARQUIVOS_KOKORO = ("kokoro-v1.0.onnx", "voices-v1.0.bin")
+
+
+def pasta_kokoro(modelos_dir: Path) -> Path:
+    return modelos_dir / "tts" / "kokoro"
+
+
+def arquivos_kokoro(modelos_dir: Path) -> tuple[Path, Path]:
+    pasta = pasta_kokoro(modelos_dir)
+    return pasta / ARQUIVOS_KOKORO[0], pasta / ARQUIVOS_KOKORO[1]
+
+
+def kokoro_instalado(modelos_dir: Path) -> bool:
+    return all(p.is_file() and p.stat().st_size > 0 for p in arquivos_kokoro(modelos_dir))
+
+
+def enderecos_kokoro() -> tuple[str, str]:
+    from pipecat.services.kokoro import tts
+
+    return tts.KOKORO_MODEL_URL, tts.KOKORO_VOICES_URL
+
+
+def tamanho_kokoro() -> int | None:
+    """Soma dos dois arquivos, perguntada ao servidor (HEAD); None se não der para medir."""
+    try:
+        import requests
+
+        total = 0
+        for url in enderecos_kokoro():
+            resposta = requests.head(url, allow_redirects=True, timeout=30)
+            resposta.raise_for_status()
+            total += int(resposta.headers["Content-Length"])
+        return total
+    except Exception:  # noqa: BLE001
+        return None
+
+
+def baixar_kokoro(modelos_dir: Path) -> Path:
+    from pipecat.services.kokoro import tts
+
+    modelo, vozes = arquivos_kokoro(modelos_dir)
+    # Baixa para um nome provisório e só renomeia no fim: um download interrompido não fica parecendo completo.
+    for destino, url in ((modelo, tts.KOKORO_MODEL_URL), (vozes, tts.KOKORO_VOICES_URL)):
+        if destino.is_file():
+            continue
+        parcial = destino.with_suffix(destino.suffix + ".parcial")
+        tts._download_file(url, parcial)
+        parcial.replace(destino)
+    if not kokoro_instalado(modelos_dir):
+        raise RuntimeError(f"O download do Kokoro terminou incompleto em {pasta_kokoro(modelos_dir)}.")
+    return pasta_kokoro(modelos_dir)
+
+
+def vozes_kokoro(modelos_dir: Path) -> list[str]:
+    """As vozes que estão de fato no arquivo de vozes baixado."""
+    import numpy as np
+
+    _, vozes = arquivos_kokoro(modelos_dir)
+    with np.load(vozes) as dados:
+        return sorted(dados.files)
+
+
 def formatar_bytes(n: int | None) -> str:
     if n is None:
         return "tamanho não medido"

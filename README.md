@@ -7,14 +7,14 @@ das tarefas e fala as respostas. "ivox" vem de "interface de voz", e "vox" porqu
 O NewClaw não depende dele (ADR-030 e ADR-031 do NewClaw). O harness não tem modelo de linguagem, memória nem persona: quem
 pensa, lembra e executa é o NewClaw.
 
-A voz roda **na sua máquina**: a transcrição usa o Whisper local (e a sua GPU, se houver), sem depender de outro
-computador. Um servidor externo continua possível, se você preferir.
+A voz roda **na sua máquina**: a transcrição usa o Whisper local (e a sua GPU, se houver) e a síntese usa o Kokoro local,
+sem depender de outro computador. Um servidor externo continua possível, se você preferir.
 
 ## Estado
 
 Em desenvolvimento, em sprints — ver [docs/SPRINTS.md](docs/SPRINTS.md).
-- **Pronto:** instalador; transcrição local, com GPU medida.
-- **Ainda não:** síntese local (Sprint 4), janela e fluxo completo com microfone (Sprint 5) e Linux (Sprint 6).
+- **Pronto:** instalador; transcrição local, com GPU medida; síntese local (Kokoro), frase a frase.
+- **Ainda não:** janela e fluxo completo com microfone (Sprint 5) e Linux (Sprint 6).
 
 ## Instalar
 
@@ -40,6 +40,7 @@ python instalar.py --simular
 Licenças de terceiros: leia [docs/terceiros/windows.md](docs/terceiros/windows.md) antes de instalar.
 - O PyAV traz bibliotecas de origem GPL (`libx264`, `libx265`) e outras LGPL.
 - As bibliotecas CUDA da NVIDIA têm licença proprietária.
+- A síntese local usa o phonemizer e o espeak-ng, de licença GPL-3.0.
 
 Tudo vem do PyPI e do Hugging Face direto para a sua máquina; este repositório não redistribui nada disso.
 
@@ -65,6 +66,13 @@ lista os modelos de transcrição e o tamanho de cada um.
 ```
 
 transcreve um WAV mono de 16 bits e 16 kHz e mede o tempo.
+
+```bash
+.venv/Scripts/python -m newclaw_ivox testar-tts
+```
+
+fala uma frase de teste com a voz configurada, grava o áudio para você ouvir e, se a transcrição local estiver ligada,
+transcreve de volta para comparar.
 
 ## Testes
 
