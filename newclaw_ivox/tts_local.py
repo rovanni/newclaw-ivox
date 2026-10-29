@@ -50,16 +50,24 @@ class Resultado:
         return b"".join(f.audio_pcm16 for f in self.falas)
 
 
-def criar_servico(config: cfg.Configuracao, taxa: int = TAXA_PADRAO_FORA_DO_PIPELINE):
+class SemVozEscolhida(TtsIndisponivel):
+    """A voz é escolhida na interface; até lá, o motor não fala (e a resposta fica só em texto)."""
+
+
+def criar_servico(config: cfg.Configuracao, taxa: int = TAXA_PADRAO_FORA_DO_PIPELINE, voz: str | None = None):
+    """`voz` é a escolhida na interface; sem ela, vale a voz inicial do `.env` (VOZ_TTS_VOZ), se houver."""
     if config.tts is None or config.tts.motor != cfg.LOCAL:
-        raise TtsIndisponivel("Síntese local não configurada (VOZ_TTS_MOTOR=local e VOZ_TTS_VOZ).")
+        raise TtsIndisponivel("Síntese local não configurada (VOZ_TTS_MOTOR=local).")
     if not modelos.kokoro_instalado(config.modelos_dir):
         raise TtsIndisponivel(f"Kokoro não está em {modelos.pasta_kokoro(config.modelos_dir)}. Rode o instalador para baixá-lo.")
     if config.idioma is None:
         raise TtsIndisponivel("VOZ_IDIOMA vazio: a síntese precisa saber em que idioma falar, e nenhum é escolhido aqui.")
+    voz = voz or config.tts.voz
+    if voz is None:
+        raise SemVozEscolhida("Nenhuma voz escolhida: escolha uma na interface (todas as vozes do Kokoro já estão instaladas).")
     vozes = modelos.vozes_kokoro(config.modelos_dir)
-    if config.tts.voz not in vozes:
-        raise TtsIndisponivel(f"A voz '{config.tts.voz}' não está no arquivo de vozes do Kokoro ({len(vozes)} vozes).")
+    if voz not in vozes:
+        raise TtsIndisponivel(f"A voz '{voz}' não está no arquivo de vozes do Kokoro ({len(vozes)} vozes).")
 
     from pipecat.services.kokoro.tts import KokoroTTSService
     from pipecat.transcriptions.language import Language
@@ -69,9 +77,24 @@ def criar_servico(config: cfg.Configuracao, taxa: int = TAXA_PADRAO_FORA_DO_PIPE
         model_path=str(modelo),
         voices_path=str(arquivo_vozes),
         sample_rate=taxa,
-        settings=KokoroTTSService.Settings(voice=config.tts.voz, language=Language(config.idioma)),
+        settings=KokoroTTSService.Settings(voice=voz, language=Language(config.idioma)),
     )
     return servico
+
+
+def voz_atual(servico) -> str:
+    return servico._settings.voice
+
+
+def trocar_voz(servico, voz: str, vozes: list[str]) -> None:
+    """Troca a voz sem recarregar o modelo, pelo mesmo caminho de configuração que o pipeline usa."""
+    if voz not in vozes:
+        raise TtsIndisponivel(f"A voz '{voz}' não está no arquivo de vozes do Kokoro ({len(vozes)} vozes).")
+    from pipecat.services.kokoro.tts import KokoroTTSService
+
+    asyncio.run(servico._update_settings(KokoroTTSService.Settings(voice=voz)))
+    if voz_atual(servico) != voz:
+        raise TtsIndisponivel(f"O serviço não aceitou a troca para '{voz}'.")
 
 
 def sintetizar(servico, frases: list[str]) -> Resultado:

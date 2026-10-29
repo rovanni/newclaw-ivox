@@ -13,3 +13,6 @@ venv/
 *.egg-info/
 build/
 dist/
+
+# Amostras de voz geradas para ouvir (não entram no repositório).
+amostras-de-voz/

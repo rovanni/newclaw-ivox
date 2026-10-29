@@ -55,12 +55,17 @@ class TestConfiguracao(unittest.TestCase):
         self.assertEqual(c.stt.url, "http://127.0.0.1:9000/v1")
         self.assertEqual(c.tts.voz, "voz-do-usuario")
 
-    def test_local_sem_modelo_ou_voz_nunca_adivinha(self):
-        c = cfg.carregar({"VOZ_STT_MOTOR": "local", "VOZ_TTS_MOTOR": "local"})
+    def test_local_sem_modelo_nunca_adivinha(self):
+        c = cfg.carregar({"VOZ_STT_MOTOR": "local"})
         self.assertIsNone(c.stt)
-        self.assertIsNone(c.tts)
         self.assertEqual(niveis(c, "VOZ_STT_MODELO"), [cfg.ERRO])
-        self.assertEqual(niveis(c, "VOZ_TTS_VOZ"), [cfg.ERRO])
+
+    def test_sintese_local_sem_voz_fica_para_a_interface(self):
+        c = cfg.carregar({"VOZ_TTS_MOTOR": "local", "VOZ_IDIOMA": "pt-BR"})
+        self.assertIsNotNone(c.tts)
+        self.assertIsNone(c.tts.voz)
+        self.assertFalse(c.tem_erro)
+        self.assertEqual(niveis(c, "VOZ_TTS_VOZ"), [cfg.INFO])
 
     def test_url_exige_endereco_modelo_e_voz(self):
         c = cfg.carregar({"VOZ_TTS_MOTOR": "url"})

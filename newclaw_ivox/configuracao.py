@@ -119,8 +119,12 @@ def carregar(
     tts = _servico(
         "VOZ_TTS", valor, achados,
         desligado="Síntese desligada (VOZ_TTS_MOTOR vazio): as respostas aparecem só em texto.",
-        local_exige=("VOZ",), url_exige=("URL", "MODELO", "VOZ"),
+        # Local: todas as vozes do Kokoro vêm num arquivo só, e a voz é escolhida (e trocada) na interface; VOZ_TTS_VOZ,
+        # se houver, é só a voz com que o motor começa. Servidor: a voz é parte do pedido e precisa ser declarada.
+        local_exige=(), url_exige=("URL", "MODELO", "VOZ"),
     )
+    if tts is not None and tts.motor == LOCAL and tts.voz is None:
+        achados.append(Achado(INFO, "VOZ_TTS_VOZ", "Nenhuma voz inicial: a voz é escolhida na interface antes da primeira fala."))
 
     idioma = valor("VOZ_IDIOMA")
     if idioma is not None and idioma not in IDIOMAS_ACEITOS:

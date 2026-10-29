@@ -37,6 +37,8 @@ def texto(config: cfg.Configuracao) -> str:
         partes = [f"modelo {s['modelo']}"] if s["modelo"] else []
         if "voz" in s:
             partes.append(f"voz {s['voz']}")
+        elif nome == "tts" and s["motor"] == cfg.LOCAL:
+            partes.append("voz escolhida na interface")
         if s["motor"] == cfg.URL:
             partes.append(f"chave {s['chave']}")
             onde = s["url"]

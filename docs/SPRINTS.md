@@ -216,3 +216,33 @@ primeira frase curta é a mais lenta em relação à própria duração.
 - O Kokoro usa só a CPU. A GPU para ele (`onnxruntime-gpu`) não foi medida.
 - A frase de teste existe nos três idiomas aceitos, mas só o pt-BR foi testado.
 - A latência no fluxo completo (VAD → STT → NewClaw → TTS) é a Sprint 5.
+
+## Ajuste de 29/10/2026 — voz escolhida na interface (decisão da operadora)
+
+**Por quê:**
+- As 54 vozes do Kokoro vêm num arquivo só (`voices-v1.0.bin`), baixado junto com o modelo: já estão todas instaladas.
+- Escolher a voz cabe à interface, não ao instalador.
+
+**O que mudou:**
+- **`VOZ_TTS_VOZ`:** na síntese local, deixa de ser obrigatória e passa a ser só a voz inicial.
+  - Sem ela, o diagnóstico informa que a voz é escolhida na interface.
+  - O motor não fala até a escolha, e a resposta fica em texto.
+- **Protocolo (versão 2)** — duas mensagens novas da janela:
+  - `{"t":"vozes"}` lista as vozes e a atual;
+  - `{"t":"voz","d":{"voz":…}}` troca a voz, sem reiniciar.
+  - Voz fora do arquivo é recusada.
+  - "falar" sem voz escolhida é ignorado, com o motivo.
+- **`tts_local.trocar_voz`:** troca pela mesma configuração em execução do Pipecat (`_update_settings`).
+  - Medido: 2 ms.
+  - O áudio seguinte sai com a voz nova, e o modelo não é recarregado.
+- **Instalador:** não pergunta mais a voz. Mostra quantas vozes estão instaladas e não apaga a voz que já estiver no `.env`.
+- **`testar-tts --voz NOME`:** ouvir qualquer voz.
+
+**Voz escolhida pela operadora:** `bm_george`, no `.env` local.
+- Ela pediu para testar a **mistura** `bm_george` + `pm_alex`.
+- O Kokoro permite misturar os vetores de estilo de duas vozes do mesmo arquivo (Apache-2.0); o resultado é uma voz nova,
+  que não imita ninguém.
+- Amostras 70/30, 50/50 e 30/70 em `amostras-de-voz/`, fora do git.
+- Usar uma mistura na interface é passo seguinte, se ela gostar.
+
+**Testes:** 61 de unidade (3 pulados sem o Pipecat).

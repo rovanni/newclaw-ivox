@@ -46,6 +46,11 @@ class TestDiagnostico(unittest.TestCase):
         self.assertIn("Transcrição: nesta máquina (modelo modelo-escolhido)", texto)
         self.assertNotIn("segredo", texto)
 
+    def test_sintese_local_sem_voz_inicial(self):
+        codigo, texto = rodar([], {"VOZ_TTS_MOTOR": "local", "VOZ_IDIOMA": "pt-BR"})
+        self.assertEqual(codigo, diagnostico.SAIDA_OK)
+        self.assertIn("Síntese: nesta máquina (voz escolhida na interface)", texto)
+
     def test_json(self):
         codigo, texto = rodar(["--json"], COMPLETA)
         dados = json.loads(texto)

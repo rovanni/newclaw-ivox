@@ -79,7 +79,9 @@ FRASE_DE_TESTE = {
 
 
 def testar_tts(argumentos: list[str]) -> int:
-    """`testar-tts [--saida arquivo.wav]` — sintetiza a frase de teste frase a frase e mede.
+    """`testar-tts [--voz NOME] [--saida arquivo.wav]` — sintetiza a frase de teste frase a frase e mede.
+
+    Sem `--voz`, usa a voz inicial do `.env`; sem nenhuma das duas, diz que a voz é escolhida na interface.
 
     Se a transcrição local também estiver configurada, faz a ida e volta: transcreve o áudio gerado e mostra o texto, para
     comparar com o original.
@@ -93,8 +95,11 @@ def testar_tts(argumentos: list[str]) -> int:
     taxa = 16_000 if com_stt else tts_local.TAXA_PADRAO_FORA_DO_PIPELINE  # o Whisper espera 16 kHz
     try:
         inicio = time.perf_counter()
-        servico = tts_local.criar_servico(config, taxa)
-        print(f"Kokoro carregado em {time.perf_counter() - inicio:.1f} s — voz {config.tts.voz}, idioma {config.idioma}.")
+        servico = tts_local.criar_servico(config, taxa, voz=_valor(argumentos, "--voz"))
+        print(f"Kokoro carregado em {time.perf_counter() - inicio:.1f} s — voz {tts_local.voz_atual(servico)}, idioma {config.idioma}.")
+    except tts_local.SemVozEscolhida as e:
+        print(f"{e} Para testar uma voz agora: python -m newclaw_ivox testar-tts --voz <nome>")
+        return 0
     except tts_local.TtsIndisponivel as e:
         print(f"Síntese local indisponível: {e}")
         return 1

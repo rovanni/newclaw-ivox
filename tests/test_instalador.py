@@ -78,6 +78,15 @@ class TestEnv(unittest.TestCase):
             self.assertEqual(texto.count("VOZ_IDIOMA="), 1)
             self.assertFalse(any("segredo" in s for s in saida))
 
+    def test_voz_ja_escolhida_nao_e_apagada(self):
+        # O instalador não manda VOZ_TTS_VOZ na síntese local: a voz que a pessoa já escolheu fica.
+        with tempfile.TemporaryDirectory() as pasta:
+            env = Path(pasta) / ".env"
+            env.write_text("VOZ_TTS_VOZ=bm_george\n", encoding="utf-8")
+            inst, _ = instalador(pasta, [])
+            inst.gravar_env({"VOZ_TTS_MOTOR": "local", "VOZ_IDIOMA": "pt-BR"})
+            self.assertIn("VOZ_TTS_VOZ=bm_george", env.read_text(encoding="utf-8"))
+
     def test_simulacao_nao_escreve(self):
         with tempfile.TemporaryDirectory() as pasta:
             inst, _ = instalador(pasta, [], simular=True)

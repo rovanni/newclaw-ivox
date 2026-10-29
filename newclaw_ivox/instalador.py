@@ -223,18 +223,17 @@ class Instalador:
             raise Cancelado("download recusado")
         self.executar([str(self.python_venv), "-m", "newclaw_ivox", "modelos", "--kokoro", "--baixar", "--pasta", str(modelos_dir)])
 
-    def escolher_voz(self, modelos_dir: Path) -> str:
-        self.titulo("Voz")
+    def mostrar_vozes(self, modelos_dir: Path) -> None:
+        self.titulo("Vozes")
         if self.simular:
-            self.info("(simulação: a lista viria do arquivo de vozes baixado)")
-            return self.perguntar("Nome da voz:")
+            self.info("(simulação: contaria as vozes do arquivo baixado)")
+            return
         resultado = self.rodar_no_venv("modelos", "--vozes", "--json", "--pasta", str(modelos_dir))
         if resultado.returncode != 0:
             raise RuntimeError("Não consegui ler as vozes: " + (resultado.stderr.strip().splitlines() or ["sem detalhe"])[-1])
         vozes = json.loads(resultado.stdout)
-        self.info(f"{len(vozes)} vozes no arquivo do Kokoro. Pelo nome que o Kokoro dá, a primeira letra indica o idioma"
-                  " (p = português, e = espanhol, a/b = inglês) e a segunda, voz feminina (f) ou masculina (m).")
-        return self.escolher("Qual voz?", [(v, v) for v in vozes])
+        self.info(f"{len(vozes)} vozes instaladas, todas no mesmo arquivo do Kokoro. A voz é escolhida na interface e pode")
+        self.info("ser trocada a qualquer momento; para ouvir uma: python -m newclaw_ivox testar-tts --voz <nome>")
 
     def perguntar_idioma(self) -> str:
         self.titulo("Idioma")
@@ -296,7 +295,9 @@ class Instalador:
             self.baixar_modelo_stt(config_atual.modelos_dir, valores["VOZ_STT_MODELO"])
         if com_tts_local:
             self.baixar_kokoro(config_atual.modelos_dir)
-            valores["VOZ_TTS_VOZ"] = self.escolher_voz(config_atual.modelos_dir)
+            self.mostrar_vozes(config_atual.modelos_dir)
+            # A voz é escolhida na interface; a que já estiver no .env (VOZ_TTS_VOZ) fica como está.
+            valores.pop("VOZ_TTS_VOZ")
 
         valores["VOZ_IDIOMA"] = self.perguntar_idioma()
         self.gravar_env(valores)
