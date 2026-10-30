@@ -148,6 +148,22 @@ describe('Conversa — mãos livres', () => {
     expect(turnos.enviados).toEqual([]);
   });
 
+  it('espera escolhida pela pessoa: com a média, uma hesitação de 1 s não divide o pedido (prova de 30/10)', async () => {
+    const { c, relogio, turnos } = montar();
+    c.definirEspera('media'); // 1,2 s depois de o motor fechar o trecho
+    c.pessoaComecouAFalar(); c.pessoaParouDeFalar(); c.transcricao('Então, eu...', true);
+    relogio.andar(1000);
+    c.pessoaComecouAFalar(); c.pessoaParouDeFalar(); c.transcricao('com três monitores.', true);
+    relogio.andar(1200);
+    await tick();
+    expect(turnos.enviados).toEqual(['Então, eu... com três monitores.']);
+    c.definirEspera('curta');
+    c.pessoaComecouAFalar(); c.pessoaParouDeFalar(); c.transcricao('Oi', true);
+    relogio.andar(600);
+    await tick();
+    expect(turnos.enviados.at(-1)).toBe('Oi');
+  });
+
   it('trechos com pausa curta viram um pedido só', async () => {
     const { c, relogio, turnos } = montar(1000);
     c.pessoaComecouAFalar(); c.pessoaParouDeFalar(); c.transcricao('Quais serviços', true);

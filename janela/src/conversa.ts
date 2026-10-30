@@ -66,7 +66,15 @@ export interface OpcoesDaConversa {
   pausaParaEnviarMs?: number;
 }
 
-export const PAUSA_PARA_ENVIAR_PADRAO_MS = 600;
+/**
+ * Quanto a pessoa pode hesitar antes de o pedido sair, escolhido por ela no cartão "Modo voz". O valor é a espera da janela;
+ * o silêncio total até o envio soma os 0,8 s que o motor leva para fechar o trecho. A curta (~1,4 s) dividia uma fala com
+ * hesitação em dois pedidos ("Então, eu..." / "com três monitor utilizado.") — prova com a operadora, 30/10/2026, e ela
+ * pediu ~2 s.
+ */
+export type EsperaAntesDeEnviar = 'curta' | 'media' | 'longa';
+export const ESPERA_ANTES_DE_ENVIAR_MS: Record<EsperaAntesDeEnviar, number> = { curta: 600, media: 1200, longa: 2200 };
+export const PAUSA_PARA_ENVIAR_PADRAO_MS = ESPERA_ANTES_DE_ENVIAR_MS.media;
 
 export class Conversa {
   private fatos: Fatos = { ...FATOS_INICIAIS };
@@ -84,7 +92,7 @@ export class Conversa {
   private jeito: JeitoDeFalar = 'livre';
   private segurando = false;
   private readonly relogio: Relogio;
-  private readonly pausaMs: number;
+  private pausaMs: number;
 
   constructor(private readonly o: OpcoesDaConversa) {
     this.relogio = o.relogio ?? RELOGIO_REAL;
@@ -166,6 +174,10 @@ export class Conversa {
   }
 
   // ─── O que a pessoa faz na tela ────────────────────────────────────────────
+
+  definirEspera(e: EsperaAntesDeEnviar): void {
+    this.pausaMs = ESPERA_ANTES_DE_ENVIAR_MS[e];
+  }
 
   definirJeitoDeFalar(j: JeitoDeFalar): void {
     this.jeito = j;

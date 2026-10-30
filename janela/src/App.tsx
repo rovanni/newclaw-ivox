@@ -4,7 +4,7 @@
  */
 import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent, type KeyboardEvent } from 'react';
 import { Centro, type EstiloDoCentro } from './Centro';
-import { Conversa, type JeitoDeFalar, type Quadro } from './conversa';
+import { Conversa, type EsperaAntesDeEnviar, type JeitoDeFalar, type Quadro } from './conversa';
 import { podeParar } from './estado';
 import { LigacaoComOMotor, type Voz } from './motor';
 import { gravarPref, idDaConversa, lerPref } from './preferencias';
@@ -84,6 +84,10 @@ function Janela({ aoSair }: { aoSair: () => void }) {
   const [jeito, setJeito] = useState<JeitoDeFalar>(lerPref('ivox-fala') === 'segurar' ? 'segurar' : 'livre');
   const [estilo, setEstilo] = useState<EstiloDoCentro>(lerPref('ivox-centro') === 'particulas' ? 'particulas' : 'circulo');
   const [sons, setSons] = useState(lerPref('ivox-sons') !== 'nao');
+  const [espera, setEspera] = useState<EsperaAntesDeEnviar>(() => {
+    const e = lerPref('ivox-espera');
+    return e === 'curta' || e === 'longa' ? e : 'media';
+  });
   const [quadro, setQuadro] = useState<Quadro | null>(null);
   const [ligado, setLigado] = useState<'ligando' | 'ligado' | 'falhou'>('ligando');
   const [falha, setFalha] = useState('');
@@ -116,6 +120,7 @@ function Janela({ aoSair }: { aoSair: () => void }) {
         if (!vivo) return;
         conversaRef.current = new Conversa({ motor, turnos, sessionId: idDaConversa(), aoMudar: (q) => vivo && setQuadro(q) });
         conversaRef.current.definirJeitoDeFalar(jeito);
+        conversaRef.current.definirEspera(espera);
         setQuadro(conversaRef.current.quadro());
         await motor.conectar();
         if (!vivo) return;
@@ -141,6 +146,7 @@ function Janela({ aoSair }: { aoSair: () => void }) {
   useEffect(() => { document.body.classList.toggle('foco', foco); gravarPref('ivox-foco', foco ? 'sim' : 'nao'); }, [foco]);
   useEffect(() => { gravarPref('ivox-centro', estilo); }, [estilo]);
   useEffect(() => { gravarPref('ivox-sons', sons ? 'sim' : 'nao'); }, [sons]);
+  useEffect(() => { gravarPref('ivox-espera', espera); conversaRef.current?.definirEspera(espera); }, [espera]);
   useEffect(() => {
     gravarPref('ivox-fala', jeito);
     conversaRef.current?.definirJeitoDeFalar(jeito);
@@ -336,6 +342,12 @@ function Janela({ aoSair }: { aoSair: () => void }) {
             <div className="segmento" role="radiogroup" aria-label="Estilo do centro">
               <button className={estilo === 'circulo' ? 'ativo' : ''} onClick={() => setEstilo('circulo')}>Círculo</button>
               <button className={estilo === 'particulas' ? 'ativo' : ''} onClick={() => setEstilo('particulas')}>Partículas</button>
+            </div>
+            <div className="rotulo-opcao">Espera antes de enviar</div>
+            <div className="segmento" role="radiogroup" aria-label="Espera antes de enviar">
+              <button className={espera === 'curta' ? 'ativo' : ''} onClick={() => setEspera('curta')} title="Envia com ~1,4 s de silêncio">Curta</button>
+              <button className={espera === 'media' ? 'ativo' : ''} onClick={() => setEspera('media')} title="Envia com ~2 s de silêncio">Média</button>
+              <button className={espera === 'longa' ? 'ativo' : ''} onClick={() => setEspera('longa')} title="Envia com ~3 s de silêncio (para quem pensa enquanto fala)">Longa</button>
             </div>
             <label className="chave"><input type="checkbox" checked={sons} onChange={(e) => setSons(e.target.checked)} /> Sons ao começar e terminar de ouvir</label>
             <div className="nota">
