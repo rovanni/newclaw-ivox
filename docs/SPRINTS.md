@@ -513,3 +513,6 @@ Chrome dela, `http://127.0.0.1:7860`, NewClaw isolado com o provedor de teste. C
 Ferro?" e "Qual o filme do Homem de Ferro que mais aparece o Jarvis?" transcritas inteiras e certas.
 
 **Eco (30/10, 01:58–02:00):** com a caixa em volume baixo (madrugada) e com fone, o motor não detectou voz nenhuma durante as três falas do NewClaw, e não houve interrupção nem pedido falso. O cancelamento de eco do Chrome (pedido explicitamente pela janela em `getUserMedia`) segurou. **Volume alto (30/10, 08:10–08:12, de dia, até o máximo):** de novo nada captado durante as falas do NewClaw, sem interrupção nem pedido falso.
+
+**Espera antes de enviar (30/10, manhã):** com a Média (~2 s) como padrão e a escolha Curta/Média/Longa no cartão
+"Modo voz", a operadora fez vários testes e relatou: "funcionou 100%".
