@@ -463,7 +463,7 @@ licenças gerado.
 | 1 — Base da janela | Projeto em `janela/` (React + Vite + TypeScript, versões fixas, publicadas há mais de 2 semanas); o estado da tela derivado de fatos (pessoa falando, motor falando, fase do turno, erro); o controlador da conversa com o motor e o turno trocáveis por falsos; testes | **feita** (30/10): 23 testes |
 | 2 — Ligação com o motor e o NewClaw | Cliente do Pipecat com o transporte SmallWebRTC (sem STUN de terceiros); legenda pelos eventos do motor; volume real da pessoa e do motor; turno pelo cliente público do NewClaw (`turn-client.js`, buscado no próprio NewClaw pelo harness); repasse do harness alinhado a `/newclaw/api/...` | **feita** (30/10): 93 testes do harness (5 novos) |
 | 3 — Visual da maquete | Tela de entrada (senha do NewClaw); centro círculo/partículas; estado no meio; legenda; foco; mãos livres/segurar espaço; atalhos; sons; vozes; aprovação por clique; tema claro e escuro; o harness serve o build em `/` | **feita** (30/10): 28 testes da janela; build de ~620 kB com as fontes no próprio build |
-| 4 — Prova real e licenças | Harness + motor + NewClaw isolado com um provedor falso que responde (sem cota); microfone de verdade com ela; achado do eco ("Você disse?") com e sem fone; inventário de licenças do build | **automática feita** (30/10); falta o microfone com a operadora |
+| 4 — Prova real e licenças | Harness + motor + NewClaw isolado com um provedor falso que responde (sem cota); microfone de verdade com ela; achado do eco ("Você disse?") com e sem fone; inventário de licenças do build | **feita** (30/10): automática e com a operadora no microfone; falta só o teste do eco com e sem fone |
 
 ## Sprint 4 — resultado da prova automática (30/10/2026)
 
@@ -496,3 +496,20 @@ ambiente de desenvolvimento (sem microfone liberado).
 
 **Falta (precisa da operadora):** falar no microfone pela janela, no Chrome dela (`http://127.0.0.1:7860`, `localhost` é
 página segura), e conferir o achado do eco ("Você disse?") com e sem fone de ouvido.
+
+## Sprint 4 — prova com a operadora no microfone (30/10/2026)
+
+Chrome dela, `http://127.0.0.1:7860`, NewClaw isolado com o provedor de teste. Cinco achados, todos corrigidos e com teste:
+
+| Achado | Causa | Correção (commit) |
+|---|---|---|
+| A senha certa era recusada do segundo login em diante | o harness guardava o cookie do NewClaw; com cookie e sem Origin, a proteção contra CSRF do NewClaw recusava o login | o harness descarta os cookies do NewClaw (0e2c905) |
+| Parecia que o microfone não funcionava | o botão começava aberto e cada clique o silenciava; após F5 o Chrome deixa o áudio suspenso até o primeiro clique; o Pipecat encerrava a ligação após 5 min parada | linha de situação do microfone, áudio liberado no 1º gesto, sem limite de ociosidade (0254249) |
+| O centro não reagia à voz dela, só à do NewClaw | volume em RMS cru (fala ≈ 0,01–0,1) e "Ouvindo" nunca acendia: o RTVI só manda `user-started-speaking` com agregação de LLM, que o motor não tem | volume em dB (e4b4d8a); o motor emite o aviso de fala junto com o VAD (96b7ff2) |
+| A tela saía de "Ouvindo" a cada respiro | o VAD diz "parou" com 0,2 s de silêncio | a tela segue o critério do envio (1455047) |
+| Reconhecimento com erros ("Dorme de ferro") | cada pedaço de 0,2 s ia sozinho para o Whisper, sem contexto | trecho fecha com 0,8 s; espera da janela 0,6 s; ~1,4 s até o envio, como antes (9bbd5a8) |
+
+**Depois das correções (palavras dela: "Agora eu acho que ficou bom"):** "Quais os filmes que aparece o Jarvis no Homem de
+Ferro?" e "Qual o filme do Homem de Ferro que mais aparece o Jarvis?" transcritas inteiras e certas.
+
+**Falta:** o teste do eco ("Você disse?") com e sem fone de ouvido.
