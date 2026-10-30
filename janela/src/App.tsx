@@ -228,7 +228,8 @@ function Janela({ aoSair }: { aoSair: () => void }) {
   const estado = q?.estado ?? 'pronto';
   const parar = podeParar(estado);
   const h = new Date(agora).getHours();
-  const saudacao = h < 12 ? 'Bom dia.' : h < 18 ? 'Boa tarde.' : 'Boa noite.';
+  // A saudação vai no balão (antes era um título grande acima do centro, que ocupava espaço — pedido da operadora, 30/10).
+  const saudacao = h < 12 ? 'Bom dia!' : h < 18 ? 'Boa tarde!' : 'Boa noite!';
   const mostraTempo = parar || estado === 'ouvindo' || estado === 'aprovacao';
   const tempo = q && mostraTempo ? tempoDecorrido(agora - q.desde) : '';
   const [antes, atual, depois] = q?.fala ? partesDaFala(q.fala.texto, q.fala.fraseAtual) : ['', '', ''];
@@ -236,7 +237,7 @@ function Janela({ aoSair }: { aoSair: () => void }) {
     ? `Não consegui ligar a voz: ${falha}`
     : ligado === 'ligando' ? 'Ligando o motor de voz…'
       : motor.semMicrofone ? `Sem microfone (${motor.semMicrofone}). Você pode escrever abaixo; a resposta continua falada.`
-        : 'Fale comigo pelo microfone ou escreva abaixo. Você pode me interromper falando por cima.';
+        : `${saudacao} Como posso ajudar hoje? Fale comigo pelo microfone ou escreva abaixo.`;
 
   return (
     <div className="app">
@@ -285,7 +286,6 @@ function Janela({ aoSair }: { aoSair: () => void }) {
         </section>
 
         <section className="centro" data-cor={estado}>
-          <div className="saudacao"><h2>{saudacao}</h2><p>Como posso ajudar hoje?</p></div>
           <Centro estado={estado} estilo={estilo} niveis={motor.niveis} tempo={tempo} />
           <div className="detalhe">
             <div className="topo"><b>{q ? detalhe(q) : 'Pronto'}</b></div>
