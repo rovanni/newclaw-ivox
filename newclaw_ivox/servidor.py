@@ -81,6 +81,14 @@ def criar_app(config: cfg.Configuracao, cliente_http=None, montar_motor=None, ja
     app = FastAPI(docs_url=None, redoc_url=None, openapi_url=None)
     sessoes: dict[str, Sessao] = {}
     cliente = cliente_http or httpx.AsyncClient(base_url=config.newclaw_url, timeout=30.0)
+
+    # O harness fala com o NewClaw só por token. O httpx guarda os cookies das respostas (o login do NewClaw devolve o dele)
+    # e os manda nos pedidos seguintes; com cookie e sem Origin, a proteção contra CSRF do NewClaw recusa o próximo login
+    # (achado da prova real, 30/10/2026: o primeiro login passava, os seguintes davam "senha recusada").
+    async def esquecer_cookies(_resposta):
+        cliente.cookies.clear()
+
+    cliente.event_hooks["response"].append(esquecer_cookies)
     app.state.sessoes = sessoes  # para os testes conferirem que o token não sai daqui
     sinalizacao = {"handler": None}
 

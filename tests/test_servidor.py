@@ -31,8 +31,12 @@ class NewClawFalso:
             return httpx.Response(200, text="export const TURN_CONTRACT_VERSION = 1;",
                                   headers={"content-type": "application/javascript", "set-cookie": "x=vazaria"})
         if caminho == "/api/auth/login":
+            # Como o NewClaw de verdade: pedido com o cookie dele e sem Origin é recusado (proteção contra CSRF).
+            if "newclaw_session" in pedido.headers.get("cookie", "") and "origin" not in pedido.headers:
+                return httpx.Response(403, json={"error": "Forbidden: invalid origin"})
             if json.loads(pedido.content).get("password") == self.senha:
-                return httpx.Response(200, json={"success": True, "token": TOKEN})
+                return httpx.Response(200, json={"success": True, "token": TOKEN},
+                                      headers={"set-cookie": "newclaw_session=sessao-do-painel; Path=/; HttpOnly"})
             return httpx.Response(401, json={"error": "Invalid password"})
         if pedido.headers.get("authorization") != f"Bearer {TOKEN}" or not self.token_valido:
             return httpx.Response(401, json={"error": "Unauthorized"})
@@ -84,6 +88,14 @@ class TestServidor(unittest.TestCase):
             self.assertIn(atributo.lower(), cookie.lower())
         self.assertNotIn("secure", cookie.lower())  # sem HTTPS, o navegador não mandaria um cookie Secure
         self.assertEqual([s.token for s in self.app.state.sessoes.values()], [TOKEN])
+
+    def test_entrar_de_novo_funciona_o_harness_nao_guarda_o_cookie_do_newclaw(self):
+        # Achado da prova real (30/10/2026): o primeiro login passava e os seguintes davam "senha recusada".
+        c = self.montar()
+        for vez in range(3):
+            with self.subTest(vez=vez):
+                self.assertEqual(self.entrar(c).status_code, 200)
+        self.assertEqual(len(self.app.state.sessoes), 3)
 
     def test_senha_errada(self):
         c = self.montar()
