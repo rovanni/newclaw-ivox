@@ -18,6 +18,7 @@ export default defineConfig({
       '/api/offer': HARNESS,
     },
   },
-  build: { outDir: 'dist', sourcemap: false },
+  // ~620 kB, quase tudo do cliente WebRTC do Pipecat (daily-js); servido pelo harness na própria máquina.
+  build: { outDir: 'dist', sourcemap: false, chunkSizeWarningLimit: 800 },
   test: { environment: 'node', include: ['src/**/*.test.ts'] },
 });

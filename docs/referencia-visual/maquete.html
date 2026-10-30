@@ -179,10 +179,15 @@ select.btn option { background: var(--fundo-2); color: var(--texto); }
 
 /* Rodapé */
 footer { display: grid; grid-template-columns: 300px 1fr 330px; gap: 20px; padding: 0 0 20px; align-items: stretch; }
-.entrada { display: flex; align-items: center; gap: 10px; background: var(--painel); border: 1px solid var(--borda-forte); border-radius: 40px;
+/* O rodapé só tem a caixa de conversa, alinhada à coluna do meio; os cartões ficam nas colunas. */
+footer .entrada-wrap { grid-column: 2; }
+.entrada { display: flex; align-items: flex-end; gap: 10px; background: var(--painel); border: 1px solid var(--borda-forte); border-radius: 26px;
   padding: 8px 8px 8px 22px; box-shadow: 0 0 22px var(--brilho); }
-.entrada input { flex: 1; min-width: 0; background: transparent; border: 0; outline: 0; color: var(--texto); font: 15px Inter, sans-serif; }
-.entrada input::placeholder { color: var(--texto-2); }
+/* A caixa cresce com o texto (até ~6 linhas) e depois rola. */
+.entrada textarea { flex: 1; min-width: 0; background: transparent; border: 0; outline: 0; color: var(--texto); font: 15px/1.45 Inter, sans-serif;
+  resize: none; padding: 11px 0; max-height: 160px; overflow-y: auto; }
+.entrada textarea::placeholder { color: var(--texto-2); }
+.aviso-maquete .faixa-estados { margin: 0 0 8px; }
 .icone { width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; border: 0; background: transparent; cursor: pointer; color: var(--texto-2); flex: none; }
 .icone:hover { color: var(--destaque); }
 .icone svg { width: 22px; height: 22px; }
@@ -216,6 +221,7 @@ footer { display: grid; grid-template-columns: 300px 1fr 330px; gap: 20px; paddi
 /* Modo foco: só o círculo, a faixa, a legenda e a caixa de texto */
 body.foco .coluna, body.foco .atalhos, body.foco .voz-escolha, body.foco .modo-voz, body.foco .lema { display: none; }
 body.foco main, body.foco footer { grid-template-columns: 1fr; }
+body.foco footer .entrada-wrap { grid-column: 1; }
 body.foco .globo-area { width: min(520px, 85vw); }
 body.foco .entrada-wrap { max-width: 760px; width: 100%; margin: 0 auto; }
 
@@ -241,7 +247,7 @@ body.foco .entrada-wrap { max-width: 760px; width: 100%; margin: 0 auto; }
 @media (max-width: 1100px) {
   main, footer { grid-template-columns: 1fr; }
   .coluna.esq { order: 2; } .centro { order: 1; } .coluna.dir { order: 3; }
-  footer .voz-escolha { order: 3; } footer .entrada-wrap { order: 1; } footer .modo-voz { order: 2; }
+  footer .entrada-wrap { grid-column: 1; }
   .lema { display: none; }
   /* No celular a caixa de texto e o microfone ficam presos no pé da tela. */
   footer .entrada-wrap { position: fixed; left: 0; right: 0; bottom: 0; z-index: 5; padding: 18px 16px 0;
@@ -305,6 +311,16 @@ body.foco .entrada-wrap { max-width: 760px; width: 100%; margin: 0 auto; }
         <div class="linha"><span class="rot">Chat</span><span>glm-5.2 (cloud)</span></div>
         <div class="linha"><span class="rot">Visão</span><span>gemma4-31b (cloud)</span></div>
         <div class="exemplo">Da configuração do NewClaw (valores de exemplo).</div>
+      </div>
+      <!-- cartões empilhados em cada coluna, a partir do topo (antes ficavam presos no rodapé) -->
+      <div class="cartao voz-escolha">
+        <h2><label for="voz">Voz</label></h2>
+        <select class="btn" id="voz">
+          <option>bm_george</option>
+          <option>george-alex-1 (70% George)</option>
+          <option>george-alex-2 (50% George)</option>
+          <option>george-alex-3 (30% George)</option>
+        </select>
       </div>
     </section>
 
@@ -384,28 +400,27 @@ body.foco .entrada-wrap { max-width: 760px; width: 100%; margin: 0 auto; }
           </div>
         </div>
       </div>
+      <div class="cartao modo-voz">
+        <div class="topo"><span>MODO VOZ</span><span class="estado-ok">ATIVO</span></div>
+        <div class="segmento" role="radiogroup" aria-label="Jeito de falar">
+          <button class="ativo" data-fala="livre" title="O microfone fica aberto e ele percebe quando você para de falar">Mãos livres</button>
+          <button data-fala="segurar" title="Segure a barra de espaço enquanto fala">Segurar espaço</button>
+        </div>
+        <div class="segmento" role="radiogroup" aria-label="Estilo do centro">
+          <button class="ativo" data-centro="circulo">Círculo</button>
+          <button data-centro="particulas">Partículas</button>
+        </div>
+        <label class="chave"><input type="checkbox" id="sons" checked> Sons ao começar e terminar de ouvir</label>
+        <div class="exemplo" id="micInfo">Clique no microfone e fale.</div>
+      </div>
     </section>
   </main>
 
   <footer>
-    <div class="cartao voz-escolha">
-      <label for="voz">Voz</label>
-      <select class="btn" id="voz">
-        <option>bm_george</option>
-        <option>george-alex-1 (70% George)</option>
-        <option>george-alex-2 (50% George)</option>
-        <option>george-alex-3 (30% George)</option>
-      </select>
-    </div>
     <div class="entrada-wrap">
-      <div class="entrada">
-        <input id="texto" placeholder="Digite sua pergunta ou comando…">
-        <button class="icone" title="Anexar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m21.4 11.1-9.2 9.2a6 6 0 0 1-8.5-8.5l9.2-9.2a4 4 0 0 1 5.7 5.7l-9.2 9.2a2 2 0 0 1-2.8-2.8l8.5-8.5"/></svg></button>
-        <button class="icone mic" id="mic" title="Falar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M19 10v1a7 7 0 0 1-14 0v-1M12 18v4"/></svg></button>
-        <button class="icone enviar" id="enviar" title="Enviar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m22 2-7 20-4-9-9-4z"/><path d="M22 2 11 13"/></svg></button>
-      </div>
-      <div class="aviso-maquete">Maquete: a legenda e as respostas são simuladas; o centro usa o volume real do seu microfone.
-        <div class="faixa-estados" id="faixa">Simular:
+      <!-- só na maquete: na janela de verdade não existe -->
+      <div class="aviso-maquete">
+        <div class="faixa-estados" id="faixa">Simular (só na maquete):
           <button class="pilula ativa" data-estado="pronto" data-cor="pronto"><span class="ponto"></span>Pronto</button>
           <button class="pilula" data-estado="ouvindo" data-cor="ouvindo"><span class="ponto"></span>Ouvindo você</button>
           <button class="pilula" data-estado="fila" data-cor="fila"><span class="ponto"></span>Na fila</button>
@@ -415,19 +430,13 @@ body.foco .entrada-wrap { max-width: 760px; width: 100%; margin: 0 auto; }
           <button class="pilula" data-estado="erro" data-cor="erro"><span class="ponto"></span>Erro</button>
         </div>
       </div>
-    </div>
-    <div class="cartao modo-voz">
-      <div class="topo"><span>MODO VOZ</span><span class="estado-ok">ATIVO</span></div>
-      <div class="segmento" role="radiogroup" aria-label="Jeito de falar">
-        <button class="ativo" data-fala="livre" title="O microfone fica aberto e ele percebe quando você para de falar">Mãos livres</button>
-        <button data-fala="segurar" title="Segure a barra de espaço enquanto fala">Segurar espaço</button>
+      <div class="entrada">
+        <textarea id="texto" rows="1" placeholder="Digite sua pergunta ou comando… (Shift+Enter quebra a linha)"></textarea>
+        <button class="icone" title="Anexar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m21.4 11.1-9.2 9.2a6 6 0 0 1-8.5-8.5l9.2-9.2a4 4 0 0 1 5.7 5.7l-9.2 9.2a2 2 0 0 1-2.8-2.8l8.5-8.5"/></svg></button>
+        <button class="icone mic" id="mic" title="Falar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M19 10v1a7 7 0 0 1-14 0v-1M12 18v4"/></svg></button>
+        <button class="icone enviar" id="enviar" title="Enviar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m22 2-7 20-4-9-9-4z"/><path d="M22 2 11 13"/></svg></button>
       </div>
-      <div class="segmento" role="radiogroup" aria-label="Estilo do centro">
-        <button class="ativo" data-centro="circulo">Círculo</button>
-        <button data-centro="particulas">Partículas</button>
-      </div>
-      <label class="chave"><input type="checkbox" id="sons" checked> Sons ao começar e terminar de ouvir</label>
-      <div class="exemplo" id="micInfo">Clique no microfone e fale.</div>
+      <div class="aviso-maquete">Maquete: a legenda e as respostas são simuladas; o centro usa o volume real do seu microfone.</div>
     </div>
   </footer>
 </div>
@@ -710,7 +719,15 @@ document.getElementById('enviar').onclick = () => {
   if (TRABALHANDO.includes(estado)) { cancelarAgenda(); return mudarEstado('pronto'); }
   enviarTexto();
 };
-campoTexto.addEventListener('keydown', (ev) => { if (ev.key === 'Enter') enviarTexto(); });
+// A caixa cresce com o texto; Enter envia e Shift+Enter quebra a linha.
+function ajustarAltura() {
+  campoTexto.style.height = 'auto';
+  campoTexto.style.height = campoTexto.scrollHeight + 'px';
+}
+campoTexto.addEventListener('input', ajustarAltura);
+campoTexto.addEventListener('keydown', (ev) => {
+  if (ev.key === 'Enter' && !ev.shiftKey) { ev.preventDefault(); enviarTexto(); ajustarAltura(); }
+});
 document.querySelectorAll('[data-pedido]').forEach((b) => b.onclick = () => fazerPedido(b.dataset.pedido, false));
 
 // Modo foco (botão ou tecla F).
