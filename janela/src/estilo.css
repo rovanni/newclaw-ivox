@@ -76,7 +76,9 @@ header { display: flex; align-items: center; gap: 16px; padding: 14px 0; border-
 .ponto { width: 8px; height: 8px; border-radius: 50%; background: currentColor; box-shadow: 0 0 8px currentColor; display: inline-block; }
 .relogio { font: 500 16px var(--titulo); color: var(--texto); }
 .botao-tema { background: var(--painel); border: 1px solid var(--borda); color: var(--texto); border-radius: 20px; padding: 6px 12px;
-  cursor: pointer; display: flex; gap: 6px; align-items: center; font: inherit; }
+  cursor: pointer; display: flex; gap: 6px; align-items: center; font: inherit; white-space: nowrap; flex-shrink: 0; }
+.botao-tema svg { width: 16px; height: 16px; flex-shrink: 0; }
+.topo-dir > * { flex-shrink: 0; }
 .botao-tema:hover { border-color: var(--borda-forte); }
 
 /* Corpo */
@@ -114,8 +116,9 @@ main { display: grid; grid-template-columns: 300px 1fr 330px; gap: 20px; padding
 .centro[data-cor]:not([data-cor="pronto"]) { --cor-voz: var(--cor-estado); }
 .centro[data-cor="aprovacao"] .luz-miolo { animation: piscar 1s ease-in-out infinite; }
 @keyframes piscar { 50% { opacity: .35; } }
-.detalhe { width: 100%; max-width: 520px; text-align: left; }
-.detalhe .topo { display: flex; justify-content: space-between; font-size: 13px; color: var(--texto-2); margin-bottom: 6px; gap: 10px; }
+/* Textos do centro alinhados ao centro, como o resto da coluna. */
+.detalhe { width: 100%; max-width: 520px; text-align: center; }
+.detalhe .topo { display: flex; justify-content: center; font-size: 13px; color: var(--texto-2); margin-bottom: 6px; gap: 10px; }
 .detalhe .topo b { color: var(--texto); font-weight: 600; }
 .trilho { height: 4px; border-radius: 2px; background: var(--borda); overflow: hidden; }
 .trilho i { display: block; height: 100%; width: 0; background: var(--cor-voz); border-radius: 2px; }
@@ -129,7 +132,7 @@ main { display: grid; grid-template-columns: 300px 1fr 330px; gap: 20px; padding
 .borda-nucleo { stroke: var(--cor-voz); transition: stroke .4s; }
 .centro[data-cor="falando"] .luz-miolo { filter: drop-shadow(0 0 16px var(--c-falando)); }
 .balao { background: var(--painel); border: 1px solid var(--borda-forte); border-radius: 16px; padding: 14px 18px; max-width: 520px;
-  text-align: left; line-height: 1.5; box-shadow: var(--sombra); white-space: pre-wrap; }
+  text-align: center; line-height: 1.5; box-shadow: var(--sombra); white-space: pre-wrap; }
 .balao .frase { transition: color .15s, opacity .15s; }
 .balao.lendo .frase { opacity: .5; }
 .balao.lendo .frase.atual { opacity: 1; color: var(--c-falando); font-weight: 600; }
@@ -221,7 +224,8 @@ footer .entrada-wrap { grid-column: 2; }
 .tela-entrar p { color: var(--texto-2); font-size: 13px; margin: 0; line-height: 1.5; }
 
 /* Modo foco: só o centro, a legenda e a caixa de texto */
-body.foco .coluna, body.foco .atalhos, body.foco .voz-escolha, body.foco .modo-voz, body.foco .lema { display: none; }
+/* O topo fica igual nos dois modos (antes o lema sumia e os itens da direita se juntavam à esquerda, espremidos). */
+body.foco .coluna, body.foco .atalhos, body.foco .voz-escolha, body.foco .modo-voz { display: none; }
 body.foco main, body.foco footer { grid-template-columns: 1fr; }
 body.foco footer .entrada-wrap { grid-column: 1; }
 body.foco .globo-area { width: min(520px, 85vw); }
