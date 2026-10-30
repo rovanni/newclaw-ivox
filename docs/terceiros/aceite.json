@@ -41,7 +41,7 @@
       "nome": "Janela de voz (React, cliente do Pipecat, fontes Exo 2 e Inter)",
       "papel": "a tela que você abre no navegador",
       "licenca": "MIT, BSD-2-Clause, OFL-1.1, Apache-2.0 e 0BSD (29 pacotes; lista em docs/terceiros/janela.md)",
-      "link": "docs/terceiros/janela.md",
+      "link": "https://github.com/rovanni/newclaw-ivox/blob/main/docs/terceiros/janela.md",
       "quando": "sempre"
     },
     {
