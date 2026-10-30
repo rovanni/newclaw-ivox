@@ -1,8 +1,14 @@
 {
-  "_sobre": "Vozes novas feitas da mistura de vozes do Kokoro (média ponderada dos vetores de estilo do mesmo arquivo de vozes, Apache-2.0). Não imitam nenhuma pessoa. Cada uma aparece na interface com o rótulo; os pesos somam 1. Criadas a pedido da operadora em 29/10/2026.",
+  "_sobre": "Vozes novas feitas da mistura de vozes do Kokoro (média ponderada dos vetores de estilo do mesmo arquivo de vozes, Apache-2.0). Não imitam nenhuma pessoa. Cada uma aparece na interface com o rótulo; os pesos somam 1.",
   "vozes": [
-    {"nome": "george-alex-1", "rotulo": "George e Alex — versão 1", "mistura": {"bm_george": 0.7, "pm_alex": 0.3}},
-    {"nome": "george-alex-2", "rotulo": "George e Alex — versão 2", "mistura": {"bm_george": 0.5, "pm_alex": 0.5}},
-    {"nome": "george-alex-3", "rotulo": "George e Alex — versão 3", "mistura": {"bm_george": 0.3, "pm_alex": 0.7}}
+    {"nome": "george-michael-1", "rotulo": "George & Michael 1 (70% George / 30% Michael)", "mistura": {"bm_george": 0.7, "am_michael": 0.3}},
+    {"nome": "george-michael-2", "rotulo": "George & Michael 2 (50% George / 50% Michael)", "mistura": {"bm_george": 0.5, "am_michael": 0.5}},
+    {"nome": "george-michael-3", "rotulo": "George & Michael 3 (30% George / 70% Michael)", "mistura": {"bm_george": 0.3, "am_michael": 0.7}},
+    {"nome": "daniel-george", "rotulo": "Daniel & George (60% Daniel / 40% George)", "mistura": {"bm_daniel": 0.6, "bm_george": 0.4}},
+    {"nome": "daniel-suave", "rotulo": "Daniel Suave (70% Daniel / 30% Fable)", "mistura": {"bm_daniel": 0.7, "bm_fable": 0.3}},
+    {"nome": "alex-limpo", "rotulo": "Alex Limpo (80% Daniel / 20% Alex)", "mistura": {"bm_daniel": 0.8, "pm_alex": 0.2}},
+    {"nome": "george-alex-1", "rotulo": "George & Alex 1 (70% George / 30% Alex)", "mistura": {"bm_george": 0.7, "pm_alex": 0.3}},
+    {"nome": "george-alex-2", "rotulo": "George & Alex 2 (50% George / 50% Alex)", "mistura": {"bm_george": 0.5, "pm_alex": 0.5}},
+    {"nome": "george-alex-3", "rotulo": "George & Alex 3 (30% George / 70% Alex)", "mistura": {"bm_george": 0.3, "pm_alex": 0.7}}
   ]
 }

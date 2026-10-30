@@ -5,7 +5,7 @@ from pathlib import Path
 
 from newclaw_ivox import misturas
 
-BASE = ("bm_george", "pm_alex", "pf_dora")
+BASE = ("bm_george", "pm_alex", "pf_dora", "am_michael", "bm_daniel", "bm_fable")
 RAIZ = Path(__file__).resolve().parent.parent
 
 
@@ -23,9 +23,15 @@ def voz(nome="nova", rotulo="Nova", mistura=None):
 class TestMisturas(unittest.TestCase):
     def test_arquivo_do_repositorio_e_valido(self):
         lista = misturas.carregar(RAIZ / misturas.ARQUIVO, BASE)
-        self.assertEqual([m.nome for m in lista], ["george-alex-1", "george-alex-2", "george-alex-3"])
-        self.assertEqual(lista[0].rotulo, "George e Alex — versão 1")
-        self.assertEqual(dict(lista[0].pesos), {"bm_george": 0.7, "pm_alex": 0.3})
+        self.assertEqual([m.nome for m in lista], [
+            "george-michael-1", "george-michael-2", "george-michael-3", "daniel-george", "daniel-suave", "alex-limpo",
+            "george-alex-1", "george-alex-2", "george-alex-3",
+        ])
+        por_nome = {m.nome: m for m in lista}
+        self.assertEqual(por_nome["george-alex-1"].rotulo, "George & Alex 1 (70% George / 30% Alex)")
+        self.assertEqual(dict(por_nome["george-alex-1"].pesos), {"bm_george": 0.7, "pm_alex": 0.3})
+        self.assertEqual(dict(por_nome["alex-limpo"].pesos), {"bm_daniel": 0.8, "pm_alex": 0.2})
+        self.assertEqual(dict(por_nome["daniel-suave"].pesos), {"bm_daniel": 0.7, "bm_fable": 0.3})
 
     def test_ausente_e_nenhuma(self):
         self.assertEqual(misturas.carregar(Path(tempfile.gettempdir()) / "nao-existe.json", BASE), [])

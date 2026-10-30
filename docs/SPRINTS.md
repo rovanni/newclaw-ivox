@@ -252,13 +252,22 @@ primeira frase curta é a mais lenta em relação à própria duração.
 **O arquivo de dados `vozes-misturadas.json`** declara vozes novas:
 - cada uma tem nome, rótulo para a interface e pesos que somam 1;
 - a voz é a média ponderada dos vetores de estilo de vozes do Kokoro;
-- as primeiras três são da operadora:
+- as três primeiras (George e Alex) são da operadora, de 29/10; as outras seis vieram do Voice-Studio em 30/10/2026:
 
 | Nome | Rótulo na interface | Mistura |
 |---|---|---|
-| `george-alex-1` | George e Alex — versão 1 | 70% `bm_george` + 30% `pm_alex` |
-| `george-alex-2` | George e Alex — versão 2 | 50% + 50% |
-| `george-alex-3` | George e Alex — versão 3 | 30% `bm_george` + 70% `pm_alex` |
+| `george-michael-1` | George & Michael 1 (70% George / 30% Michael) | 70% `bm_george` + 30% `am_michael` |
+| `george-michael-2` | George & Michael 2 (50% George / 50% Michael) | 50% + 50% |
+| `george-michael-3` | George & Michael 3 (30% George / 70% Michael) | 30% `bm_george` + 70% `am_michael` |
+| `daniel-george` | Daniel & George (60% Daniel / 40% George) | 60% `bm_daniel` + 40% `bm_george` |
+| `daniel-suave` | Daniel Suave (70% Daniel / 30% Fable) | 70% `bm_daniel` + 30% `bm_fable` |
+| `alex-limpo` | Alex Limpo (80% Daniel / 20% Alex) | 80% `bm_daniel` + 20% `pm_alex` |
+| `george-alex-1` | George & Alex 1 (70% George / 30% Alex) | 70% `bm_george` + 30% `pm_alex` |
+| `george-alex-2` | George & Alex 2 (50% George / 50% Alex) | 50% + 50% |
+| `george-alex-3` | George & Alex 3 (30% George / 70% Alex) | 30% `bm_george` + 70% `pm_alex` |
+
+O `michael-ptbr` do Voice-Studio não entrou: o vetor dele é idêntico ao de `am_michael` (diferença 0,0). Aqui o idioma é
+sempre o configurado (`VOZ_IDIOMA`, pt-BR), então `am_michael` já fala em português; uma mistura exige duas vozes ou mais.
 
 **Validação** (`misturas.py`):
 - nome sem espaço, que não repete nenhuma voz existente;
