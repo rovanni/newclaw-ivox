@@ -21,7 +21,7 @@
   "licencas": ["{python}", "instalar.py", "--licencas", "--json", "{escolhas}"],
   "instalar": ["{python}", "instalar.py", "--sem-perguntas", "--aceito-licencas", "--newclaw-url", "{newclaw_url}", "{escolhas}"],
   "iniciar": {
-    "win32": [".venv/Scripts/python.exe", "-m", "newclaw_ivox", "servidor"],
+    "win32": [".venv/Scripts/pythonw.exe", "-m", "newclaw_ivox", "servidor"],
     "outros": [".venv/bin/python", "-m", "newclaw_ivox", "servidor"]
   },
   "abrir": "http://127.0.0.1:7860",
