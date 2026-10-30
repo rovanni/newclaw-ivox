@@ -1,0 +1,869 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NewClaw Voz — maquete</title>
+<!-- Maquete visual da janela de voz (Etapa 4). Sem voz de verdade: os estados são simulados para aprovar o visual. -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Exo+2:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --fundo: #050b18;
+  --fundo-2: #081429;
+  --painel: rgba(10, 26, 52, 0.72);
+  --borda: rgba(56, 152, 255, 0.28);
+  --borda-forte: rgba(80, 175, 255, 0.6);
+  --texto: #e6f1ff;
+  --texto-2: #8fb3da;
+  --destaque: #3ea6ff;
+  --destaque-2: #7fd3ff;
+  --brilho: rgba(62, 166, 255, 0.55);
+  --ok: #2fd47a;
+  --aviso: #f5b638;
+  --erro: #ff5468;
+  --voz-ia: #ffc61a; /* amarelo: quando é o NewClaw que fala ou pensa (você é azul) */
+  --c-pronto: #7f93ad;
+  --c-fila: #ffe27a;
+  --c-falando: #ffd400;
+  --grade: rgba(62, 166, 255, 0.07);
+  --globo-mar: #0b2a55;
+  --globo-linha: rgba(127, 211, 255, 0.45);
+  --sombra: 0 0 24px rgba(62, 166, 255, 0.18);
+  color-scheme: dark;
+}
+:root[data-tema="claro"] {
+  --fundo: #eef4fb;
+  --fundo-2: #ffffff;
+  --painel: rgba(255, 255, 255, 0.82);
+  --borda: rgba(30, 110, 210, 0.18);
+  --borda-forte: rgba(30, 110, 210, 0.45);
+  --texto: #0d2440;
+  --texto-2: #4f6b8c;
+  --destaque: #1673e0;
+  --destaque-2: #0a58b8;
+  --brilho: rgba(22, 115, 224, 0.28);
+  --ok: #129a55;
+  --aviso: #c27c00;
+  --erro: #d6324a;
+  --voz-ia: #d99a00;
+  --c-pronto: #6b7f99;
+  --c-fila: #b8a03a;
+  --c-falando: #e6a700;
+  --grade: rgba(22, 115, 224, 0.06);
+  --globo-mar: #d8e9fb;
+  --globo-linha: rgba(22, 115, 224, 0.4);
+  --sombra: 0 4px 20px rgba(13, 36, 64, 0.08);
+  color-scheme: light;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; }
+body {
+  background:
+    radial-gradient(ellipse 60% 50% at 50% 42%, var(--brilho), transparent 70%),
+    linear-gradient(var(--grade) 1px, transparent 1px) 0 0 / 40px 40px,
+    linear-gradient(90deg, var(--grade) 1px, transparent 1px) 0 0 / 40px 40px,
+    var(--fundo);
+  color: var(--texto);
+  font-family: Inter, system-ui, sans-serif;
+  font-size: 14px;
+  transition: background-color .4s, color .4s;
+}
+.app { display: grid; grid-template-rows: auto 1fr auto; min-height: 100vh; max-width: 1440px; margin: 0 auto; padding: 0 20px; }
+
+/* Topo */
+header { display: flex; align-items: center; gap: 16px; padding: 14px 0; border-bottom: 1px solid var(--borda); }
+.marca { display: flex; align-items: center; gap: 12px; }
+.marca-n { width: 42px; height: 42px; border-radius: 50%; border: 2px solid var(--destaque); display: grid; place-items: center;
+  font: 700 22px "Exo 2", sans-serif; color: var(--destaque); box-shadow: 0 0 14px var(--brilho); }
+.marca h1 { margin: 0; font: 700 20px "Exo 2", sans-serif; letter-spacing: 3px; }
+.marca small { color: var(--texto-2); font-size: 12px; }
+.lema { flex: 1; text-align: center; font: 400 17px "Exo 2", sans-serif; color: var(--destaque-2); letter-spacing: .5px; }
+.topo-dir { display: flex; align-items: center; gap: 16px; color: var(--texto-2); font-size: 13px; }
+.online { color: var(--ok); font-weight: 600; letter-spacing: 1px; font-size: 12px; display: flex; align-items: center; gap: 6px; }
+.ponto { width: 8px; height: 8px; border-radius: 50%; background: currentColor; box-shadow: 0 0 8px currentColor; }
+.relogio { font: 500 16px "Exo 2", sans-serif; color: var(--texto); }
+.botao-tema { background: var(--painel); border: 1px solid var(--borda); color: var(--texto); border-radius: 20px; padding: 6px 12px;
+  cursor: pointer; display: flex; gap: 6px; align-items: center; font: inherit; }
+.botao-tema:hover { border-color: var(--borda-forte); }
+
+/* Corpo */
+main { display: grid; grid-template-columns: 300px 1fr 330px; gap: 20px; padding: 20px 0; }
+.coluna { display: flex; flex-direction: column; gap: 16px; }
+.cartao { background: var(--painel); border: 1px solid var(--borda); border-radius: 14px; padding: 16px; box-shadow: var(--sombra);
+  backdrop-filter: blur(6px); }
+.cartao h2 { margin: 0 0 12px; font: 600 13px "Exo 2", sans-serif; letter-spacing: 1.5px; text-transform: uppercase; color: var(--texto); }
+.linha { display: flex; justify-content: space-between; align-items: center; padding: 7px 0; border-bottom: 1px solid var(--borda); gap: 8px; }
+.linha:last-child { border-bottom: 0; }
+.linha .rot { color: var(--texto-2); }
+.barra { height: 5px; width: 90px; border-radius: 3px; background: var(--borda); overflow: hidden; }
+.barra i { display: block; height: 100%; background: var(--destaque); border-radius: 3px; }
+.estado-ok { color: var(--ok); } .estado-aviso { color: var(--aviso); }
+.exemplo { font-size: 11px; color: var(--texto-2); margin-top: 8px; font-style: italic; }
+
+/* Centro */
+.centro { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 10px; }
+.saudacao h2 { margin: 6px 0 0; font: 600 34px "Exo 2", sans-serif; color: var(--destaque-2); }
+.saudacao p { margin: 4px 0 0; font: 400 20px "Exo 2", sans-serif; color: var(--destaque); }
+.globo-area { position: relative; width: min(420px, 80vw); aspect-ratio: 1; margin: 8px 0; }
+.globo-area svg { width: 100%; height: 100%; overflow: visible; }
+.anel { transform-origin: 200px 200px; }
+.gira-1 { animation: gira 40s linear infinite; }
+.gira-2 { animation: gira 26s linear infinite reverse; }
+.gira-3 { animation: gira 14s linear infinite; }
+@keyframes gira { to { transform: rotate(360deg); } }
+/* Círculo de voz: o núcleo cresce e brilha com o volume; as barras em volta seguem as frequências. */
+.nucleo { transform-origin: 200px 200px; }
+/* Quem fala tem cor própria: você em azul, o NewClaw em amarelo. */
+/* Cada estado tem uma cor; o círculo, a faixa e o rótulo usam a mesma. */
+.centro { --cor-voz: var(--destaque-2); }
+[data-cor="pronto"]    { --cor-estado: var(--c-pronto); }
+[data-cor="ouvindo"]   { --cor-estado: var(--destaque); }
+[data-cor="fila"]      { --cor-estado: var(--c-fila); }
+[data-cor="pensando"]  { --cor-estado: var(--voz-ia); }
+[data-cor="falando"]   { --cor-estado: var(--c-falando); }
+[data-cor="aprovacao"] { --cor-estado: var(--erro); }
+[data-cor="erro"]      { --cor-estado: var(--erro); }
+.centro[data-cor]:not([data-cor="pronto"]) { --cor-voz: var(--cor-estado); }
+.centro[data-cor="aprovacao"] .luz-miolo { animation: piscar 1s ease-in-out infinite; }
+@keyframes piscar { 50% { opacity: .35; } }
+/* Faixa de estados (no estilo do "Model state" do Strata): todos à vista, o atual aceso. */
+.faixa-estados { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; max-width: 100%; }
+.pilula { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 999px; cursor: pointer;
+  border: 1px solid var(--borda); background: transparent; color: var(--texto-2); font: 500 12px Inter, sans-serif; opacity: .55;
+  transition: all .25s; }
+.pilula .ponto { color: var(--cor-estado); box-shadow: none; }
+.pilula:hover { opacity: .85; }
+.pilula.ativa { opacity: 1; color: var(--texto); border-color: var(--cor-estado); font-weight: 600;
+  background: color-mix(in srgb, var(--cor-estado) 16%, transparent); }
+.pilula.ativa .ponto { box-shadow: 0 0 8px var(--cor-estado); }
+.pilula.ativa[data-cor="aprovacao"] { animation: piscar 1s ease-in-out infinite; }
+.detalhe { width: 100%; max-width: 520px; text-align: left; }
+.detalhe .topo { display: flex; justify-content: space-between; font-size: 13px; color: var(--texto-2); margin-bottom: 6px; gap: 10px; }
+.detalhe .topo b { color: var(--texto); font-weight: 600; }
+.trilho { height: 4px; border-radius: 2px; background: var(--borda); overflow: hidden; }
+.trilho i { display: block; height: 100%; width: 0; background: var(--cor-voz); border-radius: 2px; transition: width .3s; }
+.trilho.indeterminado i { width: 30%; animation: corre 1.4s ease-in-out infinite; }
+@keyframes corre { from { transform: translateX(-100%); } to { transform: translateX(340%); } }
+.barras line { stroke: var(--cor-voz); stroke-width: 3; stroke-linecap: round; transition: stroke .4s; }
+.centro[data-cor="pensando"] .barras { animation: gira 3s linear infinite; transform-origin: 200px 200px; }
+.ondas circle { fill: none; stroke: var(--cor-voz); }
+.luz { transform-origin: 200px 200px; }
+.luz-miolo { fill: var(--cor-voz); filter: drop-shadow(0 0 8px var(--cor-voz)); transition: fill .4s; }
+.borda-nucleo { stroke: var(--cor-voz); transition: stroke .4s; }
+.centro[data-cor="falando"] .luz-miolo { filter: drop-shadow(0 0 16px var(--c-falando)); }
+.halo { transition: opacity .1s; }
+.balao { background: var(--painel); border: 1px solid var(--borda-forte); border-radius: 16px; padding: 14px 18px; max-width: 520px;
+  text-align: left; line-height: 1.5; box-shadow: var(--sombra); }
+.atalhos { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; width: 100%; max-width: 640px; margin-top: 8px; }
+.atalho { background: var(--painel); border: 1px solid var(--borda); border-radius: 12px; padding: 12px 6px; cursor: pointer; color: var(--texto);
+  font: inherit; display: flex; flex-direction: column; align-items: center; gap: 6px; transition: border-color .2s, transform .2s; }
+.atalho:hover { border-color: var(--borda-forte); transform: translateY(-2px); }
+.atalho svg { width: 24px; height: 24px; stroke: var(--destaque); }
+.atalho b { font: 600 13px "Exo 2", sans-serif; }
+
+/* Conversa */
+.conversa { display: flex; flex-direction: column; gap: 10px; max-height: 360px; overflow-y: auto; }
+.msg { padding: 9px 12px; border-radius: 12px; line-height: 1.45; max-width: 92%; }
+.msg.voce { align-self: flex-end; background: var(--destaque); color: #fff; border-bottom-right-radius: 4px; }
+.msg.ia { align-self: flex-start; border: 1px solid var(--borda); border-bottom-left-radius: 4px; }
+.msg small { display: block; font-size: 11px; opacity: .7; margin-top: 3px; }
+.aprovacao { border: 1px solid var(--aviso); border-radius: 12px; padding: 10px 12px; }
+.aprovacao code { font-size: 12px; display: block; margin: 6px 0; color: var(--aviso); word-break: break-all; }
+.aprovacao .botoes { display: flex; gap: 8px; }
+.btn { border-radius: 8px; padding: 6px 12px; border: 1px solid var(--borda-forte); background: transparent; color: var(--texto); cursor: pointer; font: inherit; }
+.btn.primario { background: var(--destaque); border-color: var(--destaque); color: #fff; }
+select.btn { width: 100%; background: var(--fundo-2); }
+/* A lista aberta do seletor usa as cores do tema (sem isso, no escuro ficava texto claro sobre fundo branco). */
+select.btn option { background: var(--fundo-2); color: var(--texto); }
+
+/* Rodapé */
+footer { display: grid; grid-template-columns: 300px 1fr 330px; gap: 20px; padding: 0 0 20px; align-items: stretch; }
+.entrada { display: flex; align-items: center; gap: 10px; background: var(--painel); border: 1px solid var(--borda-forte); border-radius: 40px;
+  padding: 8px 8px 8px 22px; box-shadow: 0 0 22px var(--brilho); }
+.entrada input { flex: 1; min-width: 0; background: transparent; border: 0; outline: 0; color: var(--texto); font: 15px Inter, sans-serif; }
+.entrada input::placeholder { color: var(--texto-2); }
+.icone { width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; border: 0; background: transparent; cursor: pointer; color: var(--texto-2); flex: none; }
+.icone:hover { color: var(--destaque); }
+.icone svg { width: 22px; height: 22px; }
+.icone.mic.ativo { background: var(--destaque); color: #fff; box-shadow: 0 0 16px var(--brilho); }
+.icone.enviar { background: var(--destaque); color: #fff; }
+.icone.parar { background: var(--erro); color: #fff; }
+.modo-voz { display: flex; flex-direction: column; justify-content: center; gap: 6px; }
+.modo-voz .topo { display: flex; justify-content: space-between; align-items: center; font: 600 12px "Exo 2", sans-serif; letter-spacing: 2px; }
+.voz-escolha { display: flex; flex-direction: column; justify-content: center; gap: 6px; }
+.voz-escolha label { font: 600 12px "Exo 2", sans-serif; letter-spacing: 2px; text-transform: uppercase; }
+.aviso-maquete { text-align: center; font-size: 12px; color: var(--texto-2); padding-bottom: 14px; }
+
+/* Legenda ao vivo e fala do NewClaw palavra a palavra */
+.legenda { min-height: 26px; max-width: 560px; font-size: 18px; line-height: 1.4; color: var(--texto); }
+.legenda .rotulo { color: var(--destaque); font-size: 12px; letter-spacing: 2px; text-transform: uppercase; margin-right: 8px; }
+.legenda .cursor { display: inline-block; width: 2px; height: 1em; background: var(--destaque); vertical-align: -2px; animation: piscar .8s step-end infinite; }
+.balao .pal { transition: color .15s, opacity .15s; }
+.balao.lendo .pal { opacity: .45; }
+.balao.lendo .pal.dita { opacity: 1; }
+.balao.lendo .pal.atual { opacity: 1; color: var(--c-falando); font-weight: 600; }
+.atalho small { font-size: 11px; color: var(--texto-2); line-height: 1.2; }
+
+/* Jeito de falar e sons */
+.segmento { display: flex; border: 1px solid var(--borda); border-radius: 8px; overflow: hidden; }
+.segmento button { flex: 1; background: transparent; border: 0; color: var(--texto-2); padding: 6px 4px; cursor: pointer; font: 500 12px Inter, sans-serif; }
+.segmento button.ativo { background: var(--destaque); color: #fff; }
+.chave { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--texto-2); cursor: pointer; }
+.chave input { accent-color: var(--destaque); }
+.modo-voz { gap: 8px; }
+
+/* Modo foco: só o círculo, a faixa, a legenda e a caixa de texto */
+body.foco .coluna, body.foco .atalhos, body.foco .voz-escolha, body.foco .modo-voz, body.foco .lema { display: none; }
+body.foco main, body.foco footer { grid-template-columns: 1fr; }
+body.foco .globo-area { width: min(520px, 85vw); }
+body.foco .entrada-wrap { max-width: 760px; width: 100%; margin: 0 auto; }
+
+/* Rótulo do estado atual, no meio do centro, na cor do estado. */
+.estado-centro { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); z-index: 2; pointer-events: none;
+  display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 8px 16px; border-radius: 16px;
+  background: color-mix(in srgb, var(--fundo) 62%, transparent); backdrop-filter: blur(5px);
+  border: 1px solid var(--cor-estado); box-shadow: 0 0 18px color-mix(in srgb, var(--cor-estado) 35%, transparent);
+  transition: border-color .3s, box-shadow .3s; white-space: nowrap; }
+.estado-centro b { font: 600 17px "Exo 2", sans-serif; color: var(--texto); display: flex; align-items: center; gap: 8px; }
+.estado-centro .ponto { color: var(--cor-estado); }
+.estado-centro small { font-size: 12px; color: var(--texto-2); min-height: 14px; }
+.centro[data-cor="aprovacao"] .estado-centro { animation: piscar 1s ease-in-out infinite; }
+.faixa-estados { margin-top: 6px; align-items: center; }
+.faixa-estados .pilula { padding: 2px 8px; font-size: 11px; }
+
+/* Estilo do centro: círculo (SVG) ou partículas (canvas) */
+#particulas { position: absolute; inset: 0; width: 100%; height: 100%; display: none; }
+.globo-area[data-centro="particulas"] #particulas { display: block; }
+.globo-area[data-centro="particulas"] #circulo { visibility: hidden; }
+
+/* Telas menores */
+@media (max-width: 1100px) {
+  main, footer { grid-template-columns: 1fr; }
+  .coluna.esq { order: 2; } .centro { order: 1; } .coluna.dir { order: 3; }
+  footer .voz-escolha { order: 3; } footer .entrada-wrap { order: 1; } footer .modo-voz { order: 2; }
+  .lema { display: none; }
+  /* No celular a caixa de texto e o microfone ficam presos no pé da tela. */
+  footer .entrada-wrap { position: fixed; left: 0; right: 0; bottom: 0; z-index: 5; padding: 18px 16px 0;
+    background: linear-gradient(transparent, var(--fundo) 35%); }
+  footer .entrada { background: var(--fundo-2); }
+  .app { padding-bottom: 130px; }
+}
+@media (max-width: 600px) {
+  .app { padding: 0 16px; }
+  .marca small, .relogio { display: none; }
+  .atalhos { grid-template-columns: repeat(3, 1fr); }
+  .saudacao h2 { font-size: 26px; } .saudacao p { font-size: 16px; }
+  .botao-tema span { display: none; }
+}
+@media (prefers-reduced-motion: reduce) { .gira-1, .gira-2, .gira-3 { animation: none; } }
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <div class="marca">
+      <div class="marca-n">N</div>
+      <div><h1>NEWCLAW</h1><small>Interface de voz</small></div>
+    </div>
+    <div class="lema">“Conhecimento. Organização. Execução.”</div>
+    <div class="topo-dir">
+      <span class="online"><span class="ponto"></span>SISTEMA ONLINE</span>
+      <span class="relogio" id="relogio">--:--</span>
+      <button class="botao-tema" id="botaoFoco" title="Modo foco: só o círculo e a conversa (tecla F)">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3H5a2 2 0 0 0-2 2v3M21 8V5a2 2 0 0 0-2-2h-3M3 16v3a2 2 0 0 0 2 2h3M16 21h3a2 2 0 0 0 2-2v-3"/></svg>
+        <span id="nomeFoco">Foco</span>
+      </button>
+      <button class="botao-tema" id="botaoTema" title="Trocar tema">
+        <svg id="iconeTema" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"></svg>
+        <span id="nomeTema">Tema</span>
+      </button>
+    </div>
+  </header>
+
+  <main>
+    <section class="coluna esq">
+      <div class="cartao">
+        <h2>Status do sistema</h2>
+        <div class="linha"><span class="rot">NewClaw</span><span class="estado-ok">● Operacional</span></div>
+        <div class="linha"><span class="rot">Telegram</span><span class="estado-ok">● Conectado</span></div>
+        <div class="linha"><span class="rot">Ollama</span><span class="estado-ok">● Saudável</span></div>
+        <div class="linha"><span class="rot">Memória</span><span>181 MB</span></div>
+        <div class="linha"><span class="rot">Atraso do processo</span><span>0 ms</span></div>
+        <div class="linha"><span class="rot">Ativo há</span><span>2 h 14 min</span></div>
+        <div class="exemplo">Dados do /health do NewClaw (valores de exemplo).</div>
+      </div>
+      <div class="cartao">
+        <h2>Voz neste computador</h2>
+        <div class="linha"><span class="rot">Ouvir (Whisper)</span><span>large-v3-turbo · GPU</span></div>
+        <div class="linha"><span class="rot">Falar (Kokoro)</span><span>CPU</span></div>
+        <div class="linha"><span class="rot">Idioma</span><span>pt-BR</span></div>
+        <div class="linha"><span class="rot">Interrupção</span><span class="estado-ok">● Ligada</span></div>
+      </div>
+      <div class="cartao">
+        <h2>Modelos de IA</h2>
+        <div class="linha"><span class="rot">Chat</span><span>glm-5.2 (cloud)</span></div>
+        <div class="linha"><span class="rot">Visão</span><span>gemma4-31b (cloud)</span></div>
+        <div class="exemplo">Da configuração do NewClaw (valores de exemplo).</div>
+      </div>
+    </section>
+
+    <section class="centro">
+      <div class="saudacao">
+        <h2 id="saudacao">Olá.</h2>
+        <p>Como posso ajudar hoje?</p>
+      </div>
+      <div class="globo-area">
+        <!-- estilo "Partículas": esfera de pontos desenhada no canvas -->
+        <canvas id="particulas" aria-hidden="true"></canvas>
+        <!-- o estado atual, sozinho, no meio do círculo ou das partículas -->
+        <div class="estado-centro" id="estadoCentro" aria-live="polite"><b><span class="ponto"></span><span id="estadoNome">Pronto</span></b><small id="tempoCentro"></small></div>
+        <svg viewBox="0 0 400 400" aria-hidden="true" id="circulo">
+          <defs>
+            <radialGradient id="mar" cx="40%" cy="35%" r="70%">
+              <stop offset="0%" style="stop-color: var(--cor-voz)" stop-opacity=".55"/>
+              <stop offset="70%" stop-color="var(--globo-mar)"/>
+            </radialGradient>
+            <radialGradient id="haloCor" cx="50%" cy="50%" r="50%">
+              <stop offset="55%" style="stop-color: var(--cor-voz)" stop-opacity=".9"/>
+              <stop offset="100%" style="stop-color: var(--cor-voz)" stop-opacity="0"/>
+            </radialGradient>
+          </defs>
+          <!-- anéis externos -->
+          <g class="anel gira-1">
+            <circle cx="200" cy="200" r="190" fill="none" stroke="var(--destaque)" stroke-opacity=".35" stroke-width="1" stroke-dasharray="2 6"/>
+            <path d="M200 10 A190 190 0 0 1 390 200" fill="none" stroke="var(--destaque-2)" stroke-width="3" stroke-linecap="round"/>
+            <path d="M200 390 A190 190 0 0 1 10 200" fill="none" stroke="var(--destaque-2)" stroke-width="3" stroke-linecap="round"/>
+          </g>
+          <g class="anel gira-2">
+            <circle cx="200" cy="200" r="168" fill="none" stroke="var(--destaque)" stroke-width="6" stroke-opacity=".5" stroke-dasharray="1 5"/>
+            <path d="M68 96 A168 168 0 0 1 200 32" fill="none" stroke="var(--destaque)" stroke-width="4" stroke-linecap="round"/>
+            <path d="M332 304 A168 168 0 0 1 200 368" fill="none" stroke="var(--destaque)" stroke-width="4" stroke-linecap="round"/>
+          </g>
+          <!-- círculo de voz: halo, barras de frequência em volta e o núcleo com o N -->
+          <circle class="halo" id="halo" cx="200" cy="200" r="150" fill="url(#haloCor)" opacity=".15"/>
+          <g class="barras" id="barras"></g>
+          <!-- ondas que saem do centro quando o NewClaw fala -->
+          <g class="ondas" id="ondas"></g>
+          <g class="nucleo" id="nucleo">
+            <circle class="borda-nucleo" cx="200" cy="200" r="96" fill="url(#mar)" stroke-width="2"/>
+            <circle cx="200" cy="200" r="80" fill="none" style="stroke: var(--cor-voz)" stroke-opacity=".35" stroke-width="1"/>
+            <!-- luz no centro, sem letra: acende e cresce com a voz -->
+            <circle class="luz" id="luz" cx="200" cy="200" r="34" fill="url(#haloCor)"/>
+            <circle class="luz-miolo" cx="200" cy="200" r="10"/>
+          </g>
+        </svg>
+      </div>
+      <div class="detalhe">
+        <div class="topo"><b id="estadoTexto">Pronto</b></div>
+        <div class="trilho" id="trilho"><i></i></div>
+      </div>
+      <!-- legenda ao vivo: o que você está dizendo, sendo escrito enquanto fala -->
+      <div class="legenda" id="legenda" aria-live="polite"></div>
+      <div class="balao" id="balao">Pronto para ajudar! Fale comigo pelo microfone ou escreva abaixo. Você pode me interromper falando por cima a qualquer momento.</div>
+      <div class="atalhos">
+        <!-- atalhos = pedidos prontos: o clique envia o pedido escrito em cada um -->
+        <button class="atalho" data-pedido="Bom dia! Me dê um resumo de como está tudo hoje."><svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg><b>Resumo do dia</b><small>como está tudo hoje</small></button>
+        <button class="atalho" data-pedido="Analise os logs de hoje e me diga se há erros."><svg viewBox="0 0 24 24" fill="none" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg><b>Analisar logs</b><small>erros de hoje</small></button>
+        <button class="atalho" data-pedido="Me ajude a planejar as tarefas da semana."><svg viewBox="0 0 24 24" fill="none" stroke-width="2"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M8 2v4M16 2v4M3 10h18"/></svg><b>Planejar</b><small>tarefas da semana</small></button>
+        <button class="atalho" data-pedido="Quais serviços estão fora do ar?"><svg viewBox="0 0 24 24" fill="none" stroke-width="2"><polygon points="6 3 20 12 6 21 6 3"/></svg><b>Serviços</b><small>o que está fora do ar</small></button>
+        <button class="atalho" data-pedido="Gere um relatório do que foi feito hoje."><svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M8 13h8M8 17h5"/></svg><b>Relatório</b><small>o que foi feito hoje</small></button>
+      </div>
+    </section>
+
+    <section class="coluna dir">
+      <div class="cartao">
+        <h2>Conversa</h2>
+        <div class="conversa" id="conversa">
+          <div class="msg voce">Quanto espaço livre tem na VPS?<small>22:14 · por voz</small></div>
+          <div class="msg ia">A VPS está com 55% do disco usado: 34 GB livres.<small>22:14</small></div>
+          <div class="aprovacao">
+            <b>Precisa da sua aprovação</b>
+            <code>docker system prune -f</code>
+            <div class="botoes"><button class="btn primario">Aprovar</button><button class="btn">Recusar</button></div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="cartao voz-escolha">
+      <label for="voz">Voz</label>
+      <select class="btn" id="voz">
+        <option>bm_george</option>
+        <option>george-alex-1 (70% George)</option>
+        <option>george-alex-2 (50% George)</option>
+        <option>george-alex-3 (30% George)</option>
+      </select>
+    </div>
+    <div class="entrada-wrap">
+      <div class="entrada">
+        <input id="texto" placeholder="Digite sua pergunta ou comando…">
+        <button class="icone" title="Anexar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m21.4 11.1-9.2 9.2a6 6 0 0 1-8.5-8.5l9.2-9.2a4 4 0 0 1 5.7 5.7l-9.2 9.2a2 2 0 0 1-2.8-2.8l8.5-8.5"/></svg></button>
+        <button class="icone mic" id="mic" title="Falar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M19 10v1a7 7 0 0 1-14 0v-1M12 18v4"/></svg></button>
+        <button class="icone enviar" id="enviar" title="Enviar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m22 2-7 20-4-9-9-4z"/><path d="M22 2 11 13"/></svg></button>
+      </div>
+      <div class="aviso-maquete">Maquete: a legenda e as respostas são simuladas; o centro usa o volume real do seu microfone.
+        <div class="faixa-estados" id="faixa">Simular:
+          <button class="pilula ativa" data-estado="pronto" data-cor="pronto"><span class="ponto"></span>Pronto</button>
+          <button class="pilula" data-estado="ouvindo" data-cor="ouvindo"><span class="ponto"></span>Ouvindo você</button>
+          <button class="pilula" data-estado="fila" data-cor="fila"><span class="ponto"></span>Na fila</button>
+          <button class="pilula" data-estado="pensando" data-cor="pensando"><span class="ponto"></span>Pensando</button>
+          <button class="pilula" data-estado="falando" data-cor="falando"><span class="ponto"></span>Falando</button>
+          <button class="pilula" data-estado="aprovacao" data-cor="aprovacao"><span class="ponto"></span>Precisa de você</button>
+          <button class="pilula" data-estado="erro" data-cor="erro"><span class="ponto"></span>Erro</button>
+        </div>
+      </div>
+    </div>
+    <div class="cartao modo-voz">
+      <div class="topo"><span>MODO VOZ</span><span class="estado-ok">ATIVO</span></div>
+      <div class="segmento" role="radiogroup" aria-label="Jeito de falar">
+        <button class="ativo" data-fala="livre" title="O microfone fica aberto e ele percebe quando você para de falar">Mãos livres</button>
+        <button data-fala="segurar" title="Segure a barra de espaço enquanto fala">Segurar espaço</button>
+      </div>
+      <div class="segmento" role="radiogroup" aria-label="Estilo do centro">
+        <button class="ativo" data-centro="circulo">Círculo</button>
+        <button data-centro="particulas">Partículas</button>
+      </div>
+      <label class="chave"><input type="checkbox" id="sons" checked> Sons ao começar e terminar de ouvir</label>
+      <div class="exemplo" id="micInfo">Clique no microfone e fale.</div>
+    </div>
+  </footer>
+</div>
+
+<script>
+// Tema: segue o sistema; o botão troca e a escolha fica lembrada.
+const raiz = document.documentElement;
+const SOL = '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>';
+const LUA = '<path d="M21 12.8A9 9 0 1 1 11.2 3 7 7 0 0 0 21 12.8z"/>';
+function lerTema() { try { return localStorage.getItem('ivox-tema'); } catch { return null; } }
+function aplicarTema(t) {
+  raiz.dataset.tema = t;
+  document.getElementById('iconeTema').innerHTML = t === 'claro' ? LUA : SOL;
+  document.getElementById('nomeTema').textContent = t === 'claro' ? 'Escuro' : 'Claro';
+}
+aplicarTema(lerTema() || (matchMedia('(prefers-color-scheme: light)').matches ? 'claro' : 'escuro'));
+document.getElementById('botaoTema').onclick = () => {
+  const t = raiz.dataset.tema === 'claro' ? 'escuro' : 'claro';
+  aplicarTema(t);
+  try { localStorage.setItem('ivox-tema', t); } catch {}
+};
+
+// Relógio e saudação.
+function relogio() {
+  const d = new Date();
+  document.getElementById('relogio').textContent = d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+  const h = d.getHours();
+  document.getElementById('saudacao').textContent = h < 12 ? 'Bom dia.' : h < 18 ? 'Boa tarde.' : 'Boa noite.';
+}
+relogio(); setInterval(relogio, 10000);
+
+// Círculo de voz. Ouvindo: volume e frequências do microfone de verdade (só medidos, nada é gravado).
+// Falando: aqui é simulado; na janela real vem do áudio do motor.
+const NS = 'http://www.w3.org/2000/svg';
+const grupoBarras = document.getElementById('barras');
+const N = 96, R0 = 104;
+const barras = [];
+for (let i = 0; i < N; i++) {
+  const a = (i / N) * Math.PI * 2 - Math.PI / 2;
+  const l = document.createElementNS(NS, 'line');
+  l.dataset.cos = Math.cos(a); l.dataset.sin = Math.sin(a);
+  grupoBarras.appendChild(l);
+  barras.push(l);
+}
+const nucleo = document.getElementById('nucleo');
+const halo = document.getElementById('halo');
+const luz = document.getElementById('luz');
+const area = document.querySelector('.centro');
+const grupoOndas = document.getElementById('ondas');
+const ondas = [0, 1, 2].map((k) => {
+  const c = document.createElementNS(NS, 'circle');
+  c.setAttribute('cx', 200); c.setAttribute('cy', 200);
+  grupoOndas.appendChild(c);
+  return { c, fase: k / 3 };
+});
+let estado = 'pronto';
+let analisador = null, dadosFreq = null, fluxoMic = null;
+async function ligarMic() {
+  const info = document.getElementById('micInfo');
+  try {
+    fluxoMic = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true } });
+    const ctx = new AudioContext();
+    analisador = ctx.createAnalyser();
+    analisador.fftSize = 256;
+    analisador.smoothingTimeConstant = 0.7;
+    ctx.createMediaStreamSource(fluxoMic).connect(analisador);
+    dadosFreq = new Uint8Array(analisador.frequencyBinCount);
+    info.textContent = 'Microfone ligado: fale e veja o círculo reagir. Clique de novo no microfone para terminar.';
+  } catch (e) {
+    analisador = null;
+    info.textContent = 'Sem acesso ao microfone (' + e.name + '): mostrando uma voz simulada.';
+  }
+}
+function desligarMic() {
+  if (fluxoMic) fluxoMic.getTracks().forEach((t) => t.stop());
+  fluxoMic = null; analisador = null;
+}
+const ESTADOS = {
+  pronto:   { texto: 'Pronto',   amp: 0.05, balao: 'Pronto para ajudar! Fale comigo pelo microfone ou escreva abaixo. Você pode me interromper falando por cima a qualquer momento.' },
+  ouvindo:  { texto: 'Você está falando', amp: 0.6,  balao: 'Estou ouvindo.' },
+  fila:     { texto: 'NewClaw recebeu o pedido e vai começar', amp: 0.1, balao: 'Recebi o seu pedido.' },
+  pensando: { texto: 'NewClaw trabalhando', amp: 0.15, balao: 'Entendi. Vou conferir…' },
+  falando:  { texto: 'NewClaw respondendo', amp: 0.9,  balao: 'Todos os serviços estão no ar, menos o Nextcloud, que está desligado desde as 20h.' },
+  aprovacao:{ texto: 'Aguardando você aprovar uma ação', amp: 0.5, balao: 'Para liberar espaço, quero executar “docker system prune -f”. Aprova?' },
+  erro:     { texto: 'Não consegui falar com o NewClaw', amp: 0.1, balao: 'Perdi a conexão com o NewClaw. Vou tentar de novo em alguns segundos.' },
+};
+// Nome curto de cada estado, mostrado no meio do centro.
+const NOMES = { pronto: 'Pronto', ouvindo: 'Ouvindo você', fila: 'Na fila', pensando: 'Pensando', falando: 'Falando',
+  aprovacao: 'Precisa de você', erro: 'Erro' };
+// Estados em que o NewClaw está trabalhando e o botão de enviar vira Parar.
+const TRABALHANDO = ['fila', 'pensando', 'falando'];
+let inicioEstado = Date.now();
+function mostrarTempo() {
+  const s = Math.floor((Date.now() - inicioEstado) / 1000);
+  const mostra = TRABALHANDO.includes(estado) || estado === 'aprovacao' || estado === 'ouvindo';
+  const tempo = mostra ? (s < 60 ? `${s} s` : `${Math.floor(s / 60)} min ${s % 60} s`) : '';
+  document.getElementById('tempoCentro').textContent = tempo;
+}
+setInterval(mostrarTempo, 500);
+function mudarEstado(e) {
+  estado = e;
+  area.dataset.estado = e;
+  area.dataset.cor = e;
+  inicioEstado = Date.now();
+  mostrarTempo();
+  if (e !== 'ouvindo') desligarMic();
+  document.querySelectorAll('.pilula').forEach((p) => p.classList.toggle('ativa', p.dataset.estado === e));
+  document.getElementById('estadoNome').textContent = NOMES[e];
+  document.getElementById('estadoTexto').textContent = ESTADOS[e].texto;
+  const balaoEl = document.getElementById('balao');
+  balaoEl.classList.remove('lendo');
+  balaoEl.textContent = ESTADOS[e].balao;
+  // Andamento: indeterminado enquanto trabalha (o NewClaw não sabe quanto falta); cheio quando terminou.
+  const trilho = document.getElementById('trilho');
+  trilho.classList.toggle('indeterminado', TRABALHANDO.includes(e) || e === 'ouvindo');
+  trilho.firstElementChild.style.width = e === 'pronto' || e === 'erro' || e === 'aprovacao' ? '0' : '';
+  const mic = document.getElementById('mic');
+  mic.classList.toggle('ativo', e === 'ouvindo');
+  const enviar = document.getElementById('enviar');
+  const parar = TRABALHANDO.includes(e);
+  enviar.classList.toggle('parar', parar);
+  enviar.classList.toggle('enviar', !parar);
+  enviar.title = parar ? 'Parar' : 'Enviar';
+  enviar.innerHTML = parar
+    ? '<svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>'
+    : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m22 2-7 20-4-9-9-4z"/><path d="M22 2 11 13"/></svg>';
+}
+// Preferências da pessoa (tema, foco, jeito de falar, sons) ficam lembradas neste navegador.
+function lerPref(k) { try { return localStorage.getItem(k); } catch { return null; } }
+function gravarPref(k, v) { try { localStorage.setItem(k, v); } catch {} }
+
+// Conversa simulada: pedido → na fila → trabalhando → resposta falada palavra a palavra.
+// Na janela de verdade, a legenda vem do Whisper e a resposta do NewClaw.
+const FALA_SIMULADA = 'Quais serviços estão fora do ar?';
+const RESPOSTAS = {
+  'Quais serviços estão fora do ar?': 'Todos os serviços estão no ar, menos o Nextcloud, que está desligado desde as 20h.',
+  'Bom dia! Me dê um resumo de como está tudo hoje.': 'Bom dia! Está tudo no ar, menos o Nextcloud. Você tem três tarefas para hoje e nenhum alerta novo.',
+  'Analise os logs de hoje e me diga se há erros.': 'Encontrei dois erros hoje, os dois no Nextcloud, logo antes de ele desligar às 20h.',
+  'Me ajude a planejar as tarefas da semana.': 'Separei as tarefas por prioridade: primeiro os slides da aula, depois a revisão dos logs.',
+  'Gere um relatório do que foi feito hoje.': 'Pronto. O relatório de hoje está salvo na pasta de documentos, com seis itens concluídos.',
+};
+const RESPOSTA_PADRAO = 'Esta é uma resposta de exemplo da maquete. Na janela de verdade, ela vem do NewClaw.';
+const legenda = document.getElementById('legenda');
+const balao = document.getElementById('balao');
+const conversa = document.getElementById('conversa');
+let agenda = [];
+function agendar(fn, ms) { agenda.push(setTimeout(fn, ms)); }
+function cancelarAgenda() { agenda.forEach(clearTimeout); agenda = []; }
+function hora() { return new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }); }
+function addMsg(quem, texto, porVoz) {
+  const d = document.createElement('div');
+  d.className = 'msg ' + quem;
+  d.textContent = texto;
+  const s = document.createElement('small');
+  s.textContent = hora() + (porVoz ? ' · por voz' : '');
+  d.appendChild(s);
+  conversa.appendChild(d);
+  conversa.scrollTop = conversa.scrollHeight;
+}
+function mostrarLegenda(texto, escrevendo) {
+  legenda.textContent = '';
+  if (!texto && !escrevendo) return;
+  const r = document.createElement('span');
+  r.className = 'rotulo';
+  r.textContent = 'Você';
+  legenda.appendChild(r);
+  legenda.appendChild(document.createTextNode(texto + (escrevendo ? ' ' : '')));
+  if (escrevendo) { const c = document.createElement('span'); c.className = 'cursor'; legenda.appendChild(c); }
+}
+
+// Sons discretos: um "tum" subindo ao começar a ouvir e descendo ao terminar.
+let somLigado = lerPref('ivox-sons') !== 'nao';
+const caixaSons = document.getElementById('sons');
+caixaSons.checked = somLigado;
+caixaSons.onchange = () => { somLigado = caixaSons.checked; gravarPref('ivox-sons', somLigado ? 'sim' : 'nao'); };
+let ctxSom = null;
+function tom(de, para) {
+  if (!somLigado) return;
+  try {
+    ctxSom = ctxSom || new AudioContext();
+    const o = ctxSom.createOscillator(), g = ctxSom.createGain(), t0 = ctxSom.currentTime;
+    o.frequency.setValueAtTime(de, t0);
+    o.frequency.linearRampToValueAtTime(para, t0 + 0.12);
+    g.gain.setValueAtTime(0.0001, t0);
+    g.gain.exponentialRampToValueAtTime(0.08, t0 + 0.02);
+    g.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.18);
+    o.connect(g).connect(ctxSom.destination);
+    o.start(t0); o.stop(t0 + 0.2);
+  } catch {}
+}
+
+// Jeito de falar: mãos livres (ele percebe quando você para) ou segurar a barra de espaço.
+let modoFala = lerPref('ivox-fala') === 'segurar' ? 'segurar' : 'livre';
+const micInfo = document.getElementById('micInfo');
+function aplicarModoFala(m) {
+  modoFala = m;
+  document.querySelectorAll('[data-fala]').forEach((b) => b.classList.toggle('ativo', b.dataset.fala === m));
+  micInfo.textContent = m === 'livre'
+    ? 'Clique no microfone e fale. Ele percebe sozinho quando você termina.'
+    : 'Segure a barra de espaço enquanto fala e solte quando terminar.';
+}
+document.querySelectorAll('[data-fala]').forEach((b) => b.onclick = () => { aplicarModoFala(b.dataset.fala); gravarPref('ivox-fala', b.dataset.fala); });
+aplicarModoFala(modoFala);
+
+let textoOuvido = '';
+function comecarAOuvir() {
+  // Se o NewClaw estava falando, a sua voz o interrompe na hora.
+  cancelarAgenda();
+  mudarEstado('ouvindo');
+  ligarMic();
+  tom(520, 780);
+  textoOuvido = '';
+  mostrarLegenda('', true);
+  const palavras = FALA_SIMULADA.split(' ');
+  palavras.forEach((p, i) => agendar(() => {
+    textoOuvido = palavras.slice(0, i + 1).join(' ');
+    mostrarLegenda(textoOuvido, true);
+  }, 400 + i * 350));
+  // Mãos livres: aqui o fim da fala é simulado 1,2 s depois da última palavra (na janela real, quem decide é o VAD).
+  if (modoFala === 'livre') agendar(terminarDeOuvir, 400 + palavras.length * 350 + 1200);
+}
+function terminarDeOuvir() {
+  if (estado !== 'ouvindo') return;
+  tom(780, 520);
+  const pedido = textoOuvido || FALA_SIMULADA;
+  mostrarLegenda(pedido, false);
+  fazerPedido(pedido, true);
+}
+function fazerPedido(pedido, porVoz) {
+  cancelarAgenda();
+  addMsg('voce', pedido, porVoz);
+  if (!porVoz) mostrarLegenda('', false);
+  mudarEstado('fila');
+  balao.textContent = `Recebi: “${pedido}”.`;
+  agendar(() => { mudarEstado('pensando'); balao.textContent = `Entendi: “${pedido}”. Vou conferir…`; }, 1000);
+  agendar(() => falarResposta(RESPOSTAS[pedido] || RESPOSTA_PADRAO), 3500);
+}
+function falarResposta(texto) {
+  mudarEstado('falando');
+  // A frase que ele está falando fica destacada, palavra a palavra.
+  balao.textContent = '';
+  balao.classList.add('lendo');
+  const pals = texto.split(' ').map((p) => {
+    const s = document.createElement('span');
+    s.className = 'pal';
+    s.textContent = p + ' ';
+    balao.appendChild(s);
+    return s;
+  });
+  const PASSO = 280;
+  pals.forEach((s, i) => agendar(() => {
+    if (i > 0) { pals[i - 1].classList.remove('atual'); pals[i - 1].classList.add('dita'); }
+    s.classList.add('atual');
+  }, i * PASSO));
+  agendar(() => {
+    addMsg('ia', texto);
+    mudarEstado('pronto');
+    mostrarLegenda('', false);
+  }, pals.length * PASSO + 400);
+}
+
+document.querySelectorAll('button[data-estado]').forEach((b) => b.onclick = () => {
+  cancelarAgenda();
+  mostrarLegenda('', false);
+  mudarEstado(b.dataset.estado);
+  if (b.dataset.estado === 'ouvindo') ligarMic();
+});
+document.getElementById('mic').onclick = () => {
+  if (estado === 'ouvindo') return terminarDeOuvir();
+  comecarAOuvir();
+};
+const campoTexto = document.getElementById('texto');
+function enviarTexto() {
+  const t = campoTexto.value.trim();
+  if (!t) return;
+  campoTexto.value = '';
+  fazerPedido(t, false);
+}
+document.getElementById('enviar').onclick = () => {
+  if (TRABALHANDO.includes(estado)) { cancelarAgenda(); return mudarEstado('pronto'); }
+  enviarTexto();
+};
+campoTexto.addEventListener('keydown', (ev) => { if (ev.key === 'Enter') enviarTexto(); });
+document.querySelectorAll('[data-pedido]').forEach((b) => b.onclick = () => fazerPedido(b.dataset.pedido, false));
+
+// Modo foco (botão ou tecla F).
+const botaoFoco = document.getElementById('botaoFoco');
+function aplicarFoco(ligado) {
+  document.body.classList.toggle('foco', ligado);
+  document.getElementById('nomeFoco').textContent = ligado ? 'Sair do foco' : 'Foco';
+  gravarPref('ivox-foco', ligado ? 'sim' : 'nao');
+}
+botaoFoco.onclick = () => aplicarFoco(!document.body.classList.contains('foco'));
+aplicarFoco(lerPref('ivox-foco') === 'sim');
+
+// Teclado: F liga o foco; no modo "segurar", a barra de espaço é o botão de falar.
+function digitando(ev) { return ['INPUT', 'TEXTAREA', 'SELECT'].includes(ev.target.tagName); }
+document.addEventListener('keydown', (ev) => {
+  if (digitando(ev)) return;
+  if (ev.key === 'f' || ev.key === 'F') { aplicarFoco(!document.body.classList.contains('foco')); return; }
+  if (ev.code === 'Space' && modoFala === 'segurar') {
+    ev.preventDefault();
+    if (!ev.repeat && estado !== 'ouvindo') comecarAOuvir();
+  }
+});
+document.addEventListener('keyup', (ev) => {
+  if (ev.code === 'Space' && modoFala === 'segurar' && !digitando(ev)) { ev.preventDefault(); terminarDeOuvir(); }
+});
+let t = 0;
+const calmo = matchMedia('(prefers-reduced-motion: reduce)').matches;
+let nivelSuave = 0;
+// Fala simulada: sílabas curtas com pausas, para o estado "falando" e para quando não há microfone.
+function vozSimulada(amp) {
+  const silaba = Math.max(0, Math.sin(t * 3.1) * Math.sin(t * 0.7 + 1));
+  return amp * (0.25 + 0.75 * silaba);
+}
+function quadro() {
+  t += 0.05;
+  let nivel, faixa;
+  if (estado === 'ouvindo' && analisador) {
+    analisador.getByteFrequencyData(dadosFreq);
+    // Voz humana fica nas primeiras faixas; as barras espelham essas faixas em volta do círculo.
+    const uteis = dadosFreq.length * 0.6;
+    let soma = 0;
+    for (let i = 0; i < uteis; i++) soma += dadosFreq[i];
+    nivel = Math.min(1, (soma / uteis / 255) * 2.4);
+    faixa = (i) => {
+      const k = Math.floor((i < N / 2 ? i : N - 1 - i) / (N / 2) * uteis);
+      return dadosFreq[k] / 255;
+    };
+  } else {
+    nivel = vozSimulada(ESTADOS[estado].amp);
+    faixa = (i) => 0.35 + 0.65 * Math.abs(Math.sin(t * 2 + i * 0.37) * Math.cos(t * 1.3 + i * 0.11));
+  }
+  nivelSuave += (nivel - nivelSuave) * 0.3;
+  // Você fala: as barras em volta reagem (o som "entra"). O NewClaw fala: o N pulsa e saem ondas do centro (o som "sai").
+  const ehNewClaw = estado === 'falando';
+  ondas.forEach((o) => {
+    const p = (t * 0.25 + o.fase) % 1;
+    o.c.setAttribute('r', 96 + p * 100);
+    o.c.setAttribute('stroke-width', 3 * (1 - p) + 0.5);
+    o.c.style.opacity = ehNewClaw ? (1 - p) * (0.25 + nivelSuave * 0.75) : 0;
+  });
+  barras.forEach((b, i) => {
+    const c = +b.dataset.cos, s = +b.dataset.sin;
+    const comp = 4 + (estado === 'pensando' ? 10 * (0.5 + 0.5 * Math.sin(t * 4 + i * 0.4))
+      : ehNewClaw || estado === 'fila' || estado === 'erro' || estado === 'aprovacao' ? 3 : faixa(i) * nivelSuave * 70);
+    const r1 = R0 + (ehNewClaw ? 0 : nivelSuave * 10);
+    b.setAttribute('x1', 200 + c * r1); b.setAttribute('y1', 200 + s * r1);
+    b.setAttribute('x2', 200 + c * (r1 + comp)); b.setAttribute('y2', 200 + s * (r1 + comp));
+    b.style.opacity = 0.35 + 0.65 * Math.min(1, comp / 30);
+  });
+  const escala = calmo ? 1 : 1 + nivelSuave * (ehNewClaw ? 0.18 : 0.12);
+  nucleo.style.transform = `scale(${escala})`;
+  halo.style.opacity = 0.12 + nivelSuave * 0.55;
+  halo.style.transform = `scale(${0.85 + nivelSuave * 0.35})`;
+  halo.style.transformOrigin = '200px 200px';
+  luz.style.transform = `scale(${0.7 + nivelSuave * 1.3})`;
+  luz.style.opacity = 0.35 + nivelSuave * 0.65;
+  if (estiloCentro === 'particulas') desenharParticulas(ehNewClaw);
+  requestAnimationFrame(quadro);
+}
+// Estilo "Partículas": uma esfera de pontos girando. Você fala: a nuvem se expande com o volume.
+// O NewClaw fala: ondas percorrem a esfera. Pensando: gira mais rápido e se contrai.
+const canvas = document.getElementById('particulas');
+const ctx2d = canvas.getContext('2d');
+const globoArea = document.querySelector('.globo-area');
+const NP = 700;
+const pontos = Array.from({ length: NP }, (_, i) => {
+  // Distribuição uniforme na esfera (espiral de Fibonacci), com um pouco de ruído.
+  const y = 1 - (i / (NP - 1)) * 2;
+  const r = Math.sqrt(1 - y * y);
+  const th = i * 2.399963;
+  return { x: Math.cos(th) * r, y, z: Math.sin(th) * r, ruido: Math.random() };
+});
+let giro = 0, corCache = '', corCacheEstado = '';
+function corAtual() {
+  const chave = area.dataset.cor + raiz.dataset.tema;
+  if (chave !== corCacheEstado) {
+    corCacheEstado = chave;
+    corCache = getComputedStyle(area).getPropertyValue('--cor-voz').trim() || '#3ea6ff';
+  }
+  return corCache;
+}
+function desenharParticulas(ehNewClaw) {
+  const dpr = window.devicePixelRatio || 1;
+  const lado = canvas.clientWidth;
+  if (canvas.width !== Math.round(lado * dpr)) { canvas.width = canvas.height = Math.round(lado * dpr); }
+  const esc = (lado * dpr) / 400;
+  ctx2d.setTransform(esc, 0, 0, esc, 0, 0);
+  ctx2d.clearRect(0, 0, 400, 400);
+  const cor = corAtual();
+  const pensando = estado === 'pensando' || estado === 'fila';
+  giro += pensando ? 0.02 : 0.004 + nivelSuave * 0.01;
+  const R = 120 * (pensando ? 0.85 + 0.05 * Math.sin(t * 3) : 1) * (estado === 'aprovacao' ? 1 + 0.06 * Math.sin(t * 6) : 1);
+  const cg = Math.cos(giro), sg = Math.sin(giro), inc = 0.35;
+  const ci = Math.cos(inc), si = Math.sin(inc);
+  ctx2d.fillStyle = cor;
+  for (const p of pontos) {
+    // Gira em Y e inclina um pouco em X para dar profundidade.
+    let x = p.x * cg + p.z * sg, z = -p.x * sg + p.z * cg, y = p.y;
+    const y2 = y * ci - z * si; z = y * si + z * ci; y = y2;
+    let k = 1;
+    if (estado === 'ouvindo') k += nivelSuave * (0.25 + 0.6 * p.ruido);
+    else if (ehNewClaw) k += nivelSuave * 0.22 * Math.sin(p.y * 9 - t * 7);
+    else k += 0.02 * Math.sin(t * 1.5 + p.ruido * 6);
+    const px = 200 + x * R * k, py = 200 + y * R * k;
+    const prof = (z + 1) / 2; // 0 = fundo, 1 = frente
+    ctx2d.globalAlpha = 0.15 + prof * 0.75;
+    const tam = 0.6 + prof * 1.6 + (ehNewClaw ? nivelSuave * 0.8 : 0);
+    ctx2d.beginPath();
+    ctx2d.arc(px, py, tam, 0, Math.PI * 2);
+    ctx2d.fill();
+  }
+  // Brilho no meio, como a luz do estilo círculo.
+  const g = ctx2d.createRadialGradient(200, 200, 0, 200, 200, 70 + nivelSuave * 50);
+  g.addColorStop(0, cor);
+  g.addColorStop(1, 'transparent');
+  ctx2d.globalAlpha = 0.18 + nivelSuave * 0.4;
+  ctx2d.fillStyle = g;
+  ctx2d.fillRect(0, 0, 400, 400);
+  ctx2d.globalAlpha = 1;
+}
+let estiloCentro = 'circulo';
+function aplicarCentro(s) {
+  estiloCentro = s;
+  globoArea.dataset.centro = s;
+  document.querySelectorAll('[data-centro]').forEach((b) => { if (b.tagName === 'BUTTON') b.classList.toggle('ativo', b.dataset.centro === s); });
+  gravarPref('ivox-centro', s);
+}
+document.querySelectorAll('button[data-centro]').forEach((b) => b.onclick = () => aplicarCentro(b.dataset.centro));
+aplicarCentro(lerPref('ivox-centro') === 'particulas' ? 'particulas' : 'circulo');
+
+area.dataset.estado = 'pronto';
+area.dataset.cor = 'pronto';
+quadro();
+</script>
+</body>
+</html>
