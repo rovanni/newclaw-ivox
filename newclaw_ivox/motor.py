@@ -37,12 +37,22 @@ def _processadores():
         BotStoppedSpeakingFrame,
         TranscriptionFrame,
         TTSSpeakFrame,
+        UserStartedSpeakingFrame,
+        UserStoppedSpeakingFrame,
         VADUserStartedSpeakingFrame,
+        VADUserStoppedSpeakingFrame,
     )
     from pipecat.processors.frame_processor import FrameDirection, FrameProcessor
 
     class Interrupcao(FrameProcessor):
-        """Corta a fala do motor quando a pessoa começa a falar por cima."""
+        """Corta a fala do motor quando a pessoa começa a falar por cima, e avisa a janela que a pessoa fala.
+
+        O aviso: o RTVI só manda `user-started-speaking`/`user-stopped-speaking` (os eventos que o cliente da janela conhece)
+        a partir de UserStarted/StoppedSpeakingFrame, que no Pipecat vêm da agregação de turno de um LLM — e este motor não
+        tem LLM. O VAD gera só VADUser…, que o RTVI repassa como `vad-user-…`, nome que o cliente 1.13 não trata. Sem isto
+        a janela nunca acendia "Ouvindo" (achado da prova com a operadora, 30/10/2026). O Whisper local não usa esses
+        quadros (só os serviços de transcrição por rede, para reconectar).
+        """
 
         def __init__(self):
             super().__init__()
@@ -62,12 +72,18 @@ def _processadores():
                     self.latencias_ms.append((time.perf_counter() - self._pedida_em) * 1000)
                     print(f"[motor] fala do motor parou {self.latencias_ms[-1]:.0f} ms depois da interrupção", flush=True)
                     self._pedida_em = None
-            elif isinstance(frame, VADUserStartedSpeakingFrame) and self.motor_falando:
-                self.interrupcoes += 1
-                self._pedida_em = time.perf_counter()
-                print(f"[motor] interrupção pela voz #{self.interrupcoes}", flush=True)
+            elif isinstance(frame, VADUserStartedSpeakingFrame):
                 await self.push_frame(frame, direction)
-                await self.broadcast_interruption()
+                await self.push_frame(UserStartedSpeakingFrame(), direction)
+                if self.motor_falando:
+                    self.interrupcoes += 1
+                    self._pedida_em = time.perf_counter()
+                    print(f"[motor] interrupção pela voz #{self.interrupcoes}", flush=True)
+                    await self.broadcast_interruption()
+                return
+            elif isinstance(frame, VADUserStoppedSpeakingFrame):
+                await self.push_frame(frame, direction)
+                await self.push_frame(UserStoppedSpeakingFrame(), direction)
                 return
             await self.push_frame(frame, direction)
 

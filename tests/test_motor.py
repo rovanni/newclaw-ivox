@@ -18,12 +18,13 @@ class TestInterrupcao(unittest.TestCase):
         Interrupcao, _ = _processadores()
         processador = Interrupcao()
         transmitidos = []
+        self.empurrados = []
 
         async def interromper():
             transmitidos.append(InterruptionFrame)
 
         async def empurrar(quadro, direcao=FrameDirection.DOWNSTREAM):
-            pass
+            self.empurrados.append(type(quadro).__name__)
 
         processador.broadcast_interruption = interromper
         processador.push_frame = empurrar
@@ -61,6 +62,16 @@ class TestInterrupcao(unittest.TestCase):
         p, transmitidos = self.rodar([BotStartedSpeakingFrame(), BotStoppedSpeakingFrame(), VADUserStartedSpeakingFrame()])
         self.assertEqual(p.interrupcoes, 0)
         self.assertEqual(transmitidos, [])
+
+    def test_vad_vira_o_aviso_de_fala_que_a_janela_conhece(self):
+        # Achado da prova com a operadora (30/10/2026): sem isto a janela nunca acendia "Ouvindo".
+        from pipecat.frames.frames import VADUserStartedSpeakingFrame, VADUserStoppedSpeakingFrame
+
+        self.rodar([VADUserStartedSpeakingFrame(), VADUserStoppedSpeakingFrame()])
+        self.assertEqual(self.empurrados, [
+            "VADUserStartedSpeakingFrame", "UserStartedSpeakingFrame",
+            "VADUserStoppedSpeakingFrame", "UserStoppedSpeakingFrame",
+        ])
 
 
 if __name__ == "__main__":
