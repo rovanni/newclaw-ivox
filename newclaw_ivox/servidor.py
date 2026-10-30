@@ -1,7 +1,10 @@
 """Servidor do harness (Etapa 3 da ADR-030, decisões H1 e H3): um processo, uma origem.
 
 - **Login:** `POST /entrar` repassa a senha ao NewClaw (`/api/auth/login`). O token volta para este servidor e fica aqui; o
-  navegador recebe só um cookie de sessão próprio (`httpOnly`, `SameSite=Strict`, `Secure` com HTTPS).
+  navegador recebe só um cookie de sessão próprio (`httpOnly`, `SameSite=Strict`, `Secure` com HTTPS). A senha é a do
+  painel do NewClaw: não existe senha da voz. Com o painel sem senha, `GET /sessao` entra direto (não há o que pedir).
+- **Sessão:** dura 30 dias, como a do painel, e sobrevive a um reinício do harness: fica num arquivo da pasta dele, com o
+  resumo (sha256) do cookie como chave, nunca o cookie em si.
 - **Repasse:** `/newclaw/api/<rota>` repassa ao NewClaw (`/api/<rota>`) com `Authorization: Bearer`, e só as rotas públicas
   do contrato do turno (`docs/CONTRATO_DO_TURNO.md`). O caminho espelha o do NewClaw para a janela usar o cliente público
   (`turn-client.js`) com `baseUrl: '/newclaw'`, sem cópia nem adaptação. O NewClaw vê um cliente de API comum: nenhuma regra
@@ -21,10 +24,14 @@ deste servidor, e o repasse só abre as rotas do contrato.
 
 # Sem `from __future__ import annotations`: o FastAPI lê as anotações das rotas (`request: Request`) na hora de montar o
 # app, e o Request só é importado dentro de criar_app (o pacote funciona sem FastAPI).
+import hashlib
+import json
+import os
 import re
 import secrets
 import time
 from dataclasses import dataclass, field
+from pathlib import Path
 
 from . import configuracao as cfg
 
@@ -32,6 +39,8 @@ from . import configuracao as cfg
 CONTRATO_DO_TURNO = 1
 
 COOKIE = "ivox_sessao"
+DURACAO_DA_SESSAO_S = 30 * 24 * 3600  # a mesma do painel do NewClaw
+ARQUIVO_DAS_SESSOES = ".sessoes-da-janela.json"
 
 # (método, padrão da rota depois de /api/) — só o contrato do turno, nada de configuração, memória ou ferramentas.
 ROTAS_DO_CONTRATO = (
@@ -64,13 +73,51 @@ class Sessao:
     conexoes: set[str] = field(default_factory=set)  # pc_id das conexões WebRTC desta sessão
 
 
+def chave_da_sessao(sessao_id: str) -> str:
+    """O arquivo das sessões guarda este resumo, não o cookie: quem lê o arquivo não consegue montar o cookie."""
+    return hashlib.sha256(sessao_id.encode()).hexdigest()
+
+
+def ler_sessoes(arquivo: Path | None, agora: float | None = None) -> dict[str, Sessao]:
+    """Sessões gravadas e ainda válidas. Arquivo ausente ou ilegível = nenhuma (a pessoa entra de novo; nada quebra)."""
+    if arquivo is None or not arquivo.is_file():
+        return {}
+    agora = time.time() if agora is None else agora
+    try:
+        dados = json.loads(arquivo.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return {}
+    saida: dict[str, Sessao] = {}
+    for chave, item in (dados.items() if isinstance(dados, dict) else []):
+        if not isinstance(item, dict) or not isinstance(item.get("token"), str):
+            continue
+        criada = item.get("criada_em")
+        if not isinstance(criada, (int, float)) or agora - criada > DURACAO_DA_SESSAO_S:
+            continue
+        idioma = item.get("idioma") if isinstance(item.get("idioma"), str) else None
+        saida[chave] = Sessao(token=item["token"], idioma=idioma, criada_em=float(criada))
+    return saida
+
+
+def gravar_sessoes(arquivo: Path | None, sessoes: dict[str, Sessao]) -> None:
+    if arquivo is None:
+        return
+    dados = {k: {"token": s.token, "idioma": s.idioma, "criada_em": s.criada_em} for k, s in sessoes.items()}
+    temporario = arquivo.with_name(arquivo.name + ".novo")
+    temporario.write_text(json.dumps(dados), encoding="utf-8")
+    if os.name != "nt":
+        os.chmod(temporario, 0o600)  # só o dono lê: o token dá acesso à API do NewClaw
+    os.replace(temporario, arquivo)
+
+
 def rota_permitida(metodo: str, caminho: str) -> bool:
     return any(metodo == m and padrao.fullmatch(caminho) for m, padrao in ROTAS_DO_CONTRATO)
 
 
-def criar_app(config: cfg.Configuracao, cliente_http=None, montar_motor=None, janela_dir=None):
+def criar_app(config: cfg.Configuracao, cliente_http=None, montar_motor=None, janela_dir=None, arquivo_sessoes=None):
     """`cliente_http` (httpx.AsyncClient) e `montar_motor` são injetáveis para os testes; `janela_dir` é o build da janela
-    (pasta com `index.html`), ausente quando ainda não foi gerado."""
+    (pasta com `index.html`), ausente quando ainda não foi gerado; `arquivo_sessoes` guarda as sessões entre reinícios
+    (sem ele, ficam só na memória)."""
     import httpx
     from fastapi import FastAPI, Request, Response
     from fastapi.responses import JSONResponse, PlainTextResponse
@@ -79,7 +126,7 @@ def criar_app(config: cfg.Configuracao, cliente_http=None, montar_motor=None, ja
         raise ValueError("NEWCLAW_URL não informado: o servidor do harness precisa saber onde está o NewClaw.")
 
     app = FastAPI(docs_url=None, redoc_url=None, openapi_url=None)
-    sessoes: dict[str, Sessao] = {}
+    sessoes: dict[str, Sessao] = ler_sessoes(arquivo_sessoes)
     cliente = cliente_http or httpx.AsyncClient(base_url=config.newclaw_url, timeout=30.0)
 
     # O harness fala com o NewClaw só por token. O httpx guarda os cookies das respostas (o login do NewClaw devolve o dele)
@@ -96,7 +143,54 @@ def criar_app(config: cfg.Configuracao, cliente_http=None, montar_motor=None, ja
         return JSONResponse({"erro": mensagem}, status_code=status)
 
     def sessao_de(request: Request) -> Sessao | None:
-        return sessoes.get(request.cookies.get(COOKIE, ""))
+        s = sessoes.get(chave_da_sessao(request.cookies.get(COOKIE, "")))
+        if s is not None and time.time() - s.criada_em > DURACAO_DA_SESSAO_S:
+            encerrar(request)
+            return None
+        return s
+
+    def encerrar(request: Request) -> None:
+        if sessoes.pop(chave_da_sessao(request.cookies.get(COOKIE, "")), None) is not None:
+            gravar_sessoes(arquivo_sessoes, sessoes)
+
+    async def abrir_sessao(token: str, corpo: dict) -> JSONResponse:
+        """Depois do login no NewClaw: confere o contrato, descobre o idioma e entrega o cookie."""
+        # Confere se este NewClaw cumpre o contrato do turno que o harness conhece (ADR-031, regra 5).
+        try:
+            st = await cliente.get("/api/status", headers={"Authorization": f"Bearer {token}"})
+            contratos = (st.json().get("status") or {}).get("contracts") or {}
+        except (httpx.HTTPError, ValueError):
+            return erro(502, "NewClaw respondeu ao login, mas não ao /api/status")
+        versao = contratos.get("turn")
+        if versao != CONTRATO_DO_TURNO:
+            return erro(409, f"este NewClaw anuncia o contrato do turno {versao!r}; o harness usa a versão {CONTRATO_DO_TURNO}")
+
+        # Idioma: o do .env (VOZ_IDIOMA) vence; vazio, vale o configurado no NewClaw. A rota /api/config não é do contrato
+        # do turno — se ela não responder ou não trouxer um idioma aceito, a ausência continua reportada, sem adivinhar.
+        idioma = config.idioma
+        if idioma is None:
+            try:
+                cf = await cliente.get("/api/config", headers={"Authorization": f"Bearer {token}"})
+                lido = (cf.json().get("config") or {}).get("language")
+                idioma = lido if lido in cfg.IDIOMAS_ACEITOS else None
+            except (httpx.HTTPError, ValueError):
+                idioma = None
+
+        sessao_id = secrets.token_urlsafe(32)
+        sessoes[chave_da_sessao(sessao_id)] = Sessao(token=token, idioma=idioma)
+        gravar_sessoes(arquivo_sessoes, sessoes)
+        resposta = JSONResponse({**corpo, "contrato_do_turno": versao, "idioma": idioma})
+        resposta.set_cookie(COOKIE, sessao_id, httponly=True, samesite="strict", secure=config.com_tls, path="/",
+                            max_age=DURACAO_DA_SESSAO_S)
+        return resposta
+
+    async def painel_sem_senha() -> bool:
+        """O NewClaw diz que o painel está sem senha. Na dúvida (sem resposta, ou a rota pedindo login), há senha."""
+        try:
+            r = await cliente.get("/api/auth/status")
+            return r.status_code == 200 and (r.json().get("auth") or {}).get("enabled") is False
+        except (httpx.HTTPError, ValueError):
+            return False
 
     def origem_valida(request: Request) -> bool:
         return request.headers.get("origin") in config.origens_aceitas
@@ -169,47 +263,35 @@ def criar_app(config: cfg.Configuracao, cliente_http=None, montar_motor=None, ja
                                 headers={k: v for k, v in r.headers.items() if k.lower() == "retry-after"})
         if r.status_code != 200 or not r.json().get("token"):
             return erro(401, "senha recusada pelo NewClaw")
-        token = r.json()["token"]
-
-        # Confere se este NewClaw cumpre o contrato do turno que o harness conhece (ADR-031, regra 5).
-        try:
-            st = await cliente.get("/api/status", headers={"Authorization": f"Bearer {token}"})
-            contratos = (st.json().get("status") or {}).get("contracts") or {}
-        except (httpx.HTTPError, ValueError):
-            return erro(502, "NewClaw respondeu ao login, mas não ao /api/status")
-        versao = contratos.get("turn")
-        if versao != CONTRATO_DO_TURNO:
-            return erro(409, f"este NewClaw anuncia o contrato do turno {versao!r}; o harness usa a versão {CONTRATO_DO_TURNO}")
-
-        # Idioma: o do .env (VOZ_IDIOMA) vence; vazio, vale o configurado no NewClaw. A rota /api/config não é do contrato
-        # do turno — se ela não responder ou não trouxer um idioma aceito, a ausência continua reportada, sem adivinhar.
-        idioma = config.idioma
-        if idioma is None:
-            try:
-                cf = await cliente.get("/api/config", headers={"Authorization": f"Bearer {token}"})
-                lido = (cf.json().get("config") or {}).get("language")
-                idioma = lido if lido in cfg.IDIOMAS_ACEITOS else None
-            except (httpx.HTTPError, ValueError):
-                idioma = None
-
-        sessao_id = secrets.token_urlsafe(32)
-        sessoes[sessao_id] = Sessao(token=token, idioma=idioma)
-        resposta = JSONResponse({"ok": True, "contrato_do_turno": versao, "idioma": idioma})
-        resposta.set_cookie(COOKIE, sessao_id, httponly=True, samesite="strict", secure=config.com_tls, path="/")
-        return resposta
+        return await abrir_sessao(r.json()["token"], {"ok": True})
 
     @app.post("/sair")
     async def sair(request: Request):
         if not origem_valida(request):
             return erro(403, "origem não permitida")
-        sessoes.pop(request.cookies.get(COOKIE, ""), None)
+        encerrar(request)
         resposta = JSONResponse({"ok": True})
         resposta.delete_cookie(COOKIE, path="/")
         return resposta
 
     @app.get("/sessao")
     async def sessao(request: Request):
-        return {"entrou": sessao_de(request) is not None}
+        sem_senha = await painel_sem_senha()
+        if sessao_de(request) is not None:
+            return {"entrou": True, "sem_senha": sem_senha}
+        # Painel sem senha: não há o que pedir, a janela entra direto. Se depois a senha for ligada, o NewClaw passa a
+        # recusar o token, a sessão acaba (repasse → 401) e a janela volta a pedir a senha.
+        if not sem_senha:
+            return {"entrou": False, "sem_senha": False}
+        try:
+            r = await cliente.post("/api/auth/login", json={"password": ""})
+            token = r.json().get("token") if r.status_code == 200 else None
+        except (httpx.HTTPError, ValueError):
+            token = None
+        if not token:
+            return {"entrou": False, "sem_senha": True}
+        resposta = await abrir_sessao(token, {"entrou": True, "sem_senha": True})
+        return resposta if resposta.status_code == 200 else {"entrou": False, "sem_senha": True}
 
     @app.api_route("/newclaw/api/{caminho:path}", methods=["GET", "POST"])
     async def repassar(caminho: str, request: Request):
@@ -232,7 +314,7 @@ def criar_app(config: cfg.Configuracao, cliente_http=None, montar_motor=None, ja
             return erro(502, f"NewClaw inalcançável: {type(e).__name__}")
         if r.status_code == 401:
             # O token deixou de valer (a senha do NewClaw mudou, por exemplo): a sessão acaba aqui também.
-            sessoes.pop(request.cookies.get(COOKIE, ""), None)
+            encerrar(request)
             return erro(401, "o NewClaw recusou o token; entre de novo")
         return Response(
             content=r.content, status_code=r.status_code,
@@ -327,7 +409,7 @@ def principal(argumentos: list[str]) -> int:
     janela = RAIZ / "janela" / "dist"
     if not (janela / "index.html").is_file():
         print("[harness] janela de voz não gerada: na pasta janela/, rode  npm ci && npm run build", flush=True)
-    app = criar_app(config, janela_dir=janela)
+    app = criar_app(config, janela_dir=janela, arquivo_sessoes=RAIZ / ARQUIVO_DAS_SESSOES)
     print(f"[harness] {config.origem} → NewClaw em {config.newclaw_url}", flush=True)
     uvicorn.run(
         app, host=config.host, port=config.porta, log_level="warning",

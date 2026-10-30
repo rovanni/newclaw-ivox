@@ -54,6 +54,8 @@ function Entrar({ aoEntrar }: { aoEntrar: () => void }) {
       const r = await fetch('/entrar', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ senha }) });
       const corpo = await r.json().catch(() => ({}));
       if (r.ok) aoEntrar();
+      else if (r.status === 401) setErro('Senha incorreta. É a mesma senha do painel do NewClaw.');
+      else if (r.status === 429) setErro('Muitas tentativas. Espere um pouco e tente de novo.');
       else setErro(corpo.erro ?? `HTTP ${r.status}`);
     } catch (e) {
       setErro(`Sem resposta do harness: ${String(e)}`);
@@ -66,11 +68,16 @@ function Entrar({ aoEntrar }: { aoEntrar: () => void }) {
     <div className="tela-entrar">
       <form className="cartao" onSubmit={entrar}>
         <div className="marca"><div className="marca-n">N</div><div><h1>NEWCLAW</h1><small>Interface de voz</small></div></div>
-        <p>Entre com a senha do painel do NewClaw. Ela vai direto para o NewClaw; esta janela não a guarda.</p>
-        <input type="password" autoFocus autoComplete="current-password" placeholder="Senha do NewClaw"
-          value={senha} onChange={(e) => setSenha(e.target.value)} aria-label="Senha do NewClaw" />
+        <p>Use a <b>senha do painel do NewClaw</b>. A voz não tem senha própria: é uma senha só para tudo.</p>
+        <input type="password" autoFocus autoComplete="current-password" placeholder="Senha do painel do NewClaw"
+          value={senha} onChange={(e) => setSenha(e.target.value)} aria-label="Senha do painel do NewClaw" />
         <div className="erro" role="alert">{erro}</div>
         <button className="btn primario" disabled={enviando || !senha}>{enviando ? 'Entrando…' : 'Entrar'}</button>
+        <div className="ajuda-senha">
+          <p><b>Criar ou trocar a senha:</b> no painel do NewClaw, em Configurações → Segurança → Senha do Dashboard.</p>
+          <p><b>Esqueceu a senha?</b> No computador onde o NewClaw está instalado, abra o terminal e rode <code>newclaw passwd</code>.</p>
+          <p>Depois de entrar, esta janela lembra o login por 30 dias.</p>
+        </div>
       </form>
     </div>
   );
@@ -78,7 +85,7 @@ function Entrar({ aoEntrar }: { aoEntrar: () => void }) {
 
 // ─── Janela ─────────────────────────────────────────────────────────────────
 
-function Janela({ aoSair }: { aoSair: () => void }) {
+function Janela({ aoSair, semSenha }: { aoSair: () => void; semSenha: boolean }) {
   const [tema, setTema] = useState<Tema>(temaInicial);
   const [foco, setFoco] = useState(lerPref('ivox-foco') === 'sim');
   const [jeito, setJeito] = useState<JeitoDeFalar>(lerPref('ivox-fala') === 'segurar' ? 'segurar' : 'livre');
@@ -264,7 +271,7 @@ function Janela({ aoSair }: { aoSair: () => void }) {
             <Icone d={tema === 'claro' ? 'M21 12.8A9 9 0 1 1 11.2 3 7 7 0 0 0 21 12.8z' : 'M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8zM12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4'} />
             <span>{tema === 'claro' ? 'Escuro' : 'Claro'}</span>
           </button>
-          <button className="botao-tema" onClick={sair} title="Sair (a senha não fica guardada)"><span>Sair</span></button>
+          {!semSenha && <button className="botao-tema" onClick={sair} title="Sair: esquece o login neste navegador"><span>Sair</span></button>}
         </div>
       </header>
 
@@ -409,10 +416,13 @@ function Janela({ aoSair }: { aoSair: () => void }) {
 
 export function App() {
   const [entrou, setEntrou] = useState<boolean | null>(null);
+  // Painel do NewClaw sem senha: a janela entra direto, e "Sair" some (sairia e entraria de novo na hora).
+  const [semSenha, setSemSenha] = useState(false);
   useEffect(() => {
     document.documentElement.dataset.tema = temaInicial();
-    fetch('/sessao').then((r) => r.json()).then((d) => setEntrou(!!d.entrou)).catch(() => setEntrou(false));
+    fetch('/sessao').then((r) => r.json()).then((d) => { setSemSenha(!!d.sem_senha); setEntrou(!!d.entrou); })
+      .catch(() => setEntrou(false));
   }, []);
   if (entrou === null) return null;
-  return entrou ? <Janela aoSair={() => setEntrou(false)} /> : <Entrar aoEntrar={() => setEntrou(true)} />;
+  return entrou ? <Janela semSenha={semSenha} aoSair={() => setEntrou(false)} /> : <Entrar aoEntrar={() => setEntrou(true)} />;
 }

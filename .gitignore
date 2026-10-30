@@ -23,3 +23,6 @@ janela/dist/
 
 # Aceite das licenças de terceiros: é de quem instalou nesta máquina.
 .licencas-aceitas.json
+# Sessões da janela (tokens do NewClaw): ficam só nesta máquina.
+.sessoes-da-janela.json
+.sessoes-da-janela.json.novo

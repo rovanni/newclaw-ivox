@@ -17,8 +17,8 @@ TOKEN = "token-secreto-do-newclaw"
 
 
 class NewClawFalso:
-    def __init__(self, senha="certa", contrato=1, idioma="pt-BR"):
-        self.senha, self.contrato, self.idioma = senha, contrato, idioma
+    def __init__(self, senha="certa", contrato=1, idioma="pt-BR", sem_senha=False):
+        self.senha, self.contrato, self.idioma, self.sem_senha = senha, contrato, idioma, sem_senha
         self.pedidos = []
         self.token_valido = True
 
@@ -30,10 +30,14 @@ class NewClawFalso:
         if caminho == "/turn-client.js":  # arquivo público do NewClaw, sem autenticação
             return httpx.Response(200, text="export const TURN_CONTRACT_VERSION = 1;",
                                   headers={"content-type": "application/javascript", "set-cookie": "x=vazaria"})
+        if caminho == "/api/auth/status" and self.sem_senha:  # com senha, a rota pede login (cai no 401 abaixo)
+            return httpx.Response(200, json={"success": True, "auth": {"enabled": False, "hasPassword": False}})
         if caminho == "/api/auth/login":
             # Como o NewClaw de verdade: pedido com o cookie dele e sem Origin é recusado (proteção contra CSRF).
             if "newclaw_session" in pedido.headers.get("cookie", "") and "origin" not in pedido.headers:
                 return httpx.Response(403, json={"error": "Forbidden: invalid origin"})
+            if self.sem_senha:  # o NewClaw sem senha aceita qualquer login
+                return httpx.Response(200, json={"success": True, "token": TOKEN})
             if json.loads(pedido.content).get("password") == self.senha:
                 return httpx.Response(200, json={"success": True, "token": TOKEN},
                                       headers={"set-cookie": "newclaw_session=sessao-do-painel; Path=/; HttpOnly"})
@@ -54,7 +58,7 @@ class NewClawFalso:
 
 @unittest.skipUnless(TEM_FASTAPI, "FastAPI/httpx não instalados neste Python (vêm com o extra 'motor')")
 class TestServidor(unittest.TestCase):
-    def montar(self, ambiente=None, **kw):
+    def montar(self, ambiente=None, arquivo_sessoes=None, **kw):
         import httpx
         from fastapi.testclient import TestClient
 
@@ -69,8 +73,44 @@ class TestServidor(unittest.TestCase):
         async def motor_falso(argumentos):
             self.motores.append(argumentos)
 
-        self.app = criar_app(config, cliente_http=cliente, montar_motor=motor_falso)
+        self.app = criar_app(config, cliente_http=cliente, montar_motor=motor_falso, arquivo_sessoes=arquivo_sessoes)
         return TestClient(self.app, base_url="http://localhost:7860")
+
+    # ─── sessão: uma senha só (a do painel), 30 dias, sem tela quando o painel não tem senha ─────────────────
+
+    def test_painel_sem_senha_entra_direto(self):
+        c = self.montar(sem_senha=True)
+        r = c.get("/sessao")
+        self.assertEqual(r.json()["entrou"], True)
+        self.assertTrue(r.json()["sem_senha"])
+        self.assertNotIn(TOKEN, r.text)
+        self.assertIn("max-age=2592000", r.headers["set-cookie"].lower())
+        self.assertEqual(c.get("/voz").status_code, 200)
+
+    def test_painel_com_senha_nao_entra_sozinho(self):
+        c = self.montar()
+        self.assertEqual(c.get("/sessao").json(), {"entrou": False, "sem_senha": False})
+        self.assertFalse(any(p.url.path == "/api/auth/login" for p in self.newclaw.pedidos))  # nem gasta tentativa
+
+    def test_sessao_sobrevive_ao_reinicio_e_o_arquivo_nao_tem_o_cookie(self):
+        arquivo = Path(tempfile.mkdtemp()) / ".sessoes-da-janela.json"
+        c = self.montar(arquivo_sessoes=arquivo)
+        cookie = self.entrar(c).cookies.get("ivox_sessao")
+        self.assertNotIn(cookie, arquivo.read_text(encoding="utf-8"))
+        c2 = self.montar(arquivo_sessoes=arquivo)  # outro processo, mesmo arquivo
+        c2.cookies.set("ivox_sessao", cookie)
+        self.assertEqual(c2.get("/sessao").json(), {"entrou": True, "sem_senha": False})
+        c2.post("/sair", headers={"Origin": ORIGEM})
+        self.assertEqual(json.loads(arquivo.read_text(encoding="utf-8")), {})
+
+    def test_sessao_vencida_nao_volta(self):
+        from newclaw_ivox import servidor
+
+        arquivo = Path(tempfile.mkdtemp()) / ".sessoes-da-janela.json"
+        arquivo.write_text(json.dumps({"x": {"token": TOKEN, "idioma": None, "criada_em": 0}}), encoding="utf-8")
+        self.assertEqual(servidor.ler_sessoes(arquivo), {})
+        arquivo.write_text("{quebrado", encoding="utf-8")
+        self.assertEqual(servidor.ler_sessoes(arquivo), {})
 
     def entrar(self, c, senha="certa", origem=ORIGEM):
         return c.post("/entrar", json={"senha": senha}, headers={"Origin": origem})

@@ -231,6 +231,11 @@ footer .entrada-wrap { grid-column: 2; }
 .tela-entrar input { background: var(--fundo-2); border: 1px solid var(--borda-forte); border-radius: 10px; padding: 10px 12px; color: var(--texto); font: 15px var(--corpo); }
 .tela-entrar .erro { color: var(--erro); font-size: 13px; min-height: 18px; }
 .tela-entrar p { color: var(--texto-2); font-size: 13px; margin: 0; line-height: 1.5; }
+.tela-entrar p b { color: var(--texto); font-weight: 600; }
+.ajuda-senha { display: grid; gap: 8px; border-top: 1px solid var(--borda); padding-top: 12px; }
+.ajuda-senha p { font-size: 12px; }
+.ajuda-senha code { background: var(--fundo-2); border: 1px solid var(--borda); border-radius: 6px; padding: 1px 6px;
+  font-size: 12px; color: var(--texto); user-select: all; }
 
 /* Modo foco: só o centro, a legenda e a caixa de texto */
 /* O topo fica igual nos dois modos (antes o lema sumia e os itens da direita se juntavam à esquerda, espremidos). */
