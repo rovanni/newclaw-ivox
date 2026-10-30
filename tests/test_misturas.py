@@ -75,5 +75,22 @@ class TestMisturas(unittest.TestCase):
             misturas.carregar(arquivo({"vozes": [voz(), voz()]}), BASE)
 
 
+class TestNomesDasVozes(unittest.TestCase):
+    """A lista da janela mostra nome legível e idioma de origem, pela convenção de nomes do Kokoro (VOICES.md)."""
+
+    def test_convencao_do_kokoro(self):
+        from newclaw_ivox.tts_local import descrever_voz
+
+        self.assertEqual(descrever_voz("pf_dora"), ("Dora (feminina)", "Português (Brasil)"))
+        self.assertEqual(descrever_voz("am_michael"), ("Michael (masculina)", "Inglês americano"))
+        self.assertEqual(descrever_voz("bm_george"), ("George (masculina)", "Inglês britânico"))
+
+    def test_fora_da_convencao_fica_com_o_nome_cru(self):
+        from newclaw_ivox.tts_local import descrever_voz
+
+        for nome in ("george-alex-1", "xf_nova", "af", "pq_alex"):
+            self.assertEqual(descrever_voz(nome), (nome, "Outras"))
+
+
 if __name__ == "__main__":
     unittest.main()

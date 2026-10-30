@@ -15,6 +15,8 @@ type OpcoesDoTransporte = NonNullable<ConstructorParameters<typeof SmallWebRTCTr
 export interface Voz {
   nome: string;
   rotulo: string;
+  /** Origem da voz (misturas, ou o idioma da voz do Kokoro); a lista da janela agrupa por ele. */
+  grupo?: string;
   mistura?: Record<string, number>;
 }
 

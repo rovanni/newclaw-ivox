@@ -105,13 +105,36 @@ def nomes_disponiveis(base: list[str], lista: list[misturas.Mistura]) -> list[st
     return [m.nome for m in lista] + list(base)
 
 
+# Convenção de nomes das vozes do Kokoro (VOICES.md do hexgrad/Kokoro-82M): 1ª letra = idioma, 2ª = f/m, depois do "_" o
+# nome. A ordem aqui é a dos grupos na lista: português primeiro. Voz fora da convenção vai para "Outras" com o nome cru.
+IDIOMAS_DAS_VOZES = {
+    "p": "Português (Brasil)", "a": "Inglês americano", "b": "Inglês britânico", "e": "Espanhol", "f": "Francês",
+    "i": "Italiano", "h": "Hindi", "j": "Japonês", "z": "Mandarim",
+}
+GRUPO_DAS_MISTURAS = "Vozes misturadas"
+GRUPO_FORA_DA_CONVENCAO = "Outras"
+
+
+def descrever_voz(nome: str) -> tuple[str, str]:
+    """(rótulo, grupo) de uma voz do Kokoro: `pf_dora` → ("Dora (feminina)", "Português (Brasil)")."""
+    if len(nome) > 3 and nome[2] == "_" and nome[0] in IDIOMAS_DAS_VOZES and nome[1] in "fm":
+        genero = "feminina" if nome[1] == "f" else "masculina"
+        return f"{nome[3:].capitalize()} ({genero})", IDIOMAS_DAS_VOZES[nome[0]]
+    return nome, GRUPO_FORA_DA_CONVENCAO
+
+
 def vozes_disponiveis(modelos_dir: Path) -> list[dict]:
-    """Para a interface: as misturas primeiro (com rótulo), depois as vozes do Kokoro (o rótulo é o próprio nome)."""
+    """Para a interface: as misturas primeiro (com o rótulo delas), depois as vozes do Kokoro com nome legível,
+    agrupadas por idioma (português primeiro). Todas falam no idioma configurado; o grupo é a origem da voz."""
     base = modelos.vozes_kokoro(modelos_dir)
     lista = misturas_validas(base)
-    return [{"nome": m.nome, "rotulo": m.rotulo, "mistura": dict(m.pesos)} for m in lista] + [
-        {"nome": v, "rotulo": v} for v in base
-    ]
+    ordem = list(IDIOMAS_DAS_VOZES.values()) + [GRUPO_FORA_DA_CONVENCAO]
+    kokoro = []
+    for v in base:
+        rotulo, grupo = descrever_voz(v)
+        kokoro.append({"nome": v, "rotulo": rotulo, "grupo": grupo})
+    kokoro.sort(key=lambda x: (ordem.index(x["grupo"]), x["rotulo"]))
+    return [{"nome": m.nome, "rotulo": m.rotulo, "grupo": GRUPO_DAS_MISTURAS, "mistura": dict(m.pesos)} for m in lista] + kokoro
 
 
 def _acrescentar_misturas(servico, lista: list[misturas.Mistura]) -> None:

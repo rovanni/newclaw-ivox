@@ -192,6 +192,8 @@ main { display: grid; grid-template-columns: 300px 1fr 330px; gap: 20px; padding
 select.btn { width: 100%; background: var(--fundo-2); }
 /* A lista aberta do seletor usa as cores do tema (sem isso, no escuro ficava texto claro sobre fundo branco). */
 select.btn option { background: var(--fundo-2); color: var(--texto); }
+/* Título de cada grupo (idioma da voz) legível nos dois temas, como as opções. */
+select.btn optgroup { background: var(--fundo-2); color: var(--destaque-2); font-style: normal; font-weight: 600; }
 
 /* Rodapé */
 footer { display: grid; grid-template-columns: 300px 1fr 330px; gap: 20px; padding: 0 0 20px; align-items: stretch; }

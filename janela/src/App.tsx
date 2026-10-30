@@ -35,6 +35,16 @@ function temaInicial(): Tema {
   return matchMedia('(prefers-color-scheme: light)').matches ? 'claro' : 'escuro';
 }
 
+/** Agrupa na ordem em que o motor manda (misturas, português, os outros idiomas). */
+function gruposDeVozes(vozes: Voz[]): [string, Voz[]][] {
+  const grupos = new Map<string, Voz[]>();
+  for (const v of vozes) {
+    const g = v.grupo ?? 'Vozes';
+    grupos.set(g, [...(grupos.get(g) ?? []), v]);
+  }
+  return [...grupos.entries()];
+}
+
 function Icone({ d }: { d: string }) {
   return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d={d} /></svg>;
 }
@@ -293,7 +303,11 @@ function Janela({ aoSair, semSenha }: { aoSair: () => void; semSenha: boolean })
             {vozes.length > 0 ? (
               <select className="btn" id="voz" value={vozAtual ?? ''} onChange={(e) => void trocarVoz(e.target.value)}>
                 {vozAtual === null && <option value="" disabled>Escolha uma voz</option>}
-                {vozes.map((v) => <option key={v.nome} value={v.nome}>{v.rotulo}</option>)}
+                {gruposDeVozes(vozes).map(([grupo, lista]) => (
+                  <optgroup key={grupo} label={grupo}>
+                    {lista.map((v) => <option key={v.nome} value={v.nome}>{v.rotulo}</option>)}
+                  </optgroup>
+                ))}
               </select>
             ) : <div className="vazio">{ligado === 'ligado' ? 'A síntese local não está ligada neste motor.' : 'Disponível quando a voz ligar.'}</div>}
           </div>
