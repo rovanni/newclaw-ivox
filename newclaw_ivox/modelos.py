@@ -18,6 +18,8 @@ class ModeloStt:
     nome: str
     repositorio: str
     bytes_: int | None
+    # A licença declarada no cartão do modelo no Hugging Face (None: não declarada ou sem rede). Mostrada na escolha.
+    licenca: str | None = None
 
 
 def repositorios() -> dict[str, str]:
@@ -29,21 +31,24 @@ def repositorios() -> dict[str, str]:
     return {n: tabela.get(n, n) for n in nomes}
 
 
-def tamanho(repositorio: str) -> int | None:
-    """Soma dos arquivos do repositório no Hugging Face; None se a consulta falhar (sem rede, por exemplo)."""
+def consultar(repositorio: str) -> tuple[int | None, str | None]:
+    """Tamanho (soma dos arquivos) e licença declarada do repositório no Hugging Face, numa consulta só; (None, None) se
+    ela falhar (sem rede, por exemplo)."""
     try:
         from huggingface_hub import HfApi
 
         info = HfApi().model_info(repositorio, files_metadata=True)
-        return sum((s.size or 0) for s in (info.siblings or []))
-    except Exception:  # noqa: BLE001 — sem tamanho, o instalador diz que não conseguiu medir
-        return None
+        licenca = info.card_data.get("license") if info.card_data else None
+        return sum((s.size or 0) for s in (info.siblings or [])), licenca
+    except Exception:  # noqa: BLE001 — sem os dados, o instalador diz que não conseguiu medir
+        return None, None
 
 
 def listar(com_tamanho: bool = True) -> list[ModeloStt]:
     vistos: dict[str, ModeloStt] = {}
     for nome, repo in repositorios().items():
-        vistos[nome] = ModeloStt(nome, repo, tamanho(repo) if com_tamanho else None)
+        bytes_, licenca = consultar(repo) if com_tamanho else (None, None)
+        vistos[nome] = ModeloStt(nome, repo, bytes_, licenca)
     return list(vistos.values())
 
 

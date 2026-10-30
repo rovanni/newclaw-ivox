@@ -1,0 +1,98 @@
+{
+  "versao": 1,
+  "conferido_em": "2026-10-30",
+  "como_foi_conferido": "Licenças lidas nos metadados dos pacotes instalados (docs/terceiros/windows.json), nos repositórios no GitHub (campo license da API) e nos cartões dos modelos no Hugging Face (campo license). Mudou a lista: suba 'versao', e quem instalar de novo aceita outra vez.",
+  "itens": [
+    {
+      "id": "pipecat",
+      "nome": "Pipecat",
+      "papel": "o motor de áudio: conexão com a janela, detector de voz e a ordem das etapas",
+      "licenca": "BSD-2-Clause",
+      "link": "https://github.com/pipecat-ai/pipecat",
+      "quando": "sempre"
+    },
+    {
+      "id": "silero-vad",
+      "nome": "Silero VAD (modelo)",
+      "papel": "percebe quando você começa e para de falar",
+      "licenca": "MIT",
+      "link": "https://github.com/snakers4/silero-vad",
+      "quando": "sempre"
+    },
+    {
+      "id": "aiortc",
+      "nome": "aiortc",
+      "papel": "a ligação WebRTC entre a janela e o motor",
+      "licenca": "BSD-3-Clause",
+      "link": "https://github.com/aiortc/aiortc",
+      "quando": "sempre"
+    },
+    {
+      "id": "pyav",
+      "nome": "PyAV com FFmpeg",
+      "papel": "lê e converte o áudio",
+      "licenca": "BSD-3-Clause (PyAV); LGPL-3.0-or-later (FFmpeg); GPL-2.0-or-later (codecs x264 e x265 que vêm junto)",
+      "link": "https://github.com/PyAV-Org/PyAV",
+      "quando": "sempre",
+      "atencao": "O pacote do PyPI traz os codecs de vídeo x264 e x265, de licença GPL. O motor não os usa (só áudio), mas eles ficam instalados."
+    },
+    {
+      "id": "janela",
+      "nome": "Janela de voz (React, cliente do Pipecat, fontes Exo 2 e Inter)",
+      "papel": "a tela que você abre no navegador",
+      "licenca": "MIT, BSD-2-Clause, OFL-1.1, Apache-2.0 e 0BSD (29 pacotes; lista em docs/terceiros/janela.md)",
+      "link": "docs/terceiros/janela.md",
+      "quando": "sempre"
+    },
+    {
+      "id": "faster-whisper",
+      "nome": "faster-whisper e CTranslate2",
+      "papel": "transcreve a sua fala nesta máquina",
+      "licenca": "MIT",
+      "link": "https://github.com/SYSTRAN/faster-whisper",
+      "quando": "stt-local"
+    },
+    {
+      "id": "modelo-whisper",
+      "nome": "Modelo Whisper (o que você escolher)",
+      "papel": "o modelo de transcrição, baixado do Hugging Face",
+      "licenca": "a do cartão do modelo no Hugging Face, mostrada de novo na escolha (em 30/10/2026, os 19 modelos do faster-whisper 1.2.1 declaravam MIT)",
+      "link": "https://huggingface.co/mobiuslabsgmbh/faster-whisper-large-v3-turbo",
+      "quando": "stt-local"
+    },
+    {
+      "id": "cuda",
+      "nome": "Bibliotecas CUDA da NVIDIA (cuBLAS, cuDNN, NVRTC)",
+      "papel": "fazem a transcrição rodar na placa de vídeo",
+      "licenca": "proprietária da NVIDIA (LicenseRef-NVIDIA-Proprietary)",
+      "link": "https://docs.nvidia.com/cuda/eula/index.html",
+      "quando": "cuda",
+      "atencao": "Vêm do PyPI para esta máquina. Podem ser usadas aqui, mas não podem ser redistribuídas."
+    },
+    {
+      "id": "kokoro-onnx",
+      "nome": "kokoro-onnx e ONNX Runtime",
+      "papel": "gera a voz das respostas nesta máquina",
+      "licenca": "MIT",
+      "link": "https://github.com/thewh1teagle/kokoro-onnx",
+      "quando": "tts-local"
+    },
+    {
+      "id": "modelo-kokoro",
+      "nome": "Modelo Kokoro-82M e as vozes",
+      "papel": "o modelo de voz; a versão ONNX é baixada do GitHub do kokoro-onnx",
+      "licenca": "Apache-2.0",
+      "link": "https://huggingface.co/hexgrad/Kokoro-82M",
+      "quando": "tts-local"
+    },
+    {
+      "id": "espeak-ng",
+      "nome": "phonemizer e eSpeak NG",
+      "papel": "transformam o texto em sons antes de o Kokoro falar",
+      "licenca": "GPL-3.0 (phonemizer); GPL-3.0-or-later (eSpeak NG, carregado pelo espeakng-loader, que é MIT)",
+      "link": "https://github.com/espeak-ng/espeak-ng",
+      "quando": "tts-local",
+      "atencao": "Licença GPL, e roda dentro do mesmo processo do motor. Para uso nesta máquina não há restrição; quem for redistribuir o motor junto com eles fica sujeito à GPL."
+    }
+  ]
+}

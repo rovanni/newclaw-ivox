@@ -20,3 +20,6 @@ amostras-de-voz/
 # Janela de voz: dependências e build (cada máquina instala e gera os seus).
 janela/node_modules/
 janela/dist/
+
+# Aceite das licenças de terceiros: é de quem instalou nesta máquina.
+.licencas-aceitas.json

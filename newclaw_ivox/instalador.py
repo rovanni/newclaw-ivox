@@ -21,6 +21,7 @@ from pathlib import Path
 
 from . import configuracao as cfg
 from . import dispositivo as disp
+from . import licencas as lic
 
 PYTHON_MINIMO = (3, 10)
 ARQUIVO_MISTURAS = "vozes-misturadas.json"
@@ -153,6 +154,46 @@ class Instalador:
             return {"VOZ_TTS_MOTOR": ""}
         return {"VOZ_TTS_MOTOR": cfg.LOCAL}
 
+    def grupos(self, sistema: disp.Sistema, com_stt_local: bool, com_tts_local: bool) -> set[str]:
+        """Os grupos de peças desta instalação — a mesma conta que decide os extras do pip em preparar_ambiente."""
+        grupos = set()
+        if com_stt_local:
+            grupos.add(lic.STT_LOCAL)
+            if sistema.gpus_nvidia and sys.platform != "darwin":
+                grupos.add(lic.CUDA)
+        if com_tts_local:
+            grupos.add(lic.TTS_LOCAL)
+        return grupos
+
+    def aceitar_licencas(self, grupos: set[str]) -> None:
+        """Mostra cada peça de terceiros desta instalação com a licença e o link; só segue se a pessoa digitar 'aceito'."""
+        self.titulo("Licenças de terceiros")
+        lista = lic.carregar_lista(self.raiz)
+        itens = lic.itens_para(lista, grupos)
+        registro = lic.ler_registro(self.raiz)
+        if lic.ja_aceitas(registro, lista, itens):
+            self.info(f"Já aceitas em {registro['aceito_em']} (lista versão {lista.versao}, as mesmas peças). Seguindo.")
+            return
+        self.info("O newclaw-ivox usa estas peças de terceiros. Cada uma tem a licença do seu autor:")
+        for i, item in enumerate(itens, 1):
+            self.saida("")
+            self.info(f"{i}. {item.nome} — {item.papel}")
+            self.info(f"   Licença: {item.licenca}")
+            self.info(f"   {item.link}")
+            if item.atencao:
+                self.info(f"   ATENÇÃO: {item.atencao}")
+        self.saida("")
+        self.info("Elas são baixadas das fontes oficiais (PyPI, Hugging Face, GitHub) para esta máquina; este repositório")
+        self.info("não as redistribui. Ao aceitar, você declara que leu e concorda em usar cada uma conforme a sua licença.")
+        resposta = self.perguntar(f"Para aceitar, digite '{lic.PALAVRA_DE_ACEITE}' (qualquer outra resposta cancela):")
+        if not lic.resposta_aceita(resposta):
+            raise Cancelado("as licenças de terceiros não foram aceitas, então nada foi instalado")
+        if self.simular:
+            self.info(f"(simulação: o aceite seria guardado em {self.raiz / lic.ARQUIVO_DO_REGISTRO})")
+            return
+        caminho = lic.gravar_registro(self.raiz, lista, itens)
+        self.info(f"Aceite guardado em {caminho}.")
+
     def preparar_ambiente(self, sistema: disp.Sistema, com_stt_local: bool, com_tts_local: bool = False) -> None:
         self.titulo("Ambiente Python do motor de voz")
         extras = ["motor"]
@@ -166,10 +207,7 @@ class Instalador:
         self.info(f"Pacotes: newclaw-ivox[{','.join(extras)}], baixados do PyPI para dentro dessa pasta.")
         if "cuda" in extras:
             self.info("Inclui as bibliotecas CUDA da NVIDIA (~2 GB no Windows), porque uma GPU NVIDIA foi encontrada.")
-            self.info("Elas têm licença proprietária da NVIDIA: vêm do PyPI para esta máquina e não podem ser redistribuídas.")
-        if "tts-local" in extras:
-            self.info("A síntese local (Kokoro) usa phonemizer e espeak-ng, de licença GPL-3.0, dentro do motor.")
-        self.info("Licenças de terceiros: docs/terceiros/ (há bibliotecas GPL/LGPL; vêm do PyPI, não deste repositório).")
+        self.info("Lista completa dos pacotes e licenças instalados: docs/terceiros/.")
         if not self.confirmar("Instalar agora?"):
             raise Cancelado("instalação recusada")
         uv = shutil.which("uv")
@@ -187,9 +225,10 @@ class Instalador:
         if resultado.returncode != 0:
             raise RuntimeError("Não consegui listar os modelos: " + (resultado.stderr.strip().splitlines() or ["sem detalhe"])[-1])
         lista = json.loads(resultado.stdout)
-        self.info("Tamanhos medidos agora no Hugging Face. Os maiores erram menos e pesam mais; '.en' só entende inglês.")
+        self.info("Tamanho e licença lidos agora no Hugging Face. Os maiores erram menos e pesam mais; '.en' só entende inglês.")
         opcoes = [
-            (m["nome"], f"{m['nome']:<20} {m['tamanho']:>12}{'   (já baixado)' if m['instalado'] else ''}")
+            (m["nome"], f"{m['nome']:<20} {m['tamanho']:>12}   licença: {m.get('licenca') or 'não declarada no cartão'}"
+                        f"{'   (já baixado)' if m['instalado'] else ''}")
             for m in lista
         ]
         return self.escolher("Qual modelo?", opcoes)
@@ -292,6 +331,8 @@ class Instalador:
         com_stt_local = valores["VOZ_STT_MOTOR"] == cfg.LOCAL
         com_tts_local = valores["VOZ_TTS_MOTOR"] == cfg.LOCAL
 
+        # Antes de instalar ou baixar qualquer coisa: a pessoa vê cada peça de terceiros e aceita (ou nada acontece).
+        self.aceitar_licencas(self.grupos(sistema, com_stt_local, com_tts_local))
         self.preparar_ambiente(sistema, com_stt_local, com_tts_local)
         config_atual = cfg.carregar({}, self.raiz / ".env", self.raiz)
         if com_stt_local:

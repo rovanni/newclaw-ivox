@@ -69,6 +69,7 @@ def modelos(argumentos: list[str]) -> int:
         {
             "nome": x.nome, "repositorio": x.repositorio, "bytes": x.bytes_, "tamanho": m.formatar_bytes(x.bytes_),
             "instalado": m.instalado(pasta, x.nome), "pasta": str(m.pasta_do_modelo(pasta, x.nome)),
+            "licenca": x.licenca,
         }
         for x in m.listar()
     ]

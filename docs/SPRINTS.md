@@ -516,3 +516,23 @@ Ferro?" e "Qual o filme do Homem de Ferro que mais aparece o Jarvis?" transcrita
 
 **Espera antes de enviar (30/10, manhã):** com a Média (~2 s) como padrão e a escolha Curta/Média/Longa no cartão
 "Modo voz", a operadora fez vários testes e relatou: "funcionou 100%".
+
+# Etapa 5 — instalação e documentação (30/10/2026)
+
+## Aceite das licenças de terceiros (pedido da operadora)
+
+Antes de instalar ou baixar qualquer coisa, o instalador mostra cada peça de terceiros da instalação pedida (as de sempre
+mais as da transcrição local, da síntese local e da CUDA, conforme a escolha), com a licença, o link e um aviso nas que
+têm restrição (codecs GPL do PyAV, CUDA proprietária, phonemizer/eSpeak NG GPL dentro do processo). Só segue se a pessoa
+digitar `aceito`; qualquer outra resposta cancela sem instalar nada.
+
+- **Lista:** `docs/terceiros/aceite.json`, versão 1, cada licença conferida na fonte (metadados dos pacotes instalados,
+  campo `license` da API do GitHub, cartões dos modelos no Hugging Face). Lista nova → aceite de novo.
+- **Registro:** `.licencas-aceitas.json` na pasta do projeto (fora do git): versão da lista, data e peças aceitas.
+- **Modelo Whisper:** a escolha mostra a licença lida agora no cartão do Hugging Face, junto com o tamanho (os 19
+  modelos do faster-whisper 1.2.1 declaravam MIT em 30/10).
+- **Testes:** 13 novos (`tests/test_licencas.py`), incluindo "recusar interrompe antes de qualquer comando de instalação".
+- **Conferido:** `python instalar.py --simular` mostrou as 11 peças e, com "não", parou sem instalar nem gravar nada.
+  O aceite de verdade é da operadora: nada foi aceito por ela.
+
+O aceite informa; não resolve a questão do eSpeak NG (GPL no mesmo processo) para publicar o newclaw-ivox — decisão dela.
