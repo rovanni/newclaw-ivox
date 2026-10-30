@@ -1,0 +1,28 @@
+{
+  "name": "newclaw-ivox-janela",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Janela de voz do newclaw-ivox (Etapa 4 da ADR-030 do NewClaw).",
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "test": "vitest run",
+    "tipos": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@pipecat-ai/client-js": "1.13.1",
+    "@pipecat-ai/small-webrtc-transport": "1.10.8",
+    "react": "19.1.10",
+    "react-dom": "19.1.10"
+  },
+  "devDependencies": {
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "@vitejs/plugin-react": "6.1.2",
+    "typescript": "7.0.2",
+    "vite": "8.3.4",
+    "vitest": "4.1.12"
+  }
+}

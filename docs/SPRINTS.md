@@ -451,3 +451,16 @@ configuração do servidor. Suíte: 88 testes; sem o Pipecat, 21 são pulados.
   (contrato).
 - **HTTPS:** testado pela regra de configuração, não com um certificado de verdade.
 - **Página `/`:** é só um aviso. A janela de voz é a Etapa 4.
+
+# Etapa 4 — janela de voz (30/10/2026)
+
+Autorizada pela operadora em 30/10/2026 ("Pode começar"), com o `npm install` incluído. O visual parte da maquete aprovada
+por ela (`docs/referencia-visual/`). Critério da ADR-030: testes da máquina de estados, build reproduzível e inventário de
+licenças gerado.
+
+| Sprint | O que entrega | Estado |
+|---|---|---|
+| 1 — Base da janela | Projeto em `janela/` (React + Vite + TypeScript, versões fixas, publicadas há mais de 2 semanas); o estado da tela derivado de fatos (pessoa falando, motor falando, fase do turno, erro); o controlador da conversa com o motor e o turno trocáveis por falsos; testes | **feita** (30/10): 23 testes |
+| 2 — Ligação com o motor e o NewClaw | Cliente do Pipecat com o transporte SmallWebRTC (sem STUN de terceiros); legenda pelos eventos do motor; volume real da pessoa e do motor; turno pelo cliente público do NewClaw (`turn-client.js`, buscado no próprio NewClaw pelo harness); repasse do harness alinhado a `/newclaw/api/...` | a fazer |
+| 3 — Visual da maquete | Tela de entrada (senha do NewClaw); centro círculo/partículas; estado no meio; legenda; foco; mãos livres/segurar espaço; atalhos; sons; vozes; aprovação por clique; tema claro e escuro; o harness serve o build em `/` | a fazer |
+| 4 — Prova real e licenças | Harness + motor + NewClaw isolado com um provedor falso que responde (sem cota); microfone de verdade com ela; achado do eco ("Você disse?") com e sem fone; inventário de licenças do build | a fazer |

@@ -16,3 +16,7 @@ dist/
 
 # Amostras de voz geradas para ouvir (não entram no repositório).
 amostras-de-voz/
+
+# Janela de voz: dependências e build (cada máquina instala e gera os seus).
+janela/node_modules/
+janela/dist/
