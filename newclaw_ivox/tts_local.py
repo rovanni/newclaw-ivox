@@ -96,7 +96,7 @@ def criar_servico(config: cfg.Configuracao, taxa: int = TAXA_PADRAO_FORA_DO_PIPE
 
 def misturas_validas(base: list[str]) -> list[misturas.Mistura]:
     try:
-        return misturas.carregar(RAIZ / misturas.ARQUIVO, base)
+        return misturas.carregar(RAIZ / misturas.PASTA, base)
     except misturas.MisturaInvalida as e:
         raise TtsIndisponivel(f"Vozes misturadas: {e}") from e
 

@@ -1,0 +1,8 @@
+{
+  "nome": "daniel-suave",
+  "rotulo": "Daniel Suave (70% Daniel / 30% Fable)",
+  "mistura": {
+    "bm_daniel": 0.7,
+    "bm_fable": 0.3
+  }
+}

@@ -249,7 +249,7 @@ primeira frase curta é a mais lenta em relação à própria duração.
 
 ## Vozes misturadas com nome (29/10/2026, pedido da operadora)
 
-**O arquivo de dados `vozes-misturadas.json`** declara vozes novas:
+**A pasta `vozes/`** (desde 30/10/2026; antes era um arquivo só, `vozes-misturadas.json`) guarda as vozes novas, um arquivo `.json` por voz, lidas em ordem de nome. O `vozes/README.md` ensina a adicionar uma. Cada voz:
 - cada uma tem nome, rótulo para a interface e pesos que somam 1;
 - a voz é a média ponderada dos vetores de estilo de vozes do Kokoro;
 - as três primeiras (George e Alex) são da operadora, de 29/10; as outras seis vieram do Voice-Studio em 30/10/2026:

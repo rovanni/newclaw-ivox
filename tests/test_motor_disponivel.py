@@ -79,7 +79,7 @@ class TestVozesMisturadas(unittest.TestCase):
 
         config = cfg.carregar({"VOZ_TTS_MOTOR": "local", "VOZ_IDIOMA": "pt-BR"}, raiz=RAIZ)
         nomes = [v["nome"] for v in tts_local.vozes_disponiveis(config.modelos_dir)]
-        self.assertEqual(nomes[:3], ["george-michael-1", "george-michael-2", "george-michael-3"])
+        self.assertEqual(nomes[:3], ["alex-limpo", "daniel-george", "daniel-suave"])
         self.assertIn("george-alex-1", nomes)
 
         servico = tts_local.criar_servico(config, voz="george-alex-1")

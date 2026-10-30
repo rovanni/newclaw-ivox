@@ -1,0 +1,8 @@
+{
+  "nome": "george-alex-2",
+  "rotulo": "George & Alex 2 (50% George / 50% Alex)",
+  "mistura": {
+    "bm_george": 0.5,
+    "pm_alex": 0.5
+  }
+}

@@ -31,7 +31,7 @@ from . import dispositivo as disp
 from . import licencas as lic
 
 PYTHON_MINIMO = (3, 10)
-ARQUIVO_MISTURAS = "vozes-misturadas.json"
+PASTA_DE_VOZES = "vozes"
 IDIOMAS = (("pt-BR", "Português (Brasil)"), ("en-US", "English (US)"), ("es-ES", "Español"))
 DESLIGADA = "desligada"  # valor das escolhas sem perguntas para "transcrição/síntese desligada"
 CHAVES_DE_VOZ = (
@@ -322,7 +322,7 @@ class Instalador:
         vozes = json.loads(resultado.stdout)
         misturadas = sum(1 for v in vozes if "mistura" in v)
         self.info(f"{len(vozes) - misturadas} vozes do Kokoro instaladas (num arquivo só) e {misturadas} vozes misturadas"
-                  f" ({ARQUIVO_MISTURAS}).")
+                  f" ({PASTA_DE_VOZES}/).")
         self.info("A voz é escolhida na interface e pode ser trocada a qualquer momento; para ouvir uma:"
                   " python -m newclaw_ivox testar-tts --voz <nome>")
 

@@ -1,0 +1,8 @@
+{
+  "nome": "george-michael-1",
+  "rotulo": "George & Michael 1 (70% George / 30% Michael)",
+  "mistura": {
+    "bm_george": 0.7,
+    "am_michael": 0.3
+  }
+}
