@@ -27,6 +27,9 @@ class NewClawFalso:
 
         self.pedidos.append(pedido)
         caminho = pedido.url.path
+        if caminho == "/turn-client.js":  # arquivo público do NewClaw, sem autenticação
+            return httpx.Response(200, text="export const TURN_CONTRACT_VERSION = 1;",
+                                  headers={"content-type": "application/javascript", "set-cookie": "x=vazaria"})
         if caminho == "/api/auth/login":
             if json.loads(pedido.content).get("password") == self.senha:
                 return httpx.Response(200, json={"success": True, "token": TOKEN})
@@ -116,14 +119,14 @@ class TestServidor(unittest.TestCase):
         self.entrar(c)
         self.assertEqual(c.post("/sair", headers={"Origin": ORIGEM}).status_code, 200)
         self.assertEqual(self.app.state.sessoes, {})
-        self.assertEqual(c.get("/newclaw/chat/active").status_code, 401)
+        self.assertEqual(c.get("/newclaw/api/chat/active").status_code, 401)
 
     # ─── repasse ─────────────────────────────────────────────────────────────
 
     def test_sem_login_401_em_tudo_que_alcanca_o_newclaw_ou_o_motor(self):
         c = self.montar()
-        self.assertEqual(c.get("/newclaw/chat/active").status_code, 401)
-        self.assertEqual(c.post("/newclaw/chat", json={"message": "oi"}, headers={"Origin": ORIGEM}).status_code, 401)
+        self.assertEqual(c.get("/newclaw/api/chat/active").status_code, 401)
+        self.assertEqual(c.post("/newclaw/api/chat", json={"message": "oi"}, headers={"Origin": ORIGEM}).status_code, 401)
         self.assertEqual(c.post("/api/offer", json={"sdp": "x", "type": "offer"}, headers={"Origin": ORIGEM}).status_code, 401)
         self.assertEqual(c.patch("/api/offer", json={"pc_id": "x", "candidates": []}, headers={"Origin": ORIGEM}).status_code, 401)
         self.assertEqual(self.newclaw.pedidos, [])
@@ -132,13 +135,13 @@ class TestServidor(unittest.TestCase):
     def test_repasse_com_bearer_e_sem_vazar_cabecalhos_do_newclaw(self):
         c = self.montar()
         self.entrar(c)
-        r = c.post("/newclaw/chat", json={"message": "oi", "sessionId": "s1"}, headers={"Origin": ORIGEM})
+        r = c.post("/newclaw/api/chat", json={"message": "oi", "sessionId": "s1"}, headers={"Origin": ORIGEM})
         self.assertEqual(r.status_code, 202)
         self.assertEqual(r.json()["turnId"], "t1")
         enviado = self.newclaw.pedidos[-1]
         self.assertEqual(enviado.headers["authorization"], f"Bearer {TOKEN}")
         self.assertEqual(json.loads(enviado.content)["message"], "oi")
-        r = c.get("/newclaw/chat/active", params={"sessionId": "s1"})
+        r = c.get("/newclaw/api/chat/active", params={"sessionId": "s1"})
         self.assertEqual(r.status_code, 200)
         self.assertEqual(self.newclaw.pedidos[-1].url.params["sessionId"], "s1")
         self.assertNotIn("set-cookie", {k.lower() for k in r.headers})
@@ -148,7 +151,7 @@ class TestServidor(unittest.TestCase):
         c = self.montar()
         self.entrar(c)
         antes = len(self.newclaw.pedidos)
-        r = c.post("/newclaw/chat", json={"message": "oi"}, headers={"Origin": "http://atacante.example"})
+        r = c.post("/newclaw/api/chat", json={"message": "oi"}, headers={"Origin": "http://atacante.example"})
         self.assertEqual(r.status_code, 403)
         self.assertEqual(len(self.newclaw.pedidos), antes)
 
@@ -159,7 +162,7 @@ class TestServidor(unittest.TestCase):
         for metodo, rota in (("GET", "config"), ("POST", "config"), ("GET", "status"), ("GET", "memory"),
                              ("POST", "chat/../config"), ("GET", "chat/outbox/../../config"), ("POST", "chat/active")):
             with self.subTest(rota=rota):
-                r = c.request(metodo, f"/newclaw/{rota}", headers={"Origin": ORIGEM})
+                r = c.request(metodo, f"/newclaw/api/{rota}", headers={"Origin": ORIGEM})
                 self.assertIn(r.status_code, (404,))
         self.assertEqual(len(self.newclaw.pedidos), antes)
 
@@ -167,7 +170,7 @@ class TestServidor(unittest.TestCase):
         c = self.montar()
         self.entrar(c)
         self.newclaw.token_valido = False
-        self.assertEqual(c.get("/newclaw/chat/active").status_code, 401)
+        self.assertEqual(c.get("/newclaw/api/chat/active").status_code, 401)
         self.assertEqual(self.app.state.sessoes, {})
 
     # ─── sinalização ─────────────────────────────────────────────────────────
@@ -200,6 +203,66 @@ class TestServidor(unittest.TestCase):
         c = self.montar()
         for rota in ("/docs", "/redoc", "/openapi.json"):
             self.assertEqual(c.get(rota).status_code, 404)
+
+    def test_politica_de_conteudo_so_aceita_esta_origem(self):
+        c = self.montar()
+        csp = c.get("/saude").headers["content-security-policy"]
+        self.assertIn("default-src 'self'", csp)
+        self.assertIn("script-src 'self'", csp)
+        self.assertIn("frame-ancestors 'none'", csp)
+        self.assertNotIn("http", csp)  # nenhum endereço de terceiros
+
+    # ─── janela ─────────────────────────────────────────────────────────────
+
+    def test_cliente_do_turno_vem_do_proprio_newclaw_sem_vazar_cabecalhos(self):
+        c = self.montar()
+        r = c.get("/newclaw/turn-client.js")
+        self.assertEqual(r.status_code, 200)
+        self.assertIn("TURN_CONTRACT_VERSION = 1", r.text)
+        self.assertTrue(r.headers["content-type"].startswith("text/javascript"))
+        self.assertNotIn("set-cookie", {k.lower() for k in r.headers})
+        self.assertEqual(self.newclaw.pedidos[-1].url.path, "/turn-client.js")
+        self.assertNotIn("authorization", {k.lower() for k in self.newclaw.pedidos[-1].headers})
+
+    def test_voz_exige_sessao_e_nao_expoe_chaves(self):
+        c = self.montar({"VOZ_STT_MOTOR": "url", "VOZ_STT_URL": "http://stt.local", "VOZ_STT_CHAVE": "chave-secreta",
+                         "VOZ_STT_MODELO": "whisper-1"})
+        self.assertEqual(c.get("/voz").status_code, 401)
+        self.entrar(c)
+        r = c.get("/voz")
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.json()["ouvir"], {"motor": "url", "modelo": "whisper-1", "voz": None})
+        self.assertEqual(r.json()["idioma"], "pt-BR")
+        self.assertNotIn("chave-secreta", r.text)
+        self.assertNotIn("stt.local", r.text)
+
+    def test_sem_build_da_janela_a_raiz_explica_como_gerar(self):
+        c = self.montar()
+        r = c.get("/")
+        self.assertEqual(r.status_code, 200)
+        self.assertIn("npm run build", r.text)
+
+    def test_com_build_a_janela_e_servida_sem_esconder_as_rotas(self):
+        import httpx
+        from fastapi.testclient import TestClient
+
+        from newclaw_ivox import configuracao as cfg
+        from newclaw_ivox.servidor import criar_app
+
+        with tempfile.TemporaryDirectory() as pasta:
+            dist = Path(pasta)
+            (dist / "index.html").write_text("<!doctype html><title>NewClaw Voz</title>", encoding="utf-8")
+            (dist / "assets").mkdir()
+            (dist / "assets" / "app.js").write_text("console.log(1)", encoding="utf-8")
+            newclaw = NewClawFalso()
+            config = cfg.carregar({"NEWCLAW_URL": "http://newclaw.falso:3090"})
+            cliente = httpx.AsyncClient(base_url=config.newclaw_url, transport=httpx.MockTransport(newclaw))
+            c = TestClient(criar_app(config, cliente_http=cliente, janela_dir=dist), base_url="http://localhost:7860")
+            self.assertIn("NewClaw Voz", c.get("/").text)
+            self.assertEqual(c.get("/assets/app.js").status_code, 200)
+            self.assertIn("content-security-policy", {k.lower() for k in c.get("/").headers})
+            self.assertEqual(c.get("/saude").json(), {"ok": True})
+            self.assertEqual(c.get("/newclaw/api/chat/active").status_code, 401)  # o repasse continua exigindo sessão
 
 
 class TestConfiguracaoDoServidor(unittest.TestCase):

@@ -2,9 +2,13 @@
 
 - **Login:** `POST /entrar` repassa a senha ao NewClaw (`/api/auth/login`). O token volta para este servidor e fica aqui; o
   navegador recebe só um cookie de sessão próprio (`httpOnly`, `SameSite=Strict`, `Secure` com HTTPS).
-- **Repasse:** `/newclaw/<rota>` repassa ao NewClaw com `Authorization: Bearer`, e só as rotas públicas do contrato do turno
-  (`docs/CONTRATO_DO_TURNO.md`). O NewClaw vê um cliente de API comum: nenhuma regra nova de CORS ou CSRF no núcleo
-  (ADR-031, regra 7).
+- **Repasse:** `/newclaw/api/<rota>` repassa ao NewClaw (`/api/<rota>`) com `Authorization: Bearer`, e só as rotas públicas
+  do contrato do turno (`docs/CONTRATO_DO_TURNO.md`). O caminho espelha o do NewClaw para a janela usar o cliente público
+  (`turn-client.js`) com `baseUrl: '/newclaw'`, sem cópia nem adaptação. O NewClaw vê um cliente de API comum: nenhuma regra
+  nova de CORS ou CSRF no núcleo (ADR-031, regra 7).
+- **Cliente do turno:** `/newclaw/turn-client.js` é o arquivo público do próprio NewClaw, buscado nele a cada pedido (uma
+  fonte só; uma atualização do NewClaw chega à janela sem mexer no harness).
+- **Janela:** o build da janela (`janela/dist`) é servido em `/`, com uma política de conteúdo que só aceita esta origem.
 - **Sinalização WebRTC:** `/api/offer` exige sessão e origem; cada conexão monta o pipeline do motor (`motor.bot`). O motor
   não tem porta própria: só se chega a ele por aqui.
 - **Versão:** depois do login, confere `status.contracts.turn` contra a versão que este harness conhece.
@@ -44,6 +48,13 @@ ROTAS_DO_CONTRATO = (
 # Cabeçalhos da resposta do NewClaw que valem para o navegador; o resto (cookies dele, por exemplo) fica aqui.
 CABECALHOS_REPASSADOS = ("content-type", "retry-after")
 
+# A janela só carrega o que vem desta origem: nada de fonte, script ou estilo de terceiros. O áudio do motor chega por
+# WebRTC (fora da CSP) e é tocado por um <audio> com MediaStream.
+POLITICA_DE_CONTEUDO = (
+    "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; "
+    "media-src 'self' blob:; connect-src 'self'; font-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'"
+)
+
 
 @dataclass
 class Sessao:
@@ -57,8 +68,9 @@ def rota_permitida(metodo: str, caminho: str) -> bool:
     return any(metodo == m and padrao.fullmatch(caminho) for m, padrao in ROTAS_DO_CONTRATO)
 
 
-def criar_app(config: cfg.Configuracao, cliente_http=None, montar_motor=None):
-    """`cliente_http` (httpx.AsyncClient) e `montar_motor` são injetáveis para os testes."""
+def criar_app(config: cfg.Configuracao, cliente_http=None, montar_motor=None, janela_dir=None):
+    """`cliente_http` (httpx.AsyncClient) e `montar_motor` são injetáveis para os testes; `janela_dir` é o build da janela
+    (pasta com `index.html`), ausente quando ainda não foi gerado."""
     import httpx
     from fastapi import FastAPI, Request, Response
     from fastapi.responses import JSONResponse, PlainTextResponse
@@ -88,15 +100,46 @@ def criar_app(config: cfg.Configuracao, cliente_http=None, montar_motor=None):
         resposta.headers["Referrer-Policy"] = "no-referrer"
         resposta.headers["X-Frame-Options"] = "DENY"
         resposta.headers["Cache-Control"] = "no-store"
+        resposta.headers["Content-Security-Policy"] = POLITICA_DE_CONTEUDO
         return resposta
 
     @app.get("/saude")
     async def saude():
         return {"ok": True}
 
-    @app.get("/")
-    async def inicio():
-        return PlainTextResponse("newclaw-ivox: servidor no ar. A janela de voz chega na Etapa 4.")
+    tem_janela = janela_dir is not None and (janela_dir / "index.html").is_file()
+    if not tem_janela:
+        @app.get("/")
+        async def inicio():
+            return PlainTextResponse(
+                "newclaw-ivox: servidor no ar, mas a janela de voz ainda não foi gerada. "
+                "Na pasta janela/: npm ci && npm run build"
+            )
+
+    @app.get("/newclaw/turn-client.js")
+    async def cliente_do_turno():
+        try:
+            r = await cliente.get("/turn-client.js")
+        except httpx.HTTPError as e:
+            return erro(502, f"NewClaw inalcançável em {config.newclaw_url}: {type(e).__name__}")
+        if r.status_code != 200:
+            return erro(502, f"o NewClaw não serviu /turn-client.js (HTTP {r.status_code}); ele cumpre o contrato do turno?")
+        return Response(content=r.content, media_type="text/javascript")
+
+    @app.get("/voz")
+    async def voz(request: Request):
+        """O que este computador usa para ouvir e falar (cartão "Voz neste computador"). Sem chaves nem endereços."""
+        s = sessao_de(request)
+        if s is None:
+            return erro(401, "entre primeiro (POST /entrar)")
+
+        def servico(sv):
+            if sv is None:
+                return None
+            return {"motor": sv.motor, "modelo": sv.modelo, "voz": sv.voz}
+
+        return {"ouvir": servico(config.stt), "falar": servico(config.tts), "idioma": s.idioma,
+                "dispositivo": config.dispositivo}
 
     @app.post("/entrar")
     async def entrar(request: Request):
@@ -160,7 +203,7 @@ def criar_app(config: cfg.Configuracao, cliente_http=None, montar_motor=None):
     async def sessao(request: Request):
         return {"entrou": sessao_de(request) is not None}
 
-    @app.api_route("/newclaw/{caminho:path}", methods=["GET", "POST"])
+    @app.api_route("/newclaw/api/{caminho:path}", methods=["GET", "POST"])
     async def repassar(caminho: str, request: Request):
         s = sessao_de(request)
         if s is None:
@@ -246,6 +289,12 @@ def criar_app(config: cfg.Configuracao, cliente_http=None, montar_motor=None):
         await handler().handle_patch_request(SmallWebRTCPatchRequest(pc_id=pc_id, candidates=lista))
         return {"ok": True}
 
+    if tem_janela:
+        # Por último: as rotas acima têm prioridade sobre os arquivos da janela.
+        from fastapi.staticfiles import StaticFiles
+
+        app.mount("/", StaticFiles(directory=str(janela_dir), html=True), name="janela")
+
     return app
 
 
@@ -267,7 +316,10 @@ def principal(argumentos: list[str]) -> int:
         motor._EM_ECO = True
     import uvicorn
 
-    app = criar_app(config)
+    janela = RAIZ / "janela" / "dist"
+    if not (janela / "index.html").is_file():
+        print("[harness] janela de voz não gerada: na pasta janela/, rode  npm ci && npm run build", flush=True)
+    app = criar_app(config, janela_dir=janela)
     print(f"[harness] {config.origem} → NewClaw em {config.newclaw_url}", flush=True)
     uvicorn.run(
         app, host=config.host, port=config.porta, log_level="warning",
