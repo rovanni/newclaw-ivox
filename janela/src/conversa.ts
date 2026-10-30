@@ -59,13 +59,14 @@ export interface OpcoesDaConversa {
   aoMudar: (q: Quadro) => void;
   relogio?: Relogio;
   /**
-   * Mãos livres: quanto silêncio, depois da última fala transcrita, encerra o pedido. O Whisper do motor transcreve por
-   * trecho de voz (o VAD corta em cada pausa); esta espera junta trechos de uma mesma fala antes de mandar ao NewClaw.
+   * Mãos livres: quanto silêncio, depois de o motor fechar o último trecho, encerra o pedido. O motor já espera 0,8 s de
+   * silêncio para fechar um trecho (`PAUSA_QUE_FECHA_O_TRECHO_S` no motor.py); somando esta espera, o pedido sai com
+   * cerca de 1,4 s de silêncio. Ela ainda junta trechos de uma mesma fala separados por uma pausa mais longa.
    */
   pausaParaEnviarMs?: number;
 }
 
-export const PAUSA_PARA_ENVIAR_PADRAO_MS = 1200;
+export const PAUSA_PARA_ENVIAR_PADRAO_MS = 600;
 
 export class Conversa {
   private fatos: Fatos = { ...FATOS_INICIAIS };

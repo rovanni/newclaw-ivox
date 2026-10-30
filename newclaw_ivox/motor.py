@@ -27,6 +27,12 @@ from . import controle, stt_local, tts_local
 from .comandos import RAIZ
 
 _EM_ECO = False
+
+# Silêncio que fecha um trecho de fala para o Whisper. O padrão do Pipecat (0,2 s) cortava a fala a cada respiro, e cada
+# pedaço ia sozinho para a transcrição, sem o resto da frase: "Homem de Ferro" virou "Dorme de ferro", enquanto as frases
+# inteiras saíam certas (prova com a operadora, 30/10/2026). O início da fala (`start_secs`, que dispara a interrupção)
+# continua o do Pipecat.
+PAUSA_QUE_FECHA_O_TRECHO_S = 0.8
 _AQUECIDO: list[bool] = []  # o aquecimento da GPU vale para o processo inteiro
 
 
@@ -104,6 +110,7 @@ def _processadores():
 async def bot(runner_args):
     """Chamado pelo runner do Pipecat a cada conexão da janela."""
     from pipecat.audio.vad.silero import SileroVADAnalyzer
+    from pipecat.audio.vad.vad_analyzer import VADParams
     from pipecat.frames.frames import TTSSpeakFrame, TTSUpdateSettingsFrame
     from pipecat.pipeline.pipeline import Pipeline
     from pipecat.pipeline.runner import PipelineRunner
@@ -127,7 +134,8 @@ async def bot(runner_args):
         webrtc_connection=runner_args.webrtc_connection,
         params=TransportParams(audio_in_enabled=True, audio_out_enabled=True),
     )
-    etapas = [transporte.input(), VADProcessor(vad_analyzer=SileroVADAnalyzer())]
+    vad = SileroVADAnalyzer(params=VADParams(stop_secs=PAUSA_QUE_FECHA_O_TRECHO_S))
+    etapas = [transporte.input(), VADProcessor(vad_analyzer=vad)]
     interrupcao = Interrupcao()
     etapas.append(interrupcao)
 
