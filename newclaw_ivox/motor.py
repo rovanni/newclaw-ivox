@@ -155,26 +155,33 @@ async def bot(runner_args):
 
     tts = None
     vozes: tuple[str, ...] | None = None
+    voz_inicial: str | None = None
     if config.tts is not None and config.tts.motor == cfg.LOCAL:
         vozes = tuple(v["nome"] for v in tts_local.vozes_disponiveis(config.modelos_dir))
         try:
             tts = await asyncio.to_thread(tts_local.criar_servico, config, None)
-            medido, espera = await tts_local.ajustar_espera_pela_medicao(tts, config.idioma, controle.LIMITE_PADRAO)
-            print(
-                f"[motor] Kokoro pronto, voz {tts_local.voz_atual(tts)}; frase mais longa em {medido:.1f} s "
-                f"→ espera por frase {espera:.1f} s",
-                flush=True,
-            )
+            voz_inicial = tts_local.voz_atual(tts)
         except tts_local.SemVozEscolhida as e:
+            # Sem voz inicial (a instalação pelo painel não escolhe uma), o Kokoro entra na linha mesmo assim: a escolha
+            # na janela troca a voz em execução. Antes ele ficava de fora, e a troca era recusada até reiniciar o motor
+            # (achado da operadora, 30/10/2026). A voz de partida só existe porque o serviço exige uma ao nascer: o
+            # controle recusa todo pedido de fala enquanto nenhuma for escolhida, então ela nunca fala.
             print(f"[motor] {e}", flush=True)
-        if tts is not None:
-            etapas.append(tts)
+            partida = tts_local.modelos.vozes_kokoro(config.modelos_dir)[0]
+            tts = await asyncio.to_thread(tts_local.criar_servico, config, None, partida)
+        medido, espera = await tts_local.ajustar_espera_pela_medicao(tts, config.idioma, controle.LIMITE_PADRAO)
+        print(
+            f"[motor] Kokoro pronto, voz {voz_inicial or '(a escolher na janela)'}; frase mais longa em {medido:.1f} s "
+            f"→ espera por frase {espera:.1f} s",
+            flush=True,
+        )
+        etapas.append(tts)
     etapas.append(transporte.output())
 
     # Sem limite de ociosidade: a janela fica aberta esperando a pessoa falar. O padrão do Pipecat (5 min parado) encerrava
     # a ligação no meio do uso (achado da prova real, 30/10/2026); ela acaba quando a janela desconecta.
     task = PipelineTask(Pipeline(etapas), params=PipelineParams(), idle_timeout_secs=None)
-    estado = {"voz": tts_local.voz_atual(tts) if tts else None}
+    estado = {"voz": voz_inicial}
 
     @task.rtvi.event_handler("on_client_message")
     async def mensagem(rtvi, msg):
@@ -191,9 +198,6 @@ async def bot(runner_args):
             await rtvi.send_server_response(msg, {"vozes": lista, "atual": estado["voz"]})
             return
         elif acao.tipo == controle.TROCAR_VOZ:
-            if tts is None:
-                await rtvi.send_error_response(msg, "a síntese ainda não começou: reinicie o motor com uma voz inicial")
-                return
             await task.queue_frame(TTSUpdateSettingsFrame(delta=KokoroTTSService.Settings(voice=acao.voz)))
             estado["voz"] = acao.voz
         elif acao.tipo == controle.IGNORAR:

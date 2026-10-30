@@ -127,7 +127,14 @@ function Janela({ aoSair }: { aoSair: () => void }) {
         if (jeito === 'segurar') { motor.microfone(false); setMicAberto(false); }
         setLigado('ligado');
         const lista = await motor.vozes().catch(() => ({ vozes: [], atual: null }));
-        if (vivo) { setVozes(lista.vozes); setVozAtual(lista.atual); }
+        if (!vivo) return;
+        setVozes(lista.vozes);
+        setVozAtual(lista.atual);
+        // O motor nasce sem voz quando o .env não traz uma: volta a que a pessoa escolheu da última vez neste navegador.
+        const lembrada = lerPref('ivox-voz');
+        if (lista.atual === null && lembrada && lista.vozes.some((v) => v.nome === lembrada)) {
+          try { await motor.trocarVoz(lembrada); if (vivo) setVozAtual(lembrada); } catch { /* fica para escolher na lista */ }
+        }
       } catch (e) {
         if (vivo) { setLigado('falhou'); setFalha(String(e instanceof Error ? e.message : e)); }
       }
@@ -217,7 +224,7 @@ function Janela({ aoSair }: { aoSair: () => void }) {
   const trocarVoz = async (nome: string) => {
     const anterior = vozAtual;
     setVozAtual(nome);
-    try { await motor.trocarVoz(nome); } catch { setVozAtual(anterior); }
+    try { await motor.trocarVoz(nome); gravarPref('ivox-voz', nome); } catch { setVozAtual(anterior); }
   };
   const sair = async () => {
     await fetch('/sair', { method: 'POST' }).catch(() => undefined);
@@ -296,10 +303,13 @@ function Janela({ aoSair }: { aoSair: () => void }) {
               ? <><span className="rotulo">Você</span>{q?.legenda}{estado === 'ouvindo' && <span className="cursor" />}</>
               : null}
           </div>
+          {/* No foco a coluna da conversa some, e o balão mostra a resposta inteira. Fora dele a resposta já está na
+              coluna: o balão mostra só a frase que está sendo falada, como legenda, para não repetir (pedido de 30/10). */}
           <div className={`balao ${q?.fala && atual ? 'lendo' : ''}`}>
-            {q?.fala
+            {q?.fala && foco
               ? <>{antes && <span className="frase">{antes}</span>}{atual && <span className="frase atual">{atual}</span>}{depois && <span className="frase">{depois}</span>}</>
-              : textoParado}
+              : q?.fala && atual ? <span className="frase atual">{atual}</span>
+                : textoParado}
           </div>
           <div className="atalhos">
             {PEDIDOS.map((p) => (
