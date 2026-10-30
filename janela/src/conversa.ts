@@ -249,11 +249,17 @@ export class Conversa {
     this.esperas.delete(r.turnId);
     this.fases.delete(r.turnId);
     if (this.fases.size === 0) { this.progresso = null; this.aprovacoes = []; }
+    const resposta = fim.kind === 'finished' && fim.delivery && fim.delivery.text.trim() ? fim.delivery.text : null;
+    if (resposta) {
+      // O turno sai e a fala entra na mesma mudança: sem passar por "pronto" entre "pensando" e "falando".
+      this.fatos = { ...this.fatos, turno: faseMaisRelevante(this.fases.values()) };
+      this.responder(resposta);
+      return;
+    }
     this.atualizarTurno();
     switch (fim.kind) {
       case 'finished':
-        if (fim.delivery && fim.delivery.text.trim()) this.responder(fim.delivery.text);
-        else if (!fim.delivery) this.avisar('A resposta não veio pela entrega; ela está no histórico do NewClaw.');
+        if (!fim.delivery) this.avisar('A resposta não veio pela entrega; ela está no histórico do NewClaw.');
         break;
       case 'timeout':
         this.avisar('Parei de acompanhar este pedido depois de 45 min; ele continua no NewClaw.');
@@ -270,7 +276,9 @@ export class Conversa {
   }
 
   private aoEstadoDoTurno(s: EstadoDoTurno): void {
-    this.fases.set(s.turnId, s.phase);
+    // "finished" chega antes de a resposta ser retirada da outbox: a fase anterior continua valendo até `waitForTurn`
+    // devolver a entrega (sem isso a tela passava por "pronto" por um instante — achado da prova real, 30/10).
+    if (s.phase !== 'finished') this.fases.set(s.turnId, s.phase);
     this.aprovacoes = s.approvals;
     this.progresso = s.progress ? s.progress.texto : null;
     if (this.fatos.erro) this.fatos = { ...this.fatos, erro: null };

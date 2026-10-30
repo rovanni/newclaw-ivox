@@ -101,6 +101,24 @@ describe('Conversa — mãos livres', () => {
     expect(ultimo().fala?.texto).toBe('Só o Nextcloud está fora.');
   });
 
+  it('entre "pensando" e "falando" a tela não passa por "pronto" (achado da prova real, 30/10)', async () => {
+    const { c, turnos, ultimo } = montar();
+    const vistos: string[] = [];
+    c.enviarTexto('oi');
+    await tick();
+    turnos.fase('t1', 'running');
+    const antes = ultimo();
+    expect(antes.estado).toBe('pensando');
+    // Registra cada estado publicado a partir daqui.
+    (c as unknown as { o: { aoMudar: (q: Quadro) => void } }).o.aoMudar = (q) => vistos.push(q.estado);
+    turnos.fase('t1', 'finished'); // o NewClaw diz "terminado" antes de a entrega ser retirada
+    turnos.terminar('t1', { kind: 'finished', delivery: { kind: 'delivered', text: 'Olá!', attachments: [] } });
+    await tick();
+    c.motorComecouAFalar();
+    expect(vistos).not.toContain('pronto');
+    expect(vistos.at(-1)).toBe('falando');
+  });
+
   it('trechos com pausa curta viram um pedido só', async () => {
     const { c, relogio, turnos } = montar(1000);
     c.pessoaComecouAFalar(); c.pessoaParouDeFalar(); c.transcricao('Quais serviços', true);

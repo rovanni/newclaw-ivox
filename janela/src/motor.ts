@@ -8,6 +8,9 @@
 import { PipecatClient } from '@pipecat-ai/client-js';
 import { SmallWebRTCTransport } from '@pipecat-ai/small-webrtc-transport';
 import type { Conversa, Motor } from './conversa';
+import { medirVolume, MicrofoneLocal } from './microfone';
+
+type OpcoesDoTransporte = NonNullable<ConstructorParameters<typeof SmallWebRTCTransport>[0]>;
 
 export interface Voz {
   nome: string;
@@ -37,14 +40,22 @@ export class LigacaoComOMotor implements Motor {
   readonly niveis: Niveis = { voce: 0, motor: 0 };
   private cliente: PipecatClient | null = null;
   private audio: HTMLAudioElement;
+  private pararVolumeDoMotor: (() => void) | null = null;
 
-  constructor(private readonly conversa: () => Conversa) {
+  /** Motivo de o microfone não ter aberto (a ligação segue só com texto); null quando abriu. */
+  semMicrofone: string | null = null;
+
+  constructor(private readonly conversa: () => Conversa, private readonly aoMudarMicrofone: () => void = () => undefined) {
     this.audio = new Audio();
     this.audio.autoplay = true;
   }
 
   async conectar(): Promise<void> {
-    const transporte = new SmallWebRTCTransport({ webrtcRequestParams: { endpoint: '/api/offer' } });
+    // Microfone próprio no lugar do DailyMediaManager padrão, que baixaria código do CDN do Daily (ver microfone.ts).
+    const transporte = new SmallWebRTCTransport({
+      webrtcRequestParams: { endpoint: '/api/offer' },
+      mediaManager: new MicrofoneLocal((motivo) => { this.semMicrofone = motivo; this.aoMudarMicrofone(); }) as unknown as OpcoesDoTransporte['mediaManager'],
+    });
     const c = this.conversa;
     this.cliente = new PipecatClient({
       transport: transporte,
@@ -58,16 +69,17 @@ export class LigacaoComOMotor implements Motor {
         onBotStoppedSpeaking: () => c().motorParouDeFalar(),
         onBotTtsText: (d) => c().fraseFalada(d.text),
         onLocalAudioLevel: (nivel) => { this.niveis.voce = nivel; },
-        onRemoteAudioLevel: (nivel) => { this.niveis.motor = nivel; },
         onTrackStarted: (trilha, participante) => {
-          // O áudio do motor chega como trilha remota; ela precisa de um elemento para tocar.
-          if (trilha.kind === 'audio' && participante && !participante.local) {
-            this.audio.srcObject = new MediaStream([trilha]);
+          // O áudio do motor chega como trilha remota: toca num <audio> e o volume é medido aqui mesmo.
+          if (trilha.kind === 'audio' && !participante?.local) {
+            const fluxo = new MediaStream([trilha]);
+            this.audio.srcObject = fluxo;
             void this.audio.play().catch(() => undefined);
+            this.pararVolumeDoMotor?.();
+            this.pararVolumeDoMotor = medirVolume(fluxo, (n) => { this.niveis.motor = n; });
           }
         },
         onDisconnected: () => c().ligacaoCaiu('A ligação com o motor de voz caiu.'),
-        onDeviceError: (e) => c().ligacaoCaiu(`Microfone indisponível: ${motivoDoErro(e)}`),
       },
     });
     await this.cliente.initDevices();
@@ -76,6 +88,8 @@ export class LigacaoComOMotor implements Motor {
   }
 
   async desconectar(): Promise<void> {
+    this.pararVolumeDoMotor?.();
+    this.pararVolumeDoMotor = null;
     await this.cliente?.disconnect();
     this.cliente = null;
   }

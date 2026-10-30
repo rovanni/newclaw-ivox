@@ -463,4 +463,36 @@ licenças gerado.
 | 1 — Base da janela | Projeto em `janela/` (React + Vite + TypeScript, versões fixas, publicadas há mais de 2 semanas); o estado da tela derivado de fatos (pessoa falando, motor falando, fase do turno, erro); o controlador da conversa com o motor e o turno trocáveis por falsos; testes | **feita** (30/10): 23 testes |
 | 2 — Ligação com o motor e o NewClaw | Cliente do Pipecat com o transporte SmallWebRTC (sem STUN de terceiros); legenda pelos eventos do motor; volume real da pessoa e do motor; turno pelo cliente público do NewClaw (`turn-client.js`, buscado no próprio NewClaw pelo harness); repasse do harness alinhado a `/newclaw/api/...` | **feita** (30/10): 93 testes do harness (5 novos) |
 | 3 — Visual da maquete | Tela de entrada (senha do NewClaw); centro círculo/partículas; estado no meio; legenda; foco; mãos livres/segurar espaço; atalhos; sons; vozes; aprovação por clique; tema claro e escuro; o harness serve o build em `/` | **feita** (30/10): 28 testes da janela; build de ~620 kB com as fontes no próprio build |
-| 4 — Prova real e licenças | Harness + motor + NewClaw isolado com um provedor falso que responde (sem cota); microfone de verdade com ela; achado do eco ("Você disse?") com e sem fone; inventário de licenças do build | a fazer |
+| 4 — Prova real e licenças | Harness + motor + NewClaw isolado com um provedor falso que responde (sem cota); microfone de verdade com ela; achado do eco ("Você disse?") com e sem fone; inventário de licenças do build | **automática feita** (30/10); falta o microfone com a operadora |
+
+## Sprint 4 — resultado da prova automática (30/10/2026)
+
+**Montagem:** NewClaw isolado do branch do contrato do turno (porta 3197, dados próprios), com um provedor falso no formato
+do Ollama que responde um texto fixo (nenhuma cota usada); harness na 7860 servindo o build da janela; navegador do
+ambiente de desenvolvimento (sem microfone liberado).
+
+| Prova | Resultado |
+|---|---|
+| Entrada com a senha | o cookie da sessão; a janela carrega o `turn-client.js` do próprio NewClaw |
+| Motor de voz na 1ª conexão | Whisper `large-v3-turbo` na GPU em 24,5 s (carga 17,4 s); Kokoro pronto com `bm_george` |
+| Motor na 2ª conexão | voz ligada em 5,6 s (modelo reaproveitado no processo) |
+| Lista de vozes | as 57, com as três misturas George e Alex no topo |
+| Mensagem escrita → resposta falada | na fila 0,1 s → pensando 1,7 s → falando 2,8 s → pronto 12,2 s (fala inteira) |
+| Parar durante a fala | de "falando" para "pronto" 16 ms depois do clique; `/cancelar` enviado ao NewClaw |
+| Sem microfone | a janela não cai: avisa "o navegador não deu permissão ao microfone" e segue só com texto, com a resposta falada |
+
+**Achados corrigidos durante a prova:**
+1. **Código de terceiros em tempo de execução.** O gerenciador de mídia padrão do transporte SmallWebRTC
+   (`DailyMediaManager`, do daily-js) baixa um script do CDN do Daily ao abrir, e o daily-js ainda manda telemetria ao
+   Sentry. A política de conteúdo do harness bloqueou as duas coisas. Correção: `janela/src/microfone.ts`, um gerenciador
+   próprio que usa só `getUserMedia` (com cancelamento de eco, supressão de ruído e ganho automático) e mede o volume
+   localmente. Numa aba limpa, nenhum pedido a terceiros. O código do daily-js continua no pacote (o transporte o importa),
+   mas não é executado.
+2. **Passagem de 26–50 ms por "pronto"** entre "na fila" e "pensando" (o NewClaw anuncia `finished` antes de a entrega ser
+   retirada da outbox). A fase anterior agora vale até a entrega chegar; teste na suíte.
+
+**Licenças do build:** `docs/terceiros/janela.md`, gerado por `janela/ferramentas/licencas.mjs`: 29 pacotes de produção —
+22 MIT, 3 BSD-2-Clause, 2 OFL-1.1 (fontes), 1 Apache-2.0, 1 0BSD. Nenhum GPL.
+
+**Falta (precisa da operadora):** falar no microfone pela janela, no Chrome dela (`http://127.0.0.1:7860`, `localhost` é
+página segura), e conferir o achado do eco ("Você disse?") com e sem fone de ouvido.

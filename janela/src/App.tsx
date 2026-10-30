@@ -95,7 +95,8 @@ function Janela({ aoSair }: { aoSair: () => void }) {
   const [agora, setAgora] = useState(Date.now());
   const campo = useRef<HTMLTextAreaElement>(null);
   const conversaRef = useRef<Conversa | null>(null);
-  const motor = useMemo(() => new LigacaoComOMotor(() => conversaRef.current!), []);
+  const [, setMudouMicrofone] = useState(0);
+  const motor = useMemo(() => new LigacaoComOMotor(() => conversaRef.current!, () => setMudouMicrofone((v) => v + 1)), []);
 
   // Liga tudo uma vez: cliente do turno (do próprio NewClaw), conversa e motor de voz.
   useEffect(() => {
@@ -218,7 +219,9 @@ function Janela({ aoSair }: { aoSair: () => void }) {
   const [antes, atual, depois] = q?.fala ? partesDaFala(q.fala.texto, q.fala.fraseAtual) : ['', '', ''];
   const textoParado = ligado === 'falhou'
     ? `Não consegui ligar a voz: ${falha}`
-    : ligado === 'ligando' ? 'Ligando o motor de voz…' : 'Fale comigo pelo microfone ou escreva abaixo. Você pode me interromper falando por cima.';
+    : ligado === 'ligando' ? 'Ligando o motor de voz…'
+      : motor.semMicrofone ? `Sem microfone (${motor.semMicrofone}). Você pode escrever abaixo; a resposta continua falada.`
+        : 'Fale comigo pelo microfone ou escreva abaixo. Você pode me interromper falando por cima.';
 
   return (
     <div className="app">
@@ -327,7 +330,7 @@ function Janela({ aoSair }: { aoSair: () => void }) {
             </div>
             <label className="chave"><input type="checkbox" checked={sons} onChange={(e) => setSons(e.target.checked)} /> Sons ao começar e terminar de ouvir</label>
             <div className="nota">
-              {jeito === 'livre'
+              {motor.semMicrofone ? `Sem microfone: ${motor.semMicrofone}.` : jeito === 'livre'
                 ? 'O microfone fica aberto; ele percebe sozinho quando você termina. O botão do microfone silencia.'
                 : 'Segure a barra de espaço (ou o botão do microfone) enquanto fala e solte quando terminar.'}
             </div>
@@ -342,7 +345,8 @@ function Janela({ aoSair }: { aoSair: () => void }) {
               placeholder="Digite sua pergunta ou comando… (Shift+Enter quebra a linha)" aria-label="Mensagem para o NewClaw" />
             <button
               className={`icone mic ${jeito === 'livre' ? (micAberto ? 'ativo' : 'mudo') : micAberto ? 'ativo' : ''}`}
-              title={jeito === 'livre' ? (micAberto ? 'Silenciar o microfone' : 'Abrir o microfone') : 'Segure para falar'}
+              disabled={!!motor.semMicrofone}
+              title={motor.semMicrofone ? `Sem microfone: ${motor.semMicrofone}` : jeito === 'livre' ? (micAberto ? 'Silenciar o microfone' : 'Abrir o microfone') : 'Segure para falar'}
               onClick={botaoMic}
               onPointerDown={() => jeito === 'segurar' && segurar(true)}
               onPointerUp={() => jeito === 'segurar' && segurar(false)}
