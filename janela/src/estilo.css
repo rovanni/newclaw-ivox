@@ -97,7 +97,11 @@ main { display: grid; grid-template-columns: 300px 1fr 330px; gap: 20px; padding
 .centro { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 10px; }
 .saudacao h2 { margin: 6px 0 0; font: 600 34px var(--titulo); color: var(--destaque-2); }
 .saudacao p { margin: 4px 0 0; font: 400 20px var(--titulo); color: var(--destaque); }
-.globo-area { position: relative; width: min(420px, 80vw); aspect-ratio: 1; margin: 8px 0; }
+/*
+ * O centro acompanha a altura da janela: o que sobra depois do topo, da saudação, do estado, da legenda, do balão, dos
+ * atalhos e da caixa de conversa (~605 px). Assim a página não rola numa tela comum (pedido da operadora, 30/10/2026).
+ */
+.globo-area { position: relative; width: max(140px, min(420px, 80vw, calc(100dvh - 605px))); aspect-ratio: 1; margin: 4px 0; flex-shrink: 0; }
 .globo-area svg { width: 100%; height: 100%; overflow: visible; }
 .anel { transform-origin: 200px 200px; }
 .gira-1 { animation: gira 40s linear infinite; }
@@ -132,7 +136,8 @@ main { display: grid; grid-template-columns: 300px 1fr 330px; gap: 20px; padding
 .borda-nucleo { stroke: var(--cor-voz); transition: stroke .4s; }
 .centro[data-cor="falando"] .luz-miolo { filter: drop-shadow(0 0 16px var(--c-falando)); }
 .balao { background: var(--painel); border: 1px solid var(--borda-forte); border-radius: 16px; padding: 14px 18px; max-width: 520px;
-  text-align: center; line-height: 1.5; box-shadow: var(--sombra); white-space: pre-wrap; }
+  text-align: center; line-height: 1.5; box-shadow: var(--sombra); white-space: pre-wrap;
+  max-height: 18dvh; overflow-y: auto; } /* resposta longa rola dentro do balão, sem empurrar a página */
 .balao .frase { transition: color .15s, opacity .15s; }
 .balao.lendo .frase { opacity: .5; }
 .balao.lendo .frase.atual { opacity: 1; color: var(--c-falando); font-weight: 600; }
@@ -228,7 +233,8 @@ footer .entrada-wrap { grid-column: 2; }
 body.foco .coluna, body.foco .atalhos, body.foco .voz-escolha, body.foco .modo-voz { display: none; }
 body.foco main, body.foco footer { grid-template-columns: 1fr; }
 body.foco footer .entrada-wrap { grid-column: 1; }
-body.foco .globo-area { width: min(520px, 85vw); }
+/* No foco não há atalhos nem cartões: o centro ganha esse espaço, ainda sem passar da altura da janela. */
+body.foco .globo-area { width: max(160px, min(520px, 85vw, calc(100dvh - 482px))); }
 body.foco .entrada-wrap { max-width: 760px; width: 100%; margin: 0 auto; }
 
 /* Telas menores */
@@ -249,5 +255,15 @@ body.foco .entrada-wrap { max-width: 760px; width: 100%; margin: 0 auto; }
   .atalhos { grid-template-columns: repeat(3, 1fr); }
   .saudacao h2 { font-size: 26px; } .saudacao p { font-size: 16px; }
   .botao-tema span { display: none; }
+}
+/* Telas baixas (notebook): saudação, atalhos e espaços mais compactos, para caber sem rolar. */
+@media (min-width: 1101px) and (max-height: 780px) {
+  header { padding: 8px 0; }
+  main { padding: 10px 0; }
+  .centro { gap: 6px; }
+  .saudacao h2 { font-size: 26px; margin-top: 0; } .saudacao p { font-size: 16px; }
+  .atalho { padding: 8px 6px; gap: 3px; } .atalho small { display: none; }
+  .legenda { min-height: 0; }
+  .dica { padding-bottom: 6px; }
 }
 @media (prefers-reduced-motion: reduce) { .gira-1, .gira-2 { animation: none; } }
