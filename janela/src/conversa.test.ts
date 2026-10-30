@@ -119,6 +119,35 @@ describe('Conversa — mãos livres', () => {
     expect(vistos.at(-1)).toBe('falando');
   });
 
+  it('pausas curtas no meio da fala não tiram a tela de "Ouvindo" (achado da prova com a operadora, 30/10)', async () => {
+    const { c, relogio, ultimo } = montar(1000);
+    c.pessoaComecouAFalar();
+    c.pessoaParouDeFalar(); // respiro de 0,2 s: o VAD já diz "parou"
+    expect(ultimo().estado).toBe('ouvindo');
+    c.transcricao('Quais serviços', true);
+    relogio.andar(500);
+    expect(ultimo().estado).toBe('ouvindo');
+    c.pessoaComecouAFalar();
+    c.pessoaParouDeFalar();
+    c.transcricao('estão fora do ar?', true);
+    relogio.andar(999);
+    expect(ultimo().estado).toBe('ouvindo');
+    relogio.andar(1);
+    await tick();
+    expect(ultimo().estado).toBe('fila'); // direto, sem passar por "pronto"
+  });
+
+  it('ruído sem nada transcrito: depois da pausa a tela volta a "Pronto", sem pedido', () => {
+    const { c, relogio, turnos, ultimo } = montar(1000);
+    c.pessoaComecouAFalar();
+    c.pessoaParouDeFalar();
+    c.transcricao('', true);
+    expect(ultimo().estado).toBe('ouvindo');
+    relogio.andar(1000);
+    expect(ultimo().estado).toBe('pronto');
+    expect(turnos.enviados).toEqual([]);
+  });
+
   it('trechos com pausa curta viram um pedido só', async () => {
     const { c, relogio, turnos } = montar(1000);
     c.pessoaComecouAFalar(); c.pessoaParouDeFalar(); c.transcricao('Quais serviços', true);

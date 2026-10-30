@@ -107,7 +107,8 @@ export class Conversa {
   }
 
   pessoaParouDeFalar(): void {
-    this.mudar({ pessoaFalando: false });
+    // Começa a pausa: a tela continua em "Ouvindo" até o pedido sair (ou até ficar claro que não houve fala).
+    this.mudar({ pessoaFalando: false, emPausa: true });
     this.armarEnvio();
   }
 
@@ -117,7 +118,11 @@ export class Conversa {
     if (final) {
       if (t) this.legendaFinal = this.legendaFinal ? `${this.legendaFinal} ${t}` : t;
       this.legendaParcial = '';
-      if (!this.fatos.pessoaFalando) this.armarEnvio();
+      // O Whisper termina o trecho depois de o VAD dizer "parou": a pausa recomeça a contar daqui.
+      if (!this.fatos.pessoaFalando) {
+        if (t && !this.fatos.emPausa) this.mudar({ emPausa: true });
+        this.armarEnvio();
+      }
     } else {
       this.legendaParcial = t;
     }
@@ -166,10 +171,11 @@ export class Conversa {
     this.segurando = false;
   }
 
-  /** Segurar espaço: enquanto a tecla estiver apertada, nada é enviado. */
+  /** Segurar espaço: enquanto a tecla estiver apertada, nada é enviado e a tela fica em "Ouvindo". */
   comecouASegurar(): void {
     this.segurando = true;
     this.desarmarEnvio();
+    this.mudar({ emPausa: true });
   }
 
   soltou(): void {
@@ -210,10 +216,13 @@ export class Conversa {
 
   // ─── Turnos ────────────────────────────────────────────────────────────────
 
+  /**
+   * Fim da fala = uma pausa inteira (`pausaMs`) sem voz depois do último trecho. Aí o pedido sai; se nada foi transcrito
+   * (um ruído, uma tosse), a tela volta a "Pronto" sem mandar nada.
+   */
   private armarEnvio(): void {
     this.desarmarEnvio();
     if (this.jeito === 'segurar' && this.segurando) return;
-    if (!this.legendaFinal) return;
     this.cancelarEnvio = this.relogio.depois(this.pausaMs, () => {
       this.cancelarEnvio = null;
       if (this.fatos.pessoaFalando || (this.jeito === 'segurar' && this.segurando)) return;
@@ -221,6 +230,7 @@ export class Conversa {
       this.legendaFinal = '';
       this.legendaParcial = '';
       if (pedido) void this.enviar(pedido, true);
+      else this.mudar({ emPausa: false });
     });
   }
 
@@ -234,10 +244,13 @@ export class Conversa {
     this.publicar();
     const r = await this.o.turnos.send({ sessionId: this.o.sessionId, message: texto });
     if (r.kind === 'rejected') {
+      this.mudar({ emPausa: false });
       const espera = r.retryAfterSec ? ` Tente de novo em ${r.retryAfterSec} s.` : '';
       this.avisar(`O NewClaw não aceitou o pedido (HTTP ${r.status}): ${r.error}.${espera}`);
       return;
     }
+    // A pausa acaba e o turno entra na mesma mudança: de "Ouvindo" direto para "Na fila".
+    this.fatos = { ...this.fatos, emPausa: false };
     this.fases.set(r.turnId, 'accepted');
     this.atualizarTurno();
     const controle = new AbortController();

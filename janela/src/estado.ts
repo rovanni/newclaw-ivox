@@ -15,6 +15,11 @@ export interface Fatos {
   erro: string | null;
   /** O VAD do motor detectou a pessoa falando. */
   pessoaFalando: boolean;
+  /**
+   * A pessoa parou, mas ainda dentro da pausa que encerra a fala: o VAD diz "parou" em qualquer silêncio de 0,2 s, e a tela
+   * saía de "Ouvindo" a cada respiro (achado da prova com a operadora, 30/10/2026). A tela segue o mesmo critério do envio.
+   */
+  emPausa: boolean;
   /** O motor está tocando áudio. */
   motorFalando: boolean;
   /** Fase mais relevante dos turnos em andamento (null: nenhum). */
@@ -24,13 +29,13 @@ export interface Fatos {
 }
 
 export const FATOS_INICIAIS: Fatos = {
-  erro: null, pessoaFalando: false, motorFalando: false, turno: null, aguardandoFala: false,
+  erro: null, pessoaFalando: false, emPausa: false, motorFalando: false, turno: null, aguardandoFala: false,
 };
 
 /**
  * Ordem das perguntas:
  *  1. erro de ligação vence tudo (nada mais na tela é confiável);
- *  2. a pessoa falando vence o resto (ela pode estar interrompendo o motor);
+ *  2. a pessoa falando, ou numa pausa da fala, vence o resto (ela pode estar interrompendo o motor);
  *  3. aprovação pendente: o trabalho está parado esperando um clique;
  *  4. o motor tocando a resposta;
  *  5. o pedido aceito, ainda sem nada rastreável → na fila;
@@ -39,7 +44,7 @@ export const FATOS_INICIAIS: Fatos = {
  */
 export function estadoDaTela(f: Fatos): EstadoDaTela {
   if (f.erro) return 'erro';
-  if (f.pessoaFalando) return 'ouvindo';
+  if (f.pessoaFalando || f.emPausa) return 'ouvindo';
   if (f.turno === 'awaiting_approval') return 'aprovacao';
   if (f.motorFalando) return 'falando';
   if (f.turno === 'accepted') return 'fila';
