@@ -536,3 +536,34 @@ digitar `aceito`; qualquer outra resposta cancela sem instalar nada.
   O aceite de verdade é da operadora: nada foi aceito por ela.
 
 O aceite informa; não resolve a questão do eSpeak NG (GPL no mesmo processo) para publicar o newclaw-ivox — decisão dela.
+
+## Decisão sobre o eSpeak NG (30/10/2026, da operadora)
+
+**Fato conferido no código instalado:** o `kokoro-onnx` importa o `phonemizer` e carrega a biblioteca do eSpeak NG ao
+abrir (`kokoro_onnx/tokenizer.py`); não há como usar o Kokoro sem as duas peças GPL no mesmo processo. Entregar a
+pronúncia pronta (`is_phonemes=True`) não evita a importação.
+
+**Opções apresentadas:** (1) manter MIT e documentar; (2) licenciar o repositório como GPL-3.0; (3) isolar a síntese num
+processo separado sob GPL; (4) trocar a pronúncia — sem alternativa madura e sem GPL para português hoje (o misaki,
+Apache-2.0, recorre ao eSpeak para português; o gruut, MIT, foi arquivado em 2024 e o pacote de português não declara
+licença).
+
+**Decisão: opção 1.** O repositório segue MIT e não contém nada sob GPL; as peças GPL são baixadas na máquina de quem
+instala, depois do aceite; o `NOTICE` explica que quem redistribuir o conjunto fica sujeito à GPL-3.0. Não é parecer
+jurídico: é a leitura mais comum da GPL.
+
+## Projeto futuro: conversor de texto em fonemas próprio, em Rust (MIT)
+
+Pedido da operadora em 30/10/2026, para tirar a GPL de vez. Combina com a visão de longo prazo de levar o projeto para
+Rust. Não começou.
+
+- **Só em sala limpa.** Uma tradução do eSpeak NG para Rust, mesmo reescrita (ou feita com IA lendo o código), é obra
+  derivada e continua GPL; os arquivos de regras do português do eSpeak (`pt_rules`, `pt_list`) também são GPL. O
+  conversor tem de nascer de material de licença livre (fonologia do português de fontes públicas, dicionários de
+  licença compatível), sem consultar o código nem os dados do eSpeak — inclusive por quem o escrever com ajuda de IA.
+- **O que precisa cobrir (pt-BR):** vogais abertas e fechadas (e/é/ê, o/ó/ô), nasais, os sons do "x", "s" e "r"
+  conforme a posição, números, datas, siglas e estrangeirismos.
+- **Critério de troca:** a saída usa exatamente o conjunto de fonemas que o Kokoro aprendeu, e um conjunto de frases de
+  teste soa igual ou melhor que hoje (comparação de áudio e de transcrição de volta pelo Whisper). Só então o newclaw-ivox
+  troca a peça e a GPL some.
+- **Licença:** MIT, como o resto do projeto.

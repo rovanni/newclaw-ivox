@@ -14,8 +14,8 @@ dependencies = []
 motor = ["pipecat-ai[webrtc,silero,openai,runner]==1.12.0"]
 # Transcrição nesta máquina (faster-whisper), ADR-030, revisão de 29/10/2026.
 stt-local = ["pipecat-ai[whisper]==1.12.0"]
-# Síntese nesta máquina (Kokoro, kokoro-onnx). Traz phonemizer e espeak-ng (GPL-3.0) para dentro do motor: ver
-# docs/SPRINTS.md, Sprint 4, decisão pendente antes de publicar.
+# Síntese nesta máquina (Kokoro, kokoro-onnx). Traz phonemizer e eSpeak NG (GPL-3.0) para dentro do motor: decisão de
+# 30/10/2026 no NOTICE (este repositório segue MIT; o aviso vale para quem redistribuir o conjunto).
 tts-local = ["pipecat-ai[kokoro]==1.12.0"]
 # Bibliotecas CUDA da NVIDIA pelo pip; o instalador só pede este extra quando mede uma GPU NVIDIA (fora do macOS).
 cuda = ["nvidia-cublas-cu12==12.9.2.10", "nvidia-cudnn-cu12==9.27.0.42"]

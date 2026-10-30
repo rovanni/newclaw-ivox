@@ -37,12 +37,14 @@ Antes de cada instalação ou download, ele mostra o que vai fazer e pergunta. P
 python instalar.py --simular
 ```
 
-Licenças de terceiros: leia [docs/terceiros/windows.md](docs/terceiros/windows.md) antes de instalar.
-- O PyAV traz bibliotecas de origem GPL (`libx264`, `libx265`) e outras LGPL.
-- As bibliotecas CUDA da NVIDIA têm licença proprietária.
-- A síntese local usa o phonemizer e o espeak-ng, de licença GPL-3.0.
+Antes de instalar qualquer coisa, o instalador mostra cada peça de terceiros com a licença e o link, e só segue se você
+digitar `aceito` (lista em [docs/terceiros/aceite.json](docs/terceiros/aceite.json)). Três delas têm restrição de
+redistribuição — leia o [NOTICE](NOTICE):
+- a síntese local usa o phonemizer e o eSpeak NG, de licença GPL-3.0, dentro do mesmo processo;
+- o PyAV traz os codecs `libx264` e `libx265`, de origem GPL;
+- as bibliotecas CUDA da NVIDIA têm licença proprietária.
 
-Tudo vem do PyPI e do Hugging Face direto para a sua máquina; este repositório não redistribui nada disso.
+Tudo vem do PyPI, do Hugging Face e do GitHub direto para a sua máquina; este repositório não redistribui nada disso.
 
 ## Conferir
 
@@ -84,5 +86,7 @@ Sem o `.venv`, os testes do motor são pulados e dizem por quê.
 
 ## Licença
 
-MIT (código deste repositório). As dependências de terceiros têm licenças próprias; o inventário e os avisos vêm antes de
-qualquer publicação (ADR-030, decisão L1). Este projeto não declara conformidade jurídica.
+MIT (código deste repositório, que não contém nada sob GPL). As dependências de terceiros têm licenças próprias e são
+baixadas na sua máquina depois do seu aceite. Quem redistribuir o motor de voz junto com o phonemizer e o eSpeak NG
+distribui um trabalho combinado sujeito à GPL-3.0 — detalhes e a decisão de 30/10/2026 no [NOTICE](NOTICE). Este projeto
+não declara conformidade jurídica.

@@ -1,0 +1,35 @@
+newclaw-ivox — avisos de licença
+================================
+
+O código deste repositório é MIT (ver LICENSE). Este repositório NÃO contém código nem dados de terceiros sob GPL.
+
+Peças de terceiros instaladas na máquina de quem usa
+----------------------------------------------------
+
+O instalador (`python instalar.py`) baixa as dependências das fontes oficiais (PyPI, Hugging Face, GitHub) para a pasta
+`.venv` e a pasta `modelos/` da máquina de quem instala, depois de mostrar cada uma com a sua licença e de a pessoa
+digitar "aceito". A lista completa, conferida na fonte de cada peça, está em `docs/terceiros/aceite.json`; o inventário
+dos pacotes instalados, em `docs/terceiros/`.
+
+Três dessas peças têm licença com restrição de redistribuição:
+
+1. phonemizer (GPL-3.0) e eSpeak NG (GPL-3.0-or-later), usados pela síntese local (Kokoro, via kokoro-onnx).
+   O kokoro-onnx carrega os dois dentro do mesmo processo do motor de voz. Usar esta combinação na própria máquina não
+   tem restrição. QUEM REDISTRIBUIR o motor de voz junto com essas peças (por exemplo, um instalador, uma imagem de
+   contêiner ou um executável com tudo dentro) distribui um trabalho combinado e fica sujeito aos termos da GPL-3.0.
+   A licença MIT deste repositório é compatível com a GPL: o código daqui pode fazer parte desse conjunto.
+
+2. Codecs x264 e x265 (GPL-2.0-or-later), que vêm dentro do pacote PyAV do PyPI. O motor usa só áudio e não os chama,
+   mas eles ficam instalados. Mesma regra para quem redistribuir o conjunto.
+
+3. Bibliotecas CUDA da NVIDIA (licença proprietária), instaladas só quando há placa NVIDIA e transcrição local. Podem
+   ser usadas na máquina; não podem ser redistribuídas.
+
+Decisão de 30/10/2026
+---------------------
+
+Publicar este repositório sob MIT, com este aviso, em vez de mudá-lo para GPL ou isolar a síntese num processo separado.
+O caminho para tirar a GPL de vez é um conversor de texto em fonemas próprio, escrito do zero (sala limpa, sem usar o
+código nem os dados do eSpeak NG), com licença MIT — registrado como projeto futuro em docs/SPRINTS.md.
+
+Este aviso descreve a leitura mais comum da GPL (a da Free Software Foundation); não é parecer jurídico.
