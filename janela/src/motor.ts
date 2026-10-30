@@ -8,7 +8,7 @@
 import { PipecatClient } from '@pipecat-ai/client-js';
 import { SmallWebRTCTransport } from '@pipecat-ai/small-webrtc-transport';
 import type { Conversa, Motor } from './conversa';
-import { medirVolume, MicrofoneLocal } from './microfone';
+import { aoPrimeiroGesto, medirVolume, MicrofoneLocal } from './microfone';
 
 type OpcoesDoTransporte = NonNullable<ConstructorParameters<typeof SmallWebRTCTransport>[0]>;
 
@@ -74,7 +74,8 @@ export class LigacaoComOMotor implements Motor {
           if (trilha.kind === 'audio' && !participante?.local) {
             const fluxo = new MediaStream([trilha]);
             this.audio.srcObject = fluxo;
-            void this.audio.play().catch(() => undefined);
+            // Sem interação ainda na página, o Chrome recusa tocar: tenta de novo no primeiro clique ou tecla.
+            void this.audio.play().catch(() => aoPrimeiroGesto(() => void this.audio.play().catch(() => undefined)));
             this.pararVolumeDoMotor?.();
             this.pararVolumeDoMotor = medirVolume(fluxo, (n) => { this.niveis.motor = n; });
           }

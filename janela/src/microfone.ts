@@ -29,9 +29,25 @@ export function motivoDoMicrofone(e: unknown): string {
   }
 }
 
+/**
+ * O Chrome deixa o áudio de uma página suspenso até a primeira interação (clique ou tecla). Ao recarregar a janela já com a
+ * sessão aberta, ninguém clicou ainda: a medição do volume ficava em zero e a resposta do motor não tocava (achado da
+ * prova com a operadora, 30/10/2026). Isto retoma o áudio na primeira interação.
+ */
+export function aoPrimeiroGesto(acao: () => void): void {
+  const uma = () => {
+    removeEventListener('pointerdown', uma, true);
+    removeEventListener('keydown', uma, true);
+    acao();
+  };
+  addEventListener('pointerdown', uma, true);
+  addEventListener('keydown', uma, true);
+}
+
 /** Mede o volume (0 a 1, RMS) de um MediaStream; devolve a função que para a medição. */
 export function medirVolume(fluxo: MediaStream, aoMedir: (nivel: number) => void): () => void {
   const ctx = new AudioContext();
+  if (ctx.state !== 'running') aoPrimeiroGesto(() => void ctx.resume());
   const analisador = ctx.createAnalyser();
   analisador.fftSize = 512;
   ctx.createMediaStreamSource(fluxo).connect(analisador);

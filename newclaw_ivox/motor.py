@@ -147,7 +147,9 @@ async def bot(runner_args):
             etapas.append(tts)
     etapas.append(transporte.output())
 
-    task = PipelineTask(Pipeline(etapas), params=PipelineParams())
+    # Sem limite de ociosidade: a janela fica aberta esperando a pessoa falar. O padrão do Pipecat (5 min parado) encerrava
+    # a ligação no meio do uso (achado da prova real, 30/10/2026); ela acaba quando a janela desconecta.
+    task = PipelineTask(Pipeline(etapas), params=PipelineParams(), idle_timeout_secs=None)
     estado = {"voz": tts_local.voz_atual(tts) if tts else None}
 
     @task.rtvi.event_handler("on_client_message")

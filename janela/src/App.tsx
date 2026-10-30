@@ -93,6 +93,15 @@ function Janela({ aoSair }: { aoSair: () => void }) {
   const [texto, setTexto] = useState('');
   const [micAberto, setMicAberto] = useState(true);
   const [agora, setAgora] = useState(Date.now());
+  // O Chrome só libera o som da página depois do primeiro clique ou tecla (ver microfone.ts).
+  const [somLiberado, setSomLiberado] = useState(() => navigator.userActivation?.hasBeenActive ?? true);
+  useEffect(() => {
+    if (somLiberado) return;
+    const liberar = () => setSomLiberado(true);
+    addEventListener('pointerdown', liberar, { once: true });
+    addEventListener('keydown', liberar, { once: true });
+    return () => { removeEventListener('pointerdown', liberar); removeEventListener('keydown', liberar); };
+  }, [somLiberado]);
   const campo = useRef<HTMLTextAreaElement>(null);
   const conversaRef = useRef<Conversa | null>(null);
   const [, setMudouMicrofone] = useState(0);
@@ -345,7 +354,7 @@ function Janela({ aoSair }: { aoSair: () => void }) {
               placeholder="Digite sua pergunta ou comando… (Shift+Enter quebra a linha)" aria-label="Mensagem para o NewClaw" />
             <button
               className={`icone mic ${jeito === 'livre' ? (micAberto ? 'ativo' : 'mudo') : micAberto ? 'ativo' : ''}`}
-              disabled={!!motor.semMicrofone}
+              disabled={!!motor.semMicrofone || ligado !== 'ligado'}
               title={motor.semMicrofone ? `Sem microfone: ${motor.semMicrofone}` : jeito === 'livre' ? (micAberto ? 'Silenciar o microfone' : 'Abrir o microfone') : 'Segure para falar'}
               onClick={botaoMic}
               onPointerDown={() => jeito === 'segurar' && segurar(true)}
@@ -360,7 +369,14 @@ function Janela({ aoSair }: { aoSair: () => void }) {
                 : <Icone d="M22 2 11 13M22 2l-7 20-4-9-9-4z" />}
             </button>
           </div>
-          <div className="dica">Enter envia · Shift+Enter quebra a linha · F liga o foco{jeito === 'segurar' ? ' · segure Espaço para falar' : ''}</div>
+          <div className={`situacao-mic ${!somLiberado ? 'alerta' : ''}`} role="status">
+            {!somLiberado ? 'Clique em qualquer lugar da janela para liberar o som (exigência do navegador).'
+              : ligado === 'ligando' ? 'Ligando a voz… o microfone abre quando ela estiver pronta.'
+                : motor.semMicrofone ? `Sem microfone: ${motor.semMicrofone}.`
+                  : jeito === 'segurar' ? (micAberto ? '● Ouvindo enquanto você segura' : 'Segure Espaço (ou o botão do microfone) para falar')
+                    : micAberto ? '● Microfone aberto — pode falar' : 'Microfone silenciado — clique no microfone para abrir'}
+          </div>
+          <div className="dica">Enter envia · Shift+Enter quebra a linha · F liga o foco</div>
         </div>
       </footer>
     </div>

@@ -198,7 +198,11 @@ footer .entrada-wrap { grid-column: 2; }
 .icone.mic.mudo { color: var(--erro); }
 .icone.enviar { background: var(--destaque); color: #fff; }
 .icone.parar { background: var(--erro); color: #fff; }
-.dica { text-align: center; font-size: 12px; color: var(--texto-2); padding: 6px 0 14px; }
+.dica { text-align: center; font-size: 12px; color: var(--texto-2); padding: 2px 0 14px; }
+/* Situação do microfone, sempre visível embaixo da caixa: aberto, silenciado, ligando ou som ainda bloqueado. */
+.situacao-mic { text-align: center; font-size: 13px; color: var(--texto); padding-top: 8px; }
+.situacao-mic.alerta { color: var(--aviso); font-weight: 600; }
+.icone:disabled { opacity: .4; cursor: default; }
 .modo-voz, .voz-escolha { display: flex; flex-direction: column; gap: 8px; }
 .modo-voz .topo { display: flex; justify-content: space-between; align-items: center; font: 600 12px var(--titulo); letter-spacing: 2px; }
 .segmento { display: flex; border: 1px solid var(--borda); border-radius: 8px; overflow: hidden; }
