@@ -1,10 +1,10 @@
 # Referência visual da janela de voz (Etapa 4)
 
-`tela-desejada-2026-10-28.webp` foi enviada pela operadora em 28/10/2026 como o visual que ela quer para a nova janela de
-conversa: "dar um visual estilo uma versão do Jarvis do filme". Até 29/10 ela não tinha sido registrada, e a única tela
-existente era a página de teste do Pipecat (`/client`), sem nenhuma personalização.
+Em 28/10/2026 a operadora mandou uma imagem com o visual que ela queria para a nova janela de conversa, um painel
+futurista escuro e azul. A imagem não está neste repositório: tinha nome de personagem de terceiros e dados reais da rede
+dela. A referência daqui é a `maquete.html`, feita a partir dela e aprovada pela operadora em 30/10.
 
-O que a imagem pede:
+O que a imagem pedia:
 - tema escuro azul, estilo painel futurista (linhas finas, brilho, cantos arredondados);
 - no centro, um globo com o "N" do NewClaw e anéis girando, com saudação ("Olá, …. Como posso ajudar hoje?") e uma fala
   do assistente logo abaixo;
@@ -34,7 +34,7 @@ Decisões dela sobre a maquete (`maquete.html`, 29–30/10/2026):
   execução); não deduzir do texto do aviso.
 
 Cuidados ao implementar:
-- o nome "Jarvis" foi vetado pela operadora; o indicador da imagem ("J.A.R.V.I.S. MODE") vira algo como "Modo voz";
+- nome de personagem de filme foi vetado pela operadora; o indicador de modo da imagem vira "Modo voz";
 - nada de marca, logotipo, fonte ou som de filme: só o estilo geral (escuro, azul, painel), que não é de ninguém;
 - os cartões dependem de dados que o contrato público do turno não expõe hoje (VMs, infraestrutura, tarefas). Para a
   Etapa 4, decidir com ela o que entra na primeira versão.
