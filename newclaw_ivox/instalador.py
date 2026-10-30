@@ -9,6 +9,13 @@ Regras:
 - antes de instalar ou baixar, mostra o que vai fazer e pergunta;
 - o `.env` é atualizado só nas chaves de voz, e o resto dele fica como estava;
 - `--simular` mostra os comandos e não executa nada.
+
+Chamado pelo painel do NewClaw (ADR-030, Etapa 5 — instalador genérico de integrações):
+- `--opcoes --json`: as escolhas que o painel mostra (sem precisar de nada instalado);
+- `--licencas --json --transcricao X --sintese Y`: as peças de terceiros dessas escolhas;
+- `--sem-perguntas --aceito-licencas --transcricao X --sintese Y --modelo M --idioma I [--newclaw-url U]`: instala sem
+  perguntar, com o andamento em linhas JSON (`{"texto": ...}`, e no fim `{"fim": true, "codigo": N}`). O aceite das
+  licenças é o clique da pessoa no painel, que só então passa `--aceito-licencas`.
 """
 
 from __future__ import annotations
@@ -25,6 +32,8 @@ from . import licencas as lic
 
 PYTHON_MINIMO = (3, 10)
 ARQUIVO_MISTURAS = "vozes-misturadas.json"
+IDIOMAS = (("pt-BR", "Português (Brasil)"), ("en-US", "English (US)"), ("es-ES", "Español"))
+DESLIGADA = "desligada"  # valor das escolhas sem perguntas para "transcrição/síntese desligada"
 CHAVES_DE_VOZ = (
     "VOZ_STT_MOTOR", "VOZ_STT_MODELO", "VOZ_STT_URL", "VOZ_STT_CHAVE",
     "VOZ_TTS_MOTOR", "VOZ_TTS_MODELO", "VOZ_TTS_VOZ", "VOZ_TTS_URL", "VOZ_TTS_CHAVE",
@@ -37,12 +46,15 @@ class Cancelado(Exception):
 
 
 class Instalador:
-    def __init__(self, raiz: Path, simular: bool = False, entrada=input, saida=None):
+    def __init__(self, raiz: Path, simular: bool = False, entrada=input, saida=None, respostas: dict | None = None):
         self.raiz = raiz
         self.simular = simular
         self.entrada = entrada
         # flush: os comandos filhos escrevem direto no terminal; sem ele, as mensagens daqui saem fora de ordem.
         self.saida = saida or (lambda texto: print(texto, flush=True))
+        # Sem perguntas (painel do NewClaw): as escolhas chegam prontas; os "Instalar?/Baixar?" valem pelo clique da pessoa
+        # no painel, e o aceite das licenças tem de vir explícito em `aceito`.
+        self.respostas = respostas
 
     # ─── conversa ────────────────────────────────────────────────────────────
 
@@ -71,6 +83,9 @@ class Instalador:
             self.info("Resposta não reconhecida; digite o número de uma opção.")
 
     def confirmar(self, texto: str) -> bool:
+        if self.respostas is not None:
+            self.info(f"{texto} sim (confirmado no painel)")
+            return True
         while True:
             resposta = self.perguntar(f"{texto} [s/n]").lower()
             if resposta in ("s", "sim"):
@@ -79,11 +94,11 @@ class Instalador:
                 return False
             self.info("Responda s ou n.")
 
-    def executar(self, comando: list[str]) -> None:
+    def executar(self, comando: list[str], pasta: Path | None = None) -> None:
         self.info("$ " + " ".join(comando))
         if self.simular:
             return
-        resultado = subprocess.run(comando, cwd=self.raiz)
+        resultado = subprocess.run(comando, cwd=pasta or self.raiz)
         if resultado.returncode != 0:
             raise RuntimeError(f"O comando terminou com código {resultado.returncode}.")
 
@@ -117,8 +132,18 @@ class Instalador:
             raise RuntimeError(f"Este Python é {sistema.python}; o newclaw-ivox precisa do {'.'.join(map(str, PYTHON_MINIMO))} ou mais novo.")
         return sistema
 
+    def resposta(self, chave: str, aceitas: tuple[str, ...]) -> str:
+        valor = (self.respostas or {}).get(chave)
+        if valor not in aceitas:
+            raise RuntimeError(f"--{chave} precisa ser um de: {', '.join(aceitas)} (veio {valor!r}).")
+        return valor
+
     def perguntar_transcricao(self) -> dict[str, str]:
         self.titulo("Transcrição (fala → texto)")
+        if self.respostas is not None:
+            motor = self.resposta("transcricao", (cfg.LOCAL, DESLIGADA))
+            self.info(f"Escolhida no painel: {motor}")
+            return {"VOZ_STT_MOTOR": cfg.LOCAL if motor == cfg.LOCAL else ""}
         motor = self.escolher("Onde transcrever?", [
             (cfg.LOCAL, "Nesta máquina (Whisper local; não depende de outro computador)"),
             (cfg.URL, "Num servidor que eu já tenho (compatível com a API OpenAI)"),
@@ -137,6 +162,10 @@ class Instalador:
 
     def perguntar_sintese(self) -> dict[str, str]:
         self.titulo("Síntese (texto → fala)")
+        if self.respostas is not None:
+            motor = self.resposta("sintese", (cfg.LOCAL, DESLIGADA))
+            self.info(f"Escolhida no painel: {motor}")
+            return {"VOZ_TTS_MOTOR": cfg.LOCAL if motor == cfg.LOCAL else ""}
         motor = self.escolher("Onde sintetizar a fala?", [
             (cfg.LOCAL, "Nesta máquina (Kokoro local; não depende de outro computador)"),
             (cfg.URL, "Num servidor que eu já tenho (compatível com a API OpenAI)"),
@@ -173,6 +202,16 @@ class Instalador:
         registro = lic.ler_registro(self.raiz)
         if lic.ja_aceitas(registro, lista, itens):
             self.info(f"Já aceitas em {registro['aceito_em']} (lista versão {lista.versao}, as mesmas peças). Seguindo.")
+            return
+        if self.respostas is not None:
+            # O painel mostrou a mesma lista (`--licencas --json`) e a pessoa marcou "Li e aceito"; sem isso, não instala.
+            if not self.respostas.get("aceito"):
+                raise Cancelado("as licenças de terceiros não foram aceitas no painel, então nada foi instalado")
+            for item in itens:
+                self.info(f"{item.nome} — {item.licenca}")
+            if not self.simular:
+                caminho = lic.gravar_registro(self.raiz, lista, itens, origem="painel do NewClaw")
+                self.info(f"Aceite feito no painel, guardado em {caminho}.")
             return
         self.info("O newclaw-ivox usa estas peças de terceiros. Cada uma tem a licença do seu autor:")
         for i, item in enumerate(itens, 1):
@@ -220,11 +259,20 @@ class Instalador:
         self.titulo("Modelo do Whisper")
         if self.simular:
             self.info("(simulação: a lista viria do faster-whisper instalado)")
-            return self.perguntar("Nome do modelo:")
+            return (self.respostas or {}).get("modelo") or self.perguntar("Nome do modelo:")
         resultado = self.rodar_no_venv("modelos", "--json", "--pasta", str(modelos_dir))
         if resultado.returncode != 0:
             raise RuntimeError("Não consegui listar os modelos: " + (resultado.stderr.strip().splitlines() or ["sem detalhe"])[-1])
         lista = json.loads(resultado.stdout)
+        if self.respostas is not None:
+            # O painel escolheu pela foto da lista; aqui confere contra a lista ao vivo do faster-whisper instalado.
+            nome = (self.respostas or {}).get("modelo")
+            dados = next((m for m in lista if m["nome"] == nome), None)
+            if dados is None:
+                raise RuntimeError(f"O modelo {nome!r} não existe no faster-whisper instalado; modelos: "
+                                   + ", ".join(m["nome"] for m in lista))
+            self.info(f"Escolhido no painel: {nome} ({dados['tamanho']}, licença: {dados.get('licenca') or 'não declarada'})")
+            return nome
         self.info("Tamanho e licença lidos agora no Hugging Face. Os maiores erram menos e pesam mais; '.en' só entende inglês.")
         opcoes = [
             (m["nome"], f"{m['nome']:<20} {m['tamanho']:>12}   licença: {m.get('licenca') or 'não declarada no cartão'}"
@@ -280,9 +328,24 @@ class Instalador:
 
     def perguntar_idioma(self) -> str:
         self.titulo("Idioma")
-        return self.escolher("Em que idioma você vai falar?", [
-            ("pt-BR", "Português (Brasil)"), ("en-US", "English (US)"), ("es-ES", "Español"),
-        ])
+        if self.respostas is not None:
+            idioma = self.resposta("idioma", tuple(c for c, _ in IDIOMAS))
+            self.info(f"Escolhido no painel: {idioma}")
+            return idioma
+        return self.escolher("Em que idioma você vai falar?", list(IDIOMAS))
+
+    def construir_janela(self) -> None:
+        """Gera a janela de voz (janela/dist), que o harness serve em /. Precisa do Node.js (o do NewClaw serve)."""
+        self.titulo("Janela de voz")
+        npm = shutil.which("npm")
+        if not npm:
+            raise RuntimeError("Node.js (npm) não encontrado: ele é preciso para gerar a janela de voz.")
+        pasta = self.raiz / "janela"
+        self.info(f"Instala as dependências fixadas (package-lock.json) e gera a janela em {pasta / 'dist'}.")
+        if not self.confirmar("Gerar a janela agora?"):
+            raise Cancelado("geração da janela recusada")
+        self.executar([npm, "ci", "--no-fund", "--no-audit"], pasta)
+        self.executar([npm, "run", "build"], pasta)
 
     def gravar_env(self, valores: dict[str, str]) -> Path:
         self.titulo("Configuração")
@@ -345,21 +408,94 @@ class Instalador:
             valores.pop("VOZ_TTS_VOZ")
 
         valores["VOZ_IDIOMA"] = self.perguntar_idioma()
+        url = (self.respostas or {}).get("newclaw_url")
+        if url:
+            valores["NEWCLAW_URL"] = url  # o painel sabe o próprio endereço: a pessoa não digita nada
         self.gravar_env(valores)
+        self.construir_janela()
         codigo = self.testar(com_stt_local, com_tts_local)
         self.titulo("Pronto" if codigo == 0 else "Terminou com problema")
         self.info("Conferir a qualquer momento: python -m newclaw_ivox diagnostico")
         return codigo
 
 
+def _valor(argumentos: list[str], nome: str) -> str | None:
+    if nome in argumentos:
+        i = argumentos.index(nome)
+        if i + 1 < len(argumentos):
+            return argumentos[i + 1]
+    return None
+
+
+def opcoes(raiz: Path) -> list[dict]:
+    """As escolhas que o painel mostra, sem nada instalado. Os modelos vêm da foto gravada (tamanho e licença medidos)."""
+    from . import modelos
+
+    foto = modelos.ler_lista_gravada(raiz) or {"modelos": []}
+    local_ou_nao = lambda rotulo: [  # noqa: E731
+        {"valor": cfg.LOCAL, "rotulo": rotulo}, {"valor": DESLIGADA, "rotulo": "Desligada"},
+    ]
+    return [
+        {"id": "transcricao", "rotulo": "Ouvir (fala → texto)", "opcoes": local_ou_nao("Nesta máquina (Whisper)")},
+        {"id": "sintese", "rotulo": "Falar (texto → fala)", "opcoes": local_ou_nao("Nesta máquina (Kokoro)")},
+        {
+            "id": "modelo", "rotulo": "Modelo do Whisper", "visivel_se": {"transcricao": cfg.LOCAL},
+            "nota": f"Tamanho e licença medidos em {foto.get('gerado_em', '?')} (faster-whisper {foto.get('faster_whisper', '?')}). "
+                    "Os maiores erram menos e pesam mais; '.en' só entende inglês.",
+            "opcoes": [
+                {"valor": m["nome"], "rotulo": m["nome"], "detalhe": f"{m['tamanho']} · licença {m.get('licenca') or 'não declarada'}"}
+                for m in foto["modelos"]
+            ],
+        },
+        {"id": "idioma", "rotulo": "Idioma em que você vai falar", "opcoes": [{"valor": c, "rotulo": r} for c, r in IDIOMAS]},
+    ]
+
+
+def licencas_json(raiz: Path, argumentos: list[str]) -> dict:
+    """As peças de terceiros das escolhas dadas, com a mesma conta do instalador (inclui CUDA só com GPU NVIDIA)."""
+    respostas = {"transcricao": _valor(argumentos, "--transcricao"), "sintese": _valor(argumentos, "--sintese")}
+    sistema = disp.medir_sistema(raiz)
+    inst = Instalador(raiz, respostas=respostas)
+    grupos = inst.grupos(sistema, respostas["transcricao"] == cfg.LOCAL, respostas["sintese"] == cfg.LOCAL)
+    lista = lic.carregar_lista(raiz)
+    itens = lic.itens_para(lista, grupos)
+    campos = ("id", "nome", "papel", "licenca", "link", "atencao")
+    return {"versao": lista.versao, "itens": [{c: getattr(i, c) for c in campos} for i in itens]}
+
+
 def principal(argumentos: list[str]) -> int:
     raiz = Path(__file__).resolve().parent.parent
-    instalador = Instalador(raiz, simular="--simular" in argumentos)
+    if "--opcoes" in argumentos:
+        print(json.dumps(opcoes(raiz), ensure_ascii=False))
+        return 0
+    if "--licencas" in argumentos:
+        print(json.dumps(licencas_json(raiz, argumentos), ensure_ascii=False))
+        return 0
+
+    sem_perguntas = "--sem-perguntas" in argumentos
+    respostas = None
+    saida = None
+    if sem_perguntas:
+        respostas = {
+            chave: _valor(argumentos, f"--{chave.replace('_', '-')}")
+            for chave in ("transcricao", "sintese", "modelo", "idioma", "newclaw_url")
+        }
+        respostas["aceito"] = "--aceito-licencas" in argumentos
+
+        def saida(texto: str) -> None:
+            if texto.strip():  # o painel mostra linhas; o recuo e as linhas em branco são da conversa no terminal
+                print(json.dumps({"texto": texto.strip()}, ensure_ascii=False), flush=True)
+
+    instalador = Instalador(raiz, simular="--simular" in argumentos, saida=saida, respostas=respostas)
+    codigo = 0
     try:
-        return instalador.rodar()
+        codigo = instalador.rodar()
     except Cancelado as e:
-        print(f"\nInstalação interrompida: {e}. Nada além do que já foi mostrado foi feito.")
-        return 3
+        instalador.saida(f"Instalação interrompida: {e}. Nada além do que já foi mostrado foi feito.")
+        codigo = 3
     except RuntimeError as e:
-        print(f"\nErro: {e}")
-        return 1
+        instalador.saida(f"Erro: {e}")
+        codigo = 1
+    if sem_perguntas:
+        print(json.dumps({"fim": True, "codigo": codigo}), flush=True)
+    return codigo

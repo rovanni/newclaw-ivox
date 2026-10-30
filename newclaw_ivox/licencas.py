@@ -69,7 +69,8 @@ def ja_aceitas(registro: dict | None, lista: Lista, itens: tuple[Item, ...]) -> 
     return {i.id for i in itens} <= set(registro.get("itens", []))
 
 
-def gravar_registro(raiz: Path, lista: Lista, itens: tuple[Item, ...], agora: datetime | None = None) -> Path:
+def gravar_registro(raiz: Path, lista: Lista, itens: tuple[Item, ...], agora: datetime | None = None,
+                    origem: str = "instalador no terminal") -> Path:
     momento = (agora or datetime.now(timezone.utc)).isoformat(timespec="seconds")
     anterior = ler_registro(raiz) or {}
     # Peças já aceitas nesta mesma versão continuam valendo (outra instalação pode ter pedido menos coisas).
@@ -79,6 +80,7 @@ def gravar_registro(raiz: Path, lista: Lista, itens: tuple[Item, ...], agora: da
     caminho.write_text(json.dumps({
         "versao_da_lista": lista.versao,
         "aceito_em": momento,
+        "onde": origem,  # terminal ("aceito" digitado) ou painel do NewClaw (caixa "Li e aceito" marcada)
         "itens": sorted(ids),
         "licencas": {i.id: i.licenca for i in lista.itens if i.id in ids},
     }, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")

@@ -73,6 +73,21 @@ def modelos(argumentos: list[str]) -> int:
         }
         for x in m.listar()
     ]
+    if "--gravar-lista" in argumentos:
+        # Foto da lista para quem escolhe ANTES de instalar (o painel do NewClaw): o faster-whisper só existe depois.
+        # Gerada por comando a cada versão, nunca escrita à mão; o instalador confere a escolha contra a lista ao vivo.
+        import faster_whisper
+        from datetime import date
+
+        foto = {
+            "gerado_em": date.today().isoformat(),
+            "faster_whisper": faster_whisper.__version__,
+            "modelos": [{k: x[k] for k in ("nome", "bytes", "tamanho", "licenca")} for x in lista],
+        }
+        destino = RAIZ / m.ARQUIVO_DA_LISTA
+        destino.write_text(json.dumps(foto, ensure_ascii=False, indent=1) + "\n", encoding="utf-8")
+        print(f"{len(lista)} modelos gravados em {destino}")
+        return 0
     if "--json" in argumentos:
         print(json.dumps(lista, ensure_ascii=False))
     else:

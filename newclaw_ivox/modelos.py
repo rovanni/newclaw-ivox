@@ -12,6 +12,19 @@ from pathlib import Path
 # Arquivo que todo modelo CTranslate2 tem; a presença dele na pasta é o sinal de que o download terminou.
 ARQUIVO_DO_MODELO = "model.bin"
 
+# Foto da lista de modelos (nome, tamanho, licença, data), gerada por `modelos --gravar-lista`: é o que o painel mostra
+# antes de o faster-whisper estar instalado.
+ARQUIVO_DA_LISTA = "modelos-whisper.json"
+
+
+def ler_lista_gravada(raiz: Path) -> dict | None:
+    import json
+
+    try:
+        return json.loads((raiz / ARQUIVO_DA_LISTA).read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return None
+
 
 @dataclass(frozen=True)
 class ModeloStt:

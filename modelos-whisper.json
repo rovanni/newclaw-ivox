@@ -1,0 +1,120 @@
+{
+ "gerado_em": "2026-10-30",
+ "faster_whisper": "1.2.1",
+ "modelos": [
+  {
+   "nome": "tiny.en",
+   "bytes": 78093394,
+   "tamanho": "74.5 MB",
+   "licenca": "mit"
+  },
+  {
+   "nome": "tiny",
+   "bytes": 78207087,
+   "tamanho": "74.6 MB",
+   "licenca": "mit"
+  },
+  {
+   "nome": "base.en",
+   "bytes": 147772310,
+   "tamanho": "140.9 MB",
+   "licenca": "mit"
+  },
+  {
+   "nome": "base",
+   "bytes": 147886409,
+   "tamanho": "141.0 MB",
+   "licenca": "mit"
+  },
+  {
+   "nome": "small.en",
+   "bytes": 486101605,
+   "tamanho": "463.6 MB",
+   "licenca": "mit"
+  },
+  {
+   "nome": "small",
+   "bytes": 486215847,
+   "tamanho": "463.7 MB",
+   "licenca": "mit"
+  },
+  {
+   "nome": "medium.en",
+   "bytes": 1530460562,
+   "tamanho": "1.4 GB",
+   "licenca": "mit"
+  },
+  {
+   "nome": "medium",
+   "bytes": 1530575217,
+   "tamanho": "1.4 GB",
+   "licenca": "mit"
+  },
+  {
+   "nome": "large-v1",
+   "bytes": 3089581898,
+   "tamanho": "2.9 GB",
+   "licenca": "mit"
+  },
+  {
+   "nome": "large-v2",
+   "bytes": 3089582354,
+   "tamanho": "2.9 GB",
+   "licenca": "mit"
+  },
+  {
+   "nome": "large-v3",
+   "bytes": 3090839273,
+   "tamanho": "2.9 GB",
+   "licenca": "mit"
+  },
+  {
+   "nome": "large",
+   "bytes": 3090839273,
+   "tamanho": "2.9 GB",
+   "licenca": "mit"
+  },
+  {
+   "nome": "distil-large-v2",
+   "bytes": 1516111921,
+   "tamanho": "1.4 GB",
+   "licenca": "mit"
+  },
+  {
+   "nome": "distil-medium.en",
+   "bytes": 792063595,
+   "tamanho": "755.4 MB",
+   "licenca": "mit"
+  },
+  {
+   "nome": "distil-small.en",
+   "bytes": 335545316,
+   "tamanho": "320.0 MB",
+   "licenca": "mit"
+  },
+  {
+   "nome": "distil-large-v3",
+   "bytes": 1516482645,
+   "tamanho": "1.4 GB",
+   "licenca": "mit"
+  },
+  {
+   "nome": "distil-large-v3.5",
+   "bytes": 1516487390,
+   "tamanho": "1.4 GB",
+   "licenca": "mit"
+  },
+  {
+   "nome": "large-v3-turbo",
+   "bytes": 1621668947,
+   "tamanho": "1.5 GB",
+   "licenca": "mit"
+  },
+  {
+   "nome": "turbo",
+   "bytes": 1621668947,
+   "tamanho": "1.5 GB",
+   "licenca": "mit"
+  }
+ ]
+}

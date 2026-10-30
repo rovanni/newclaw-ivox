@@ -567,3 +567,21 @@ Rust. Não começou.
   teste soa igual ou melhor que hoje (comparação de áudio e de transcrição de volta pelo Whisper). Só então o newclaw-ivox
   troca a peça e a GPL some.
 - **Licença:** MIT, como o resto do projeto.
+
+## Ativação pelo painel — Sprint 1: o instalador chamado pelo painel (30/10/2026)
+
+Decisão da operadora (ADR-030 do NewClaw, Etapa 5, opção B): o NewClaw ganha um instalador genérico de integrações
+opcionais, guiado por um manifesto que a integração publica. Do lado do newclaw-ivox:
+
+- **`newclaw-integracao.json`** (manifesto, formato 1): de onde baixar, o que precisa (Python 3.10+, com o modo de
+  conferir e como instalar), os comandos de opções, licenças, instalar e iniciar, e os endereços de abrir e de saúde.
+- **`python instalar.py --opcoes --json`**: as escolhas do painel, sem nada instalado. A lista de modelos do Whisper vem
+  de **`modelos-whisper.json`**, foto gerada por `python -m newclaw_ivox modelos --gravar-lista` (19 modelos, tamanho e
+  licença medidos em 30/10 com o faster-whisper 1.2.1); depois de instalar, o instalador confere a escolha contra a
+  lista ao vivo.
+- **`--licencas --json`**: as peças das escolhas dadas (a mesma conta do instalador, CUDA só com GPU NVIDIA).
+- **`--sem-perguntas --aceito-licencas ...`**: instala sem perguntar, com o andamento em linhas JSON e
+  `{"fim": true, "codigo": N}` no fim. Sem `--aceito-licencas` recusa; com ele, o aceite fica registrado como feito no
+  painel. Recebe o endereço do NewClaw (`--newclaw-url`) e grava no `.env`.
+- **Janela:** o instalador agora gera a janela (`npm ci` + `npm run build`), nos dois modos.
+- **Testes:** 9 novos (`tests/test_painel.py`). Simulação completa do fluxo do painel conferida.

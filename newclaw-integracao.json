@@ -1,0 +1,29 @@
+{
+  "formato": 1,
+  "id": "newclaw-ivox",
+  "nome": "Interface de voz",
+  "descricao": "Converse com o NewClaw falando: uma janela no navegador que ouve e responde em voz, com transcrição (Whisper) e síntese (Kokoro) rodando nesta máquina.",
+  "site": "https://github.com/rovanni/newclaw-ivox",
+  "pacote": "https://codeload.github.com/rovanni/newclaw-ivox/tar.gz/refs/heads/main",
+  "pasta": "newclaw-ivox",
+  "python": { "win32": "python", "outros": "python3" },
+  "precisa": [
+    {
+      "nome": "Python 3.10 ou mais novo",
+      "comando": ["{python}", "-c", "import sys; sys.exit(0 if sys.version_info >= (3, 10) else 1)"],
+      "como_instalar": {
+        "win32": "Instale pelo site python.org (marque \"Add python.exe to PATH\") ou rode no PowerShell: winget install Python.Python.3.12",
+        "outros": "No Ubuntu/Debian: sudo apt install python3 python3-venv"
+      }
+    }
+  ],
+  "opcoes": ["{python}", "instalar.py", "--opcoes", "--json"],
+  "licencas": ["{python}", "instalar.py", "--licencas", "--json", "{escolhas}"],
+  "instalar": ["{python}", "instalar.py", "--sem-perguntas", "--aceito-licencas", "--newclaw-url", "{newclaw_url}", "{escolhas}"],
+  "iniciar": {
+    "win32": [".venv/Scripts/python.exe", "-m", "newclaw_ivox", "servidor"],
+    "outros": [".venv/bin/python", "-m", "newclaw_ivox", "servidor"]
+  },
+  "abrir": "http://127.0.0.1:7860",
+  "saude": "http://127.0.0.1:7860/saude"
+}
