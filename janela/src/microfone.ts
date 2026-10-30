@@ -44,7 +44,21 @@ export function aoPrimeiroGesto(acao: () => void): void {
   addEventListener('keydown', uma, true);
 }
 
-/** Mede o volume (0 a 1, RMS) de um MediaStream; devolve a função que para a medição. */
+/** Faixa de volume mostrada: -60 dB (silêncio de sala) vira 0; -10 dB (fala alta perto do microfone) vira 1. */
+const PISO_DB = -60;
+const TETO_DB = -10;
+
+/**
+ * Volume como o ouvido percebe (escala em dB), de 0 a 1. O RMS cru de uma fala normal fica entre 0,01 e 0,1 — a animação
+ * mexia poucos pixels e parecia parada (achado da prova com a operadora, 30/10/2026).
+ */
+export function nivelPercebido(rms: number): number {
+  if (rms <= 0) return 0;
+  const db = 20 * Math.log10(rms);
+  return Math.min(1, Math.max(0, (db - PISO_DB) / (TETO_DB - PISO_DB)));
+}
+
+/** Mede o volume (0 a 1, em escala percebida) de um MediaStream; devolve a função que para a medição. */
 export function medirVolume(fluxo: MediaStream, aoMedir: (nivel: number) => void): () => void {
   const ctx = new AudioContext();
   if (ctx.state !== 'running') aoPrimeiroGesto(() => void ctx.resume());
@@ -56,7 +70,7 @@ export function medirVolume(fluxo: MediaStream, aoMedir: (nivel: number) => void
     analisador.getFloatTimeDomainData(amostras);
     let soma = 0;
     for (const a of amostras) soma += a * a;
-    aoMedir(Math.sqrt(soma / amostras.length));
+    aoMedir(nivelPercebido(Math.sqrt(soma / amostras.length)));
   }, 50);
   return () => { clearInterval(id); void ctx.close(); };
 }

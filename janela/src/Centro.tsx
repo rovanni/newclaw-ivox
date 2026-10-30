@@ -14,8 +14,8 @@ export type EstiloDoCentro = 'circulo' | 'particulas';
 const N_BARRAS = 96;
 const R0 = 104;
 const N_PONTOS = 700;
-/** O volume que o transporte informa é baixo para fala normal; este ganho o leva para a faixa visível. */
-const GANHO = 2.5;
+/** No estado "Pronto", o centro acompanha de leve o microfone: a pessoa vê que ele está vivo antes de o VAD confirmar a fala. */
+const ECO_DO_MICROFONE_PRONTO = 0.5;
 /** Amplitude própria de cada estado quando não há voz tocando (movimento calmo, sem fingir fala). */
 const AMPLITUDE_PARADA: Record<EstadoDaTela, number> = {
   pronto: 0.05, ouvindo: 0.05, fila: 0.1, pensando: 0.15, falando: 0.1, aprovacao: 0.5, erro: 0.1,
@@ -66,9 +66,10 @@ export function Centro({ estado, estilo, niveis, tempo }: Props) {
     let corChave = '', cor = '#3ea6ff';
 
     const nivelAgora = (e: EstadoDaTela) => {
-      if (e === 'ouvindo') return Math.min(1, niveis.voce * GANHO);
-      if (e === 'falando') return Math.min(1, niveis.motor * GANHO);
+      if (e === 'ouvindo') return niveis.voce;
+      if (e === 'falando') return niveis.motor;
       const a = AMPLITUDE_PARADA[e];
+      if (e === 'pronto') return Math.max(a * (0.6 + 0.4 * Math.sin(t * 1.2)), niveis.voce * ECO_DO_MICROFONE_PRONTO);
       return e === 'aprovacao' ? a * (0.5 + 0.5 * Math.sin(t * 3)) : a * (0.6 + 0.4 * Math.sin(t * 1.2));
     };
 
