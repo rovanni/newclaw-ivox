@@ -33,7 +33,6 @@ _EM_ECO = False
 # inteiras saíam certas (prova com a operadora, 30/10/2026). O início da fala (`start_secs`, que dispara a interrupção)
 # continua o do Pipecat.
 PAUSA_QUE_FECHA_O_TRECHO_S = 0.8
-_AQUECIDO: list[bool] = []  # o aquecimento da GPU vale para o processo inteiro
 
 
 def _processadores():
@@ -141,14 +140,10 @@ async def bot(runner_args):
 
     stt = None
     if config.stt is not None and config.stt.motor == cfg.LOCAL:
-        inicio = time.perf_counter()
-        # Carregar o modelo bloqueia; numa thread, o servidor continua respondendo enquanto isso.
-        stt, escolha = await asyncio.to_thread(stt_local.criar_servico, config)
-        carga = time.perf_counter() - inicio
-        if not _AQUECIDO:
-            await stt_local.transcrever_async(stt, escolha, bytes(16_000 * 2), 16_000)  # a 1ª de cada processo é lenta
-            _AQUECIDO.append(True)
-        print(f"[motor] Whisper pronto em {time.perf_counter() - inicio:.1f} s (carga {carga:.1f} s; {escolha.motivo})", flush=True)
+        # Conectar não carrega o modelo (ADR-037): o serviço pede o modelo ao dono a cada trecho; carregar é um pedido
+        # da pessoa na janela (POST /api/modelo/carregar).
+        stt = stt_local.servico_da_linha(config)
+        print(f"[motor] transcrição na linha; modelo {stt_local.dono().estado()['estado']}", flush=True)
         etapas.append(stt)
     if _EM_ECO:
         etapas.append(Eco())

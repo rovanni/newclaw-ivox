@@ -24,16 +24,19 @@ deste servidor, e o repasse só abre as rotas do contrato.
 
 # Sem `from __future__ import annotations`: o FastAPI lê as anotações das rotas (`request: Request`) na hora de montar o
 # app, e o Request só é importado dentro de criar_app (o pacote funciona sem FastAPI).
+import asyncio
 import hashlib
 import json
 import os
 import re
 import secrets
+import threading
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
 
 from . import configuracao as cfg
+from . import stt_local
 
 # Versão do contrato do turno que este harness sabe usar (NewClaw, status.contracts.turn).
 CONTRATO_DO_TURNO = 1
@@ -41,6 +44,8 @@ CONTRATO_DO_TURNO = 1
 COOKIE = "ivox_sessao"
 DURACAO_DA_SESSAO_S = 30 * 24 * 3600  # a mesma do painel do NewClaw
 ARQUIVO_DAS_SESSOES = ".sessoes-da-janela.json"
+# Ajustes do modelo que valem para o processo (D2: descarregar depois de um tempo sem uso). Ficam só nesta máquina.
+ARQUIVO_DOS_AJUSTES = ".ajustes-do-modelo.json"
 
 # (método, padrão da rota depois de /api/) — só o contrato do turno, nada de configuração, memória ou ferramentas.
 ROTAS_DO_CONTRATO = (
@@ -114,10 +119,12 @@ def rota_permitida(metodo: str, caminho: str) -> bool:
     return any(metodo == m and padrao.fullmatch(caminho) for m, padrao in ROTAS_DO_CONTRATO)
 
 
-def criar_app(config: cfg.Configuracao, cliente_http=None, montar_motor=None, janela_dir=None, arquivo_sessoes=None):
-    """`cliente_http` (httpx.AsyncClient) e `montar_motor` são injetáveis para os testes; `janela_dir` é o build da janela
-    (pasta com `index.html`), ausente quando ainda não foi gerado; `arquivo_sessoes` guarda as sessões entre reinícios
-    (sem ele, ficam só na memória)."""
+def criar_app(config: cfg.Configuracao, cliente_http=None, montar_motor=None, janela_dir=None, arquivo_sessoes=None,
+              dono_do_modelo=None, arquivo_ajustes=None, vigiar_ociosidade=False):
+    """`cliente_http` (httpx.AsyncClient), `montar_motor` e `dono_do_modelo` são injetáveis para os testes; `janela_dir` é
+    o build da janela (pasta com `index.html`), ausente quando ainda não foi gerado; `arquivo_sessoes` guarda as sessões
+    entre reinícios (sem ele, ficam só na memória); `arquivo_ajustes` guarda os ajustes do modelo; `vigiar_ociosidade`
+    liga a vigia que descarrega o modelo parado (D2), só no servidor de verdade."""
     import httpx
     from fastapi import FastAPI, Request, Response
     from fastapi.responses import JSONResponse, PlainTextResponse
@@ -321,6 +328,90 @@ def criar_app(config: cfg.Configuracao, cliente_http=None, montar_motor=None, ja
             headers={k: v for k, v in r.headers.items() if k.lower() in CABECALHOS_REPASSADOS},
         )
 
+    # ─── o modelo de reconhecimento (ADR-037 do NewClaw): carregar e descarregar só por pedido da pessoa ──────────
+    dono = dono_do_modelo or stt_local.dono()
+
+    def ler_ajustes() -> dict:
+        try:
+            return json.loads(arquivo_ajustes.read_text(encoding="utf-8")) if arquivo_ajustes else {}
+        except (OSError, ValueError):
+            return {}
+
+    def sintese() -> dict | None:
+        """Onde a fala roda: os provedores que o onnxruntime instalado oferece (medido; o Kokoro usa o onnxruntime)."""
+        if config.tts is None:
+            return None
+        try:
+            import onnxruntime
+
+            provedores = list(onnxruntime.get_available_providers())
+        except ImportError:
+            provedores = None
+        return {"motor": config.tts.motor, "provedores": provedores}
+
+    def estado_do_modelo() -> dict:
+        return {**dono.estado(), "sintese": sintese(), "ajustes": ler_ajustes()}
+
+    def pedido_permitido(request: Request) -> JSONResponse | None:
+        if sessao_de(request) is None:
+            return erro(401, "entre primeiro (POST /entrar)")
+        if request.method != "GET" and not origem_valida(request):
+            return erro(403, "origem não permitida")
+        return None
+
+    @app.get("/api/modelo")
+    async def modelo(request: Request):
+        return pedido_permitido(request) or estado_do_modelo()
+
+    @app.post("/api/modelo/carregar")
+    async def carregar_modelo(request: Request):
+        recusa = pedido_permitido(request)
+        if recusa:
+            return recusa
+        corpo = await request.json() if request.headers.get("content-type", "").startswith("application/json") else {}
+        try:
+            await asyncio.to_thread(dono.pedir_carga, config, bool(corpo.get("na_cpu")))
+        except stt_local.PedidoRecusado as e:
+            return erro(409, str(e))
+        except stt_local.SttIndisponivel as e:
+            return erro(422, str(e))
+        return estado_do_modelo()
+
+    @app.post("/api/modelo/descarregar")
+    async def descarregar_modelo(request: Request):
+        recusa = pedido_permitido(request)
+        if recusa:
+            return recusa
+        try:
+            await asyncio.to_thread(dono.descarregar)
+        except stt_local.PedidoRecusado as e:
+            return erro(409, str(e))
+        return estado_do_modelo()
+
+    @app.post("/api/modelo/ajustes")
+    async def ajustes_do_modelo(request: Request):
+        recusa = pedido_permitido(request)
+        if recusa:
+            return recusa
+        minutos = (await request.json()).get("descarregar_apos_min")
+        if minutos is not None and (not isinstance(minutos, (int, float)) or isinstance(minutos, bool) or not 1 <= minutos <= 1440):
+            return erro(422, "descarregar_apos_min: minutos entre 1 e 1440, ou null para desligar")
+        if arquivo_ajustes is None:
+            return erro(500, "este servidor não tem onde guardar os ajustes")
+        arquivo_ajustes.write_text(json.dumps({**ler_ajustes(), "descarregar_apos_min": minutos}), encoding="utf-8")
+        return estado_do_modelo()
+
+    if vigiar_ociosidade:
+        def vigiar():
+            while True:
+                time.sleep(30)
+                try:
+                    dono.descarregar_se_ocioso(ler_ajustes().get("descarregar_apos_min"))
+                except Exception as e:  # noqa: BLE001 — a vigia não pode morrer; o motivo vai para o log
+                    print(f"[harness] descarregar por ociosidade falhou: {e}", flush=True)
+
+        threading.Thread(target=vigiar, daemon=True, name="ociosidade-do-modelo").start()
+
     def handler():
         if sinalizacao["handler"] is None:
             from pipecat.transports.smallwebrtc.connection import IceServer
@@ -409,7 +500,8 @@ def principal(argumentos: list[str]) -> int:
     janela = RAIZ / "janela" / "dist"
     if not (janela / "index.html").is_file():
         print("[harness] janela de voz não gerada: na pasta janela/, rode  npm ci && npm run build", flush=True)
-    app = criar_app(config, janela_dir=janela, arquivo_sessoes=RAIZ / ARQUIVO_DAS_SESSOES)
+    app = criar_app(config, janela_dir=janela, arquivo_sessoes=RAIZ / ARQUIVO_DAS_SESSOES,
+                     arquivo_ajustes=RAIZ / ARQUIVO_DOS_AJUSTES, vigiar_ociosidade=True)
     print(f"[harness] {config.origem} → NewClaw em {config.newclaw_url}", flush=True)
     uvicorn.run(
         app, host=config.host, port=config.porta, log_level="warning",

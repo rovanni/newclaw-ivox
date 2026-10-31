@@ -58,7 +58,7 @@ class NewClawFalso:
 
 @unittest.skipUnless(TEM_FASTAPI, "FastAPI/httpx não instalados neste Python (vêm com o extra 'motor')")
 class TestServidor(unittest.TestCase):
-    def montar(self, ambiente=None, arquivo_sessoes=None, **kw):
+    def montar(self, ambiente=None, arquivo_sessoes=None, dono=None, arquivo_ajustes=None, **kw):
         import httpx
         from fastapi.testclient import TestClient
 
@@ -73,7 +73,8 @@ class TestServidor(unittest.TestCase):
         async def motor_falso(argumentos):
             self.motores.append(argumentos)
 
-        self.app = criar_app(config, cliente_http=cliente, montar_motor=motor_falso, arquivo_sessoes=arquivo_sessoes)
+        self.app = criar_app(config, cliente_http=cliente, montar_motor=motor_falso, arquivo_sessoes=arquivo_sessoes,
+                             dono_do_modelo=dono, arquivo_ajustes=arquivo_ajustes)
         return TestClient(self.app, base_url="http://localhost:7860")
 
     # ─── sessão: uma senha só (a do painel), 30 dias, sem tela quando o painel não tem senha ─────────────────
@@ -114,6 +115,66 @@ class TestServidor(unittest.TestCase):
 
     def entrar(self, c, senha="certa", origem=ORIGEM):
         return c.post("/entrar", json={"senha": senha}, headers={"Origin": origem})
+
+    # ─── o modelo de reconhecimento (ADR-037): só por pedido, com sessão e origem ────────────────────────────
+
+    def dono_falso(self):
+        class Dono:
+            def __init__(self):
+                self.pedidos, self.descargas, self.estado_atual = [], 0, "descarregado"
+
+            def estado(self):
+                return {"estado": self.estado_atual, "em_uso": 0}
+
+            def pedir_carga(self, config, na_cpu=False):
+                self.pedidos.append(na_cpu)
+                self.estado_atual = "carregando"
+
+            def descarregar(self):
+                self.descargas += 1
+                self.estado_atual = "descarregado"
+
+        return Dono()
+
+    def test_modelo_pede_sessao_e_origem(self):
+        dono = self.dono_falso()
+        c = self.montar(dono=dono)
+        self.assertEqual(c.get("/api/modelo").status_code, 401)
+        self.assertEqual(c.post("/api/modelo/carregar", headers={"Origin": ORIGEM}).status_code, 401)
+        self.entrar(c)
+        self.assertEqual(c.post("/api/modelo/carregar", headers={"Origin": "http://outro.site"}).status_code, 403)
+        self.assertEqual(c.post("/api/modelo/descarregar").status_code, 403, "sem Origin também é recusado")
+        self.assertEqual(dono.pedidos, [], "nada carregou sem sessão e origem certas")
+
+    def test_entrar_e_conectar_nao_carregam_o_modelo(self):
+        dono = self.dono_falso()
+        c = self.montar(dono=dono)
+        self.entrar(c)
+        self.assertEqual(c.get("/api/modelo").json()["estado"], "descarregado")
+        self.assertEqual(dono.pedidos, [])
+
+    def test_carregar_na_cpu_e_descarregar(self):
+        dono = self.dono_falso()
+        c = self.montar(dono=dono)
+        self.entrar(c)
+        r = c.post("/api/modelo/carregar", json={"na_cpu": True}, headers={"Origin": ORIGEM})
+        self.assertEqual((r.status_code, r.json()["estado"], dono.pedidos), (200, "carregando", [True]))
+        r = c.post("/api/modelo/descarregar", headers={"Origin": ORIGEM})
+        self.assertEqual((r.json()["estado"], dono.descargas), ("descarregado", 1))
+
+    def test_ajustes_da_ociosidade(self):
+        arquivo = Path(tempfile.mkdtemp()) / ".ajustes-do-modelo.json"
+        c = self.montar(dono=self.dono_falso(), arquivo_ajustes=arquivo)
+        self.entrar(c)
+        self.assertEqual(c.get("/api/modelo").json()["ajustes"], {}, "desligado por padrão")
+        for ruim in (0, 5000, "10", True):
+            with self.subTest(ruim=ruim):
+                r = c.post("/api/modelo/ajustes", json={"descarregar_apos_min": ruim}, headers={"Origin": ORIGEM})
+                self.assertEqual(r.status_code, 422)
+        r = c.post("/api/modelo/ajustes", json={"descarregar_apos_min": 15}, headers={"Origin": ORIGEM})
+        self.assertEqual(r.json()["ajustes"], {"descarregar_apos_min": 15})
+        r = c.post("/api/modelo/ajustes", json={"descarregar_apos_min": None}, headers={"Origin": ORIGEM})
+        self.assertEqual(r.json()["ajustes"], {"descarregar_apos_min": None})
 
     # ─── login ───────────────────────────────────────────────────────────────
 

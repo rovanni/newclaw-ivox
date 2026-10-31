@@ -26,3 +26,5 @@ janela/dist/
 # Sessões da janela (tokens do NewClaw): ficam só nesta máquina.
 .sessoes-da-janela.json
 .sessoes-da-janela.json.novo
+# Ajustes do modelo de reconhecimento (descarregar por ociosidade): são desta máquina.
+.ajustes-do-modelo.json

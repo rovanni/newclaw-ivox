@@ -39,5 +39,23 @@ class TestMedicaoDoSistema(unittest.TestCase):
         self.assertIsInstance(s.gpus_nvidia, tuple)
 
 
+
+class TestMemoriaDaGpu(unittest.TestCase):
+    def test_sem_driver_nvidia_e_nao_medido(self):
+        original = d._abrir_nvml
+        d._abrir_nvml = lambda: None
+        try:
+            self.assertIsNone(d.medir_memoria_gpu(), "sem NVML: ausência, nunca um número inventado")
+        finally:
+            d._abrir_nvml = original
+
+    def test_medida_quando_ha_driver(self):
+        medida = d.medir_memoria_gpu()
+        if medida is None:
+            self.skipTest("esta máquina não tem driver NVIDIA")
+        for g in medida:
+            self.assertEqual(g.usada_bytes + g.livre_bytes, g.total_bytes, g)
+
+
 if __name__ == "__main__":
     unittest.main()

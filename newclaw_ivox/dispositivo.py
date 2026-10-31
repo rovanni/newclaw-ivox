@@ -112,6 +112,75 @@ def medir_motor() -> Motor:
     return Motor(gpus_cuda=gpus, tipos=tipos, pastas_dll=pastas)
 
 
+@dataclass(frozen=True)
+class MemoriaGpu:
+    nome: str
+    total_bytes: int
+    usada_bytes: int
+    livre_bytes: int
+
+
+def _abrir_nvml():
+    """A NVML vem com o driver da NVIDIA (não com o `nvidia-smi` nem com pacote do pip). Sem ela, None."""
+    import ctypes
+
+    if sys.platform == "win32":
+        raiz = os.environ.get("SystemRoot", r"C:\Windows")
+        candidatos = [str(Path(raiz) / "System32" / "nvml.dll"), "nvml.dll"]
+    elif sys.platform.startswith("linux"):
+        candidatos = ["libnvidia-ml.so.1"]
+    else:
+        return None
+    for caminho in candidatos:
+        try:
+            return ctypes.CDLL(caminho)
+        except OSError:
+            continue
+    return None
+
+
+def medir_memoria_gpu() -> tuple[MemoriaGpu, ...] | None:
+    """Memória de cada GPU NVIDIA agora, lida da NVML. None quando não dá para medir (sem driver NVIDIA, outra GPU, erro).
+
+    Só leitura: não cria contexto CUDA nem aloca nada. O reconhecimento só usa GPU por CUDA (o CTranslate2 não tem outro
+    acelerador), então numa máquina sem NVIDIA não há VRAM do Whisper para medir.
+    """
+    import ctypes
+
+    nvml = _abrir_nvml()
+    if nvml is None:
+        return None
+
+    class _Memoria(ctypes.Structure):
+        _fields_ = [("total", ctypes.c_ulonglong), ("free", ctypes.c_ulonglong), ("used", ctypes.c_ulonglong)]
+
+    try:
+        if nvml.nvmlInit_v2() != 0:
+            return None
+    except AttributeError:
+        return None
+    try:
+        quantas = ctypes.c_uint(0)
+        if nvml.nvmlDeviceGetCount_v2(ctypes.byref(quantas)) != 0:
+            return None
+        gpus = []
+        for i in range(quantas.value):
+            alvo = ctypes.c_void_p()
+            if nvml.nvmlDeviceGetHandleByIndex_v2(i, ctypes.byref(alvo)) != 0:
+                return None
+            memoria = _Memoria()
+            if nvml.nvmlDeviceGetMemoryInfo(alvo, ctypes.byref(memoria)) != 0:
+                return None
+            nome = ctypes.create_string_buffer(96)
+            nvml.nvmlDeviceGetName(alvo, nome, 96)
+            gpus.append(MemoriaGpu(nome.value.decode("utf-8", "replace"), memoria.total, memoria.used, memoria.free))
+        return tuple(gpus)
+    except (AttributeError, OSError):
+        return None
+    finally:
+        nvml.nvmlShutdown()
+
+
 def escolher(pedido: str, motor: Motor) -> Escolha:
     """`pedido` é o VOZ_DISPOSITIVO do usuário: auto, cpu ou cuda."""
     tem_cuda = motor.gpus_cuda > 0 and bool(motor.tipos.get("cuda"))
