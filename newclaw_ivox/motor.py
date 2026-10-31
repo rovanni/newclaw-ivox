@@ -181,7 +181,7 @@ async def bot(runner_args):
     # Sem limite de ociosidade: a janela fica aberta esperando a pessoa falar. O padrão do Pipecat (5 min parado) encerrava
     # a ligação no meio do uso (achado da prova real, 30/10/2026); ela acaba quando a janela desconecta.
     task = PipelineTask(Pipeline(etapas), params=PipelineParams(), idle_timeout_secs=None)
-    estado = {"voz": voz_inicial}
+    estado: dict = {"voz": voz_inicial, "velocidade": 1.0}
 
     @task.rtvi.event_handler("on_client_message")
     async def mensagem(rtvi, msg):
@@ -200,10 +200,15 @@ async def bot(runner_args):
         elif acao.tipo == controle.TROCAR_VOZ:
             await task.queue_frame(TTSUpdateSettingsFrame(delta=KokoroTTSService.Settings(voice=acao.voz)))
             estado["voz"] = acao.voz
+        elif acao.tipo == controle.VELOCIDADE:
+            await task.queue_frame(TTSUpdateSettingsFrame(delta=KokoroTTSService.Settings(speed=acao.velocidade)))
+            estado["velocidade"] = acao.velocidade
         elif acao.tipo == controle.IGNORAR:
             await rtvi.send_error_response(msg, acao.motivo)
             return
-        await rtvi.send_server_response(msg, {"ok": True, "acao": acao.tipo, "voz": estado["voz"]})
+        await rtvi.send_server_response(
+            msg, {"ok": True, "acao": acao.tipo, "voz": estado["voz"], "velocidade": estado["velocidade"]},
+        )
 
     @transporte.event_handler("on_client_disconnected")
     async def desconectou(transport, client):

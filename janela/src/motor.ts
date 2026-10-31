@@ -2,8 +2,8 @@
  * Ligação com o motor de voz do harness: Pipecat (cliente RTVI) com o transporte SmallWebRTC, pela sinalização do próprio
  * harness (`/api/offer`, que exige a sessão). Nenhum servidor STUN/TURN de terceiros: a ligação é local.
  *
- * Traduz os eventos do motor para a `Conversa` e implementa o protocolo v2 da janela → motor (`controle.py`): falar,
- * interromper, vozes, voz.
+ * Traduz os eventos do motor para a `Conversa` e implementa o protocolo v3 da janela → motor (`controle.py`): falar,
+ * interromper, vozes, voz, velocidade.
  */
 import { PipecatClient } from '@pipecat-ai/client-js';
 import { SmallWebRTCTransport } from '@pipecat-ai/small-webrtc-transport';
@@ -27,6 +27,10 @@ export interface Niveis {
 }
 
 const ESPERA_RESPOSTA_MS = 15_000;
+
+/** Faixa da velocidade da fala que o motor aceita (a do Kokoro, `VELOCIDADE_MINIMA/MAXIMA` em `controle.py`). */
+export const VELOCIDADE_MINIMA = 0.5;
+export const VELOCIDADE_MAXIMA = 2;
 
 function motivoDoErro(e: unknown): string {
   if (e && typeof e === 'object') {
@@ -97,7 +101,7 @@ export class LigacaoComOMotor implements Motor {
     this.cliente = null;
   }
 
-  // ─── Motor (protocolo v2) ──────────────────────────────────────────────────
+  // ─── Motor (protocolo v3) ──────────────────────────────────────────────────
 
   falar(texto: string): void {
     if (!this.cliente) return this.conversa().motorRecusou('o motor de voz não está ligado');
@@ -118,6 +122,17 @@ export class LigacaoComOMotor implements Motor {
   async trocarVoz(nome: string): Promise<void> {
     if (!this.cliente) throw new Error('o motor de voz não está ligado');
     await this.cliente.sendClientRequest('voz', { voz: nome }, ESPERA_RESPOSTA_MS);
+  }
+
+  /** Velocidade da fala (multiplicador do Kokoro); vale a partir da próxima frase sintetizada. */
+  async velocidade(v: number): Promise<void> {
+    if (!this.cliente) throw new Error('o motor de voz não está ligado');
+    await this.cliente.sendClientRequest('velocidade', { velocidade: v }, ESPERA_RESPOSTA_MS);
+  }
+
+  /** Volume da voz neste navegador (0 a 1): só a reprodução daqui, não a síntese do motor. */
+  definirVolume(v: number): void {
+    this.audio.volume = Math.min(1, Math.max(0, v));
   }
 
   /** Segurar espaço: o microfone só fica aberto enquanto a tecla estiver apertada. */

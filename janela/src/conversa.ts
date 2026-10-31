@@ -10,7 +10,7 @@
 import { estadoDaTela, FATOS_INICIAIS, faseMaisRelevante, type EstadoDaTela, type FaseDoTurno, type Fatos } from './estado';
 import type { Aprovacao, ClienteDoTurno, EstadoDoTurno } from './turnos';
 
-/** O que a janela pede ao motor de voz (protocolo v2 do `controle.py`). */
+/** O que a janela pede ao motor de voz (protocolo v3 do `controle.py`). */
 export interface Motor {
   falar(texto: string): void;
   interromper(): void;

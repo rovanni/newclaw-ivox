@@ -1,7 +1,7 @@
 import unittest
 
 from newclaw_ivox.controle import (
-    FALAR, IGNORAR, INTERROMPER, LISTAR_VOZES, TEXTO_MAXIMO, TROCAR_VOZ, interpretar,
+    FALAR, IGNORAR, INTERROMPER, LISTAR_VOZES, TEXTO_MAXIMO, TROCAR_VOZ, VELOCIDADE, interpretar,
 )
 
 VOZES = ("bm_george", "pf_dora", "pm_alex")
@@ -65,3 +65,21 @@ class TestVozNaInterface(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestVelocidade(unittest.TestCase):
+    VOZES = ("pf_dora",)
+
+    def test_velocidade_na_faixa_do_kokoro(self):
+        for v in (0.5, 1, 1.25, 2.0):
+            acao = interpretar({"t": "velocidade", "d": {"velocidade": v}}, True, vozes=self.VOZES)
+            self.assertEqual((acao.tipo, acao.velocidade), (VELOCIDADE, float(v)))
+
+    def test_fora_da_faixa_ou_invalida_e_ignorada(self):
+        for v in (0.4, 2.1, "1.2", None, True, float("nan")):
+            acao = interpretar({"t": "velocidade", "d": {"velocidade": v}}, True, vozes=self.VOZES)
+            self.assertEqual(acao.tipo, IGNORAR, v)
+
+    def test_sem_sintese_local_nao_ha_velocidade(self):
+        self.assertEqual(interpretar({"t": "velocidade", "d": {"velocidade": 1.2}}, True, vozes=None).tipo, IGNORAR)
+

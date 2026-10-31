@@ -594,3 +594,21 @@ opcionais, guiado por um manifesto que a integração publica. Do lado do newcla
   painel. Recebe o endereço do NewClaw (`--newclaw-url`) e grava no `.env`.
 - **Janela:** o instalador agora gera a janela (`npm ci` + `npm run build`), nos dois modos.
 - **Testes:** 9 novos (`tests/test_painel.py`). Simulação completa do fluxo do painel conferida.
+
+## Janela — sprints A, B e C (31/10/2026)
+
+Pedido da operadora em 31/10, a partir de uma análise das funcionalidades que já existiam. As três sprints mexem só no
+newclaw-ivox; a evolução do contrato do turno (etapas, contexto, modelo) ficou para um ADR no NewClaw, antes de código.
+
+- **A — respostas** (`b914f92`): Markdown seguro (`react-markdown` 10.1.0 + `remark-gfm` 4.0.1, MIT; HTML embutido
+  não vira HTML, só links http(s)/mailto/âncora, imagem externa vira link); **Copiar**; **Ouvir de novo** (o mesmo texto
+  vai ao motor, sem pedido ao NewClaw); resposta em andamento na coluna com a fase real do turno; no foco, o balão mais
+  largo mostra a resposta formatada 800 ms depois do fim do áudio.
+- **B — núcleo** (`bdb06a7`): partículas convergindo em fila/pensando (medido no canvas: raio médio 66 contra 90 em
+  "pronto"); anéis de expansão ao ouvir, com a força do microfone real; **modo econômico** (260 pontos, metade dos
+  quadros, sem brilho; cerca de 1/4 dos pixels).
+- **C — ajustes**: painel com Áudio (voz, velocidade 0,5x–2x, volume, estado do microfone), Aparência (tema, centro,
+  econômico, foco), Interação (jeito de falar, espera, sons, atalhos) e Conexão (só leitura). **Protocolo versão 3:**
+  `{"t": "velocidade", "d": {"velocidade": 1.2}}`, na faixa que o serviço Kokoro do Pipecat documenta; fora dela, a
+  mensagem é ignorada com o motivo. Prova real: o mesmo texto levou 9,9 s a 1x e 6,2 s a 1,5x.
+- **Testes:** janela 50/50 (vitest), motor 128/128 (unittest), `tsc` ok.

@@ -5,10 +5,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent, type KeyboardEvent } from 'react';
 import { Centro, type EstiloDoCentro } from './Centro';
 import { AcoesDaResposta, TextoFormatado } from './Resposta';
+import { Configuracoes } from './Configuracoes';
 import { Conversa, type EsperaAntesDeEnviar, type JeitoDeFalar, type Mensagem, type Quadro } from './conversa';
 import { listarConversasDeVoz, mensagensDaConversa, rotuloDaConversa, type ConversaGuardada } from './historico';
 import { podeParar } from './estado';
-import { LigacaoComOMotor, type Voz } from './motor';
+import { LigacaoComOMotor, VELOCIDADE_MAXIMA, VELOCIDADE_MINIMA, type Voz } from './motor';
 import { gravarPref, idDaConversa, lerPref, novaConversa, usarConversa } from './preferencias';
 import { comecouAOuvir, terminouDeOuvir } from './sons';
 import { detalhe, hora, partesDaFala, tempoDecorrido } from './textos';
@@ -104,6 +105,16 @@ function Janela({ aoSair, semSenha }: { aoSair: () => void; semSenha: boolean })
   const [estilo, setEstilo] = useState<EstiloDoCentro>(lerPref('ivox-centro') === 'particulas' ? 'particulas' : 'circulo');
   const [sons, setSons] = useState(lerPref('ivox-sons') !== 'nao');
   const [economico, setEconomico] = useState(lerPref('ivox-economico') === 'sim');
+  const [ajustes, setAjustes] = useState(false);
+  // Velocidade e volume da fala, lembrados neste navegador; fora da faixa (preferência antiga ou editada), o padrão.
+  const [velocidade, setVelocidade] = useState(() => {
+    const v = Number(lerPref('ivox-velocidade'));
+    return v >= VELOCIDADE_MINIMA && v <= VELOCIDADE_MAXIMA ? v : 1;
+  });
+  const [volume, setVolume] = useState(() => {
+    const v = Number(lerPref('ivox-volume') ?? '1');
+    return v >= 0 && v <= 1 ? v : 1;
+  });
   const [espera, setEspera] = useState<EsperaAntesDeEnviar>(() => {
     const e = lerPref('ivox-espera');
     return e === 'curta' || e === 'longa' ? e : 'media';
@@ -176,6 +187,9 @@ function Janela({ aoSair, semSenha }: { aoSair: () => void; semSenha: boolean })
         if (!vivo) return;
         setVozes(lista.vozes);
         setVozAtual(lista.atual);
+        // Velocidade lembrada: o motor nasce em 1x a cada ligação.
+        const v = Number(lerPref('ivox-velocidade'));
+        if (v >= VELOCIDADE_MINIMA && v <= VELOCIDADE_MAXIMA && v !== 1) await motor.velocidade(v).catch(() => undefined);
         // O motor nasce sem voz quando o .env não traz uma: volta a que a pessoa escolheu da última vez neste navegador.
         const lembrada = lerPref('ivox-voz');
         if (lista.atual === null && lembrada && lista.vozes.some((v) => v.nome === lembrada)) {
@@ -200,6 +214,7 @@ function Janela({ aoSair, semSenha }: { aoSair: () => void; semSenha: boolean })
   useEffect(() => { gravarPref('ivox-centro', estilo); }, [estilo]);
   useEffect(() => { gravarPref('ivox-sons', sons ? 'sim' : 'nao'); }, [sons]);
   useEffect(() => { document.body.classList.toggle('economico', economico); gravarPref('ivox-economico', economico ? 'sim' : 'nao'); }, [economico]);
+  useEffect(() => { motor.definirVolume(volume); gravarPref('ivox-volume', String(volume)); }, [volume, motor]);
   useEffect(() => { gravarPref('ivox-espera', espera); conversaRef.current?.definirEspera(espera); }, [espera]);
   useEffect(() => {
     gravarPref('ivox-fala', jeito);
@@ -241,7 +256,7 @@ function Janela({ aoSair, semSenha }: { aoSair: () => void; semSenha: boolean })
     const digitando = (ev: globalThis.KeyboardEvent) =>
       ev.target instanceof HTMLElement && ['INPUT', 'TEXTAREA', 'SELECT'].includes(ev.target.tagName);
     const baixo = (ev: globalThis.KeyboardEvent) => {
-      if (digitando(ev)) return;
+      if (digitando(ev) || ajustes) return;  // com os ajustes abertos, Espaço e F são dos controles de lá
       if (ev.key === 'f' || ev.key === 'F') { setFoco((v) => !v); return; }
       if (ev.code === 'Space' && jeito === 'segurar') { ev.preventDefault(); if (!ev.repeat) segurar(true); }
     };
@@ -251,7 +266,7 @@ function Janela({ aoSair, semSenha }: { aoSair: () => void; semSenha: boolean })
     addEventListener('keydown', baixo);
     addEventListener('keyup', cima);
     return () => { removeEventListener('keydown', baixo); removeEventListener('keyup', cima); };
-  }, [jeito, segurar]);
+  }, [jeito, segurar, ajustes]);
 
   const enviar = () => {
     const c = conversaRef.current;
@@ -302,6 +317,15 @@ function Janela({ aoSair, semSenha }: { aoSair: () => void; semSenha: boolean })
     setSessaoAtual(item.c.sessionId);
     setHistorico(null);
   };
+  // A velocidade vai ao motor ao soltar o controle (cada passo seria um pedido); a tela mostra o valor na hora.
+  const temporizadorVelocidade = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const mudarVelocidade = (v: number) => {
+    setVelocidade(v);
+    if (temporizadorVelocidade.current) clearTimeout(temporizadorVelocidade.current);
+    temporizadorVelocidade.current = setTimeout(() => {
+      motor.velocidade(v).then(() => gravarPref('ivox-velocidade', String(v))).catch(() => undefined);
+    }, 250);
+  };
   const sair = async () => {
     await fetch('/sair', { method: 'POST' }).catch(() => undefined);
     aoSair();
@@ -333,6 +357,10 @@ function Janela({ aoSair, semSenha }: { aoSair: () => void; semSenha: boolean })
             <span className="ponto" />{ligado === 'ligado' && !q?.fatos.erro ? 'Voz ligada' : ligado === 'ligando' ? 'Ligando' : 'Sem voz'}
           </span>
           <span className="relogio">{hora(agora)}</span>
+          <button className="botao-tema" onClick={() => setAjustes(true)} title="Ajustes: áudio, aparência, interação e conexão">
+            <Icone d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z" />
+            <span>Ajustes</span>
+          </button>
           <button className="botao-tema" onClick={() => setFoco(!foco)} title="Modo foco: só o centro e a conversa (tecla F)">
             <Icone d="M8 3H5a2 2 0 0 0-2 2v3M21 8V5a2 2 0 0 0-2-2h-3M3 16v3a2 2 0 0 0 2 2h3M16 21h3a2 2 0 0 0 2-2v-3" />
             <span>{foco ? 'Sair do foco' : 'Foco'}</span>
@@ -472,24 +500,28 @@ function Janela({ aoSair, semSenha }: { aoSair: () => void; semSenha: boolean })
               <button className={estilo === 'circulo' ? 'ativo' : ''} onClick={() => setEstilo('circulo')}>Círculo</button>
               <button className={estilo === 'particulas' ? 'ativo' : ''} onClick={() => setEstilo('particulas')}>Partículas</button>
             </div>
-            <div className="rotulo-opcao">Espera antes de enviar</div>
-            <div className="segmento" role="radiogroup" aria-label="Espera antes de enviar">
-              <button className={espera === 'curta' ? 'ativo' : ''} onClick={() => setEspera('curta')} title="Envia com ~1,4 s de silêncio">Curta</button>
-              <button className={espera === 'media' ? 'ativo' : ''} onClick={() => setEspera('media')} title="Envia com ~2 s de silêncio">Média</button>
-              <button className={espera === 'longa' ? 'ativo' : ''} onClick={() => setEspera('longa')} title="Envia com ~3 s de silêncio (para quem pensa enquanto fala)">Longa</button>
-            </div>
-            <label className="chave"><input type="checkbox" checked={sons} onChange={(e) => setSons(e.target.checked)} /> Sons ao começar e terminar de ouvir</label>
-            <label className="chave" title="Menos pontos, metade dos quadros, sem brilho nem anéis girando: menos uso da placa de vídeo">
-              <input type="checkbox" checked={economico} onChange={(e) => setEconomico(e.target.checked)} /> Modo econômico (animação mais leve)
-            </label>
             <div className="nota">
               {motor.semMicrofone ? `Sem microfone: ${motor.semMicrofone}.` : jeito === 'livre'
                 ? 'O microfone fica aberto; ele percebe sozinho quando você termina. O botão do microfone silencia.'
                 : 'Segure a barra de espaço (ou o botão do microfone) enquanto fala e solte quando terminar.'}
             </div>
+            <button className="btn mini mais-ajustes" onClick={() => setAjustes(true)}>Espera, sons, velocidade, volume e mais…</button>
           </div>
         </section>
       </main>
+
+      {ajustes && (
+        <Configuracoes
+          aoFechar={() => setAjustes(false)}
+          vozes={vozes} vozAtual={vozAtual} aoTrocarVoz={(n) => void trocarVoz(n)} gruposDeVozes={gruposDeVozes}
+          velocidade={velocidade} aoMudarVelocidade={mudarVelocidade} volume={volume} aoMudarVolume={setVolume}
+          semMicrofone={motor.semMicrofone} micAberto={micAberto}
+          tema={tema} aoMudarTema={setTema} estilo={estilo} aoMudarEstilo={setEstilo}
+          economico={economico} aoMudarEconomico={setEconomico} foco={foco} aoMudarFoco={setFoco}
+          jeito={jeito} aoMudarJeito={setJeito} espera={espera} aoMudarEspera={setEspera} sons={sons} aoMudarSons={setSons}
+          ligado={ligado} info={info} conversa={sessaoAtual}
+        />
+      )}
 
       <footer>
         <div className="entrada-wrap">
