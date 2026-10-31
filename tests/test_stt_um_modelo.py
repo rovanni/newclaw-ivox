@@ -204,6 +204,13 @@ class TestDescarregar(ComModelo):
 
 @unittest.skipUnless(TEM_PIPECAT, "Pipecat não instalado neste Python")
 class TestServicoDaLinha(ComModelo):
+    def test_idioma_da_configuracao_vira_o_codigo_do_whisper(self):
+        # Achado da prova real (31/10/2026): a carga recebia "pt-BR" cru e o faster-whisper recusava.
+        from pipecat.services.whisper.stt import language_to_whisper_language
+        from pipecat.transcriptions.language import Language
+
+        self.assertEqual(language_to_whisper_language(Language("pt-BR")), "pt")
+
     def test_conectar_nao_carrega(self):
         f = Falsos()
         dono = f.dono()

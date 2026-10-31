@@ -338,13 +338,14 @@ def criar_app(config: cfg.Configuracao, cliente_http=None, montar_motor=None, ja
             return {}
 
     def sintese() -> dict | None:
-        """Onde a fala roda: os provedores que o onnxruntime instalado oferece (medido; o Kokoro usa o onnxruntime)."""
+        """Onde a fala roda: os provedores que o próprio kokoro-onnx escolhe nesta instalação (a mesma função que ele usa
+        ao abrir o modelo). A lista crua do onnxruntime não serve: ela traz provedores que o Kokoro não usa."""
         if config.tts is None:
             return None
         try:
-            import onnxruntime
+            from kokoro_onnx.session import resolve_providers
 
-            provedores = list(onnxruntime.get_available_providers())
+            provedores = list(resolve_providers())
         except ImportError:
             provedores = None
         return {"motor": config.tts.motor, "provedores": provedores}

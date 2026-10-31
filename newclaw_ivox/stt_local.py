@@ -60,7 +60,12 @@ def _carregar_whisper(pasta: Path, dispositivo: str, tipo: str, idioma: str | No
     """Carga real: o WhisperModel do faster-whisper, conferido contra o idioma e aquecido (a 1ª transcrição é lenta)."""
     import numpy as np
     from faster_whisper import WhisperModel
+    from pipecat.services.whisper.stt import language_to_whisper_language
+    from pipecat.transcriptions.language import Language
 
+    # O idioma chega como na configuração (`pt-BR`); o Whisper usa o código dele (`pt`). A conversão é a do próprio
+    # serviço do Pipecat, a mesma que valia quando ele carregava o modelo (achado da prova real de 31/10/2026).
+    idioma = language_to_whisper_language(Language(idioma)) if idioma else None
     modelo = WhisperModel(str(pasta), device=dispositivo, compute_type=tipo)
     suportados = getattr(modelo, "supported_languages", None)
     if idioma and suportados and idioma not in suportados:
