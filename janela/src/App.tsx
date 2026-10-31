@@ -4,10 +4,11 @@
  */
 import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent, type KeyboardEvent } from 'react';
 import { Centro, type EstiloDoCentro } from './Centro';
-import { Conversa, type EsperaAntesDeEnviar, type JeitoDeFalar, type Quadro } from './conversa';
+import { Conversa, type EsperaAntesDeEnviar, type JeitoDeFalar, type Mensagem, type Quadro } from './conversa';
+import { listarConversasDeVoz, mensagensDaConversa, rotuloDaConversa, type ConversaGuardada } from './historico';
 import { podeParar } from './estado';
 import { LigacaoComOMotor, type Voz } from './motor';
-import { gravarPref, idDaConversa, lerPref } from './preferencias';
+import { gravarPref, idDaConversa, lerPref, novaConversa, usarConversa } from './preferencias';
 import { comecouAOuvir, terminouDeOuvir } from './sons';
 import { detalhe, hora, partesDaFala, tempoDecorrido } from './textos';
 import { carregarClienteDoTurno } from './turnos';
@@ -114,6 +115,9 @@ function Janela({ aoSair, semSenha }: { aoSair: () => void; semSenha: boolean })
   const [texto, setTexto] = useState('');
   const [micAberto, setMicAberto] = useState(true);
   const [agora, setAgora] = useState(Date.now());
+  // Conversas de voz anteriores (guardadas no NewClaw), mostradas no lugar da conversa atual quando abertas.
+  const [historico, setHistorico] = useState<{ itens: { c: ConversaGuardada; rotulo: string; mensagens: Mensagem[] }[] | null; erro: string } | null>(null);
+  const [sessaoAtual, setSessaoAtual] = useState(idDaConversa);
   // O Chrome só libera o som da página depois do primeiro clique ou tecla (ver microfone.ts).
   const [somLiberado, setSomLiberado] = useState(() => navigator.userActivation?.hasBeenActive ?? true);
   useEffect(() => {
@@ -139,6 +143,20 @@ function Janela({ aoSair, semSenha }: { aoSair: () => void; semSenha: boolean })
         conversaRef.current.definirJeitoDeFalar(jeito);
         conversaRef.current.definirEspera(espera);
         setQuadro(conversaRef.current.quadro());
+        // A conversa continua de onde parou: as últimas mensagens dela voltam à coluna (sem elas, a janela parecia vazia).
+        void (async () => {
+          try {
+            const sessao = idDaConversa();
+            const guardada = (await listarConversasDeVoz()).find((c) => c.sessionId === sessao);
+            if (!guardada || !vivo) return;
+            const msgs = await mensagensDaConversa(guardada);
+            // Só se a pessoa ainda não começou a falar ou escrever: o histórico chega depois de o microfone abrir.
+            const agoraNaTela = conversaRef.current?.quadro();
+            if (vivo && agoraNaTela && agoraNaTela.mensagens.length === 0 && !agoraNaTela.legenda) {
+              conversaRef.current?.trocarDeConversa(sessao, msgs);
+            }
+          } catch { /* sem histórico: a conversa segue, só começa com a coluna vazia */ }
+        })();
         await motor.conectar();
         if (!vivo) return;
         if (jeito === 'segurar') { motor.microfone(false); setMicAberto(false); }
@@ -243,6 +261,35 @@ function Janela({ aoSair, semSenha }: { aoSair: () => void; semSenha: boolean })
     setVozAtual(nome);
     try { await motor.trocarVoz(nome); gravarPref('ivox-voz', nome); } catch { setVozAtual(anterior); }
   };
+  const comecarConversaNova = () => {
+    const c = conversaRef.current;
+    if (!c || c.ocupada()) return;
+    const id = novaConversa();
+    c.trocarDeConversa(id);
+    setSessaoAtual(id);
+    setHistorico(null);
+  };
+  const abrirHistorico = async () => {
+    if (historico) { setHistorico(null); return; }
+    setHistorico({ itens: null, erro: '' });
+    try {
+      const lista = (await listarConversasDeVoz()).slice(0, 15);
+      const itens = await Promise.all(lista.map(async (c) => {
+        const mensagens = await mensagensDaConversa(c).catch(() => [] as Mensagem[]);
+        return { c, mensagens, rotulo: rotuloDaConversa(mensagens, c) };
+      }));
+      setHistorico({ itens, erro: '' });
+    } catch (e) {
+      setHistorico({ itens: [], erro: String(e instanceof Error ? e.message : e) });
+    }
+  };
+  const retomar = (item: { c: ConversaGuardada; mensagens: Mensagem[] }) => {
+    const c = conversaRef.current;
+    if (!c || !c.trocarDeConversa(item.c.sessionId, item.mensagens)) return;
+    usarConversa(item.c.sessionId);
+    setSessaoAtual(item.c.sessionId);
+    setHistorico(null);
+  };
   const sair = async () => {
     await fetch('/sair', { method: 'POST' }).catch(() => undefined);
     aoSair();
@@ -343,7 +390,32 @@ function Janela({ aoSair, semSenha }: { aoSair: () => void; semSenha: boolean })
 
         <section className="coluna dir">
           <div className="cartao">
-            <h2>Conversa</h2>
+            <div className="titulo-conversa">
+              <h2>{historico ? 'Conversas anteriores' : 'Conversa'}</h2>
+              <div className="acoes-conversa">
+                <button className="btn mini" onClick={() => void abrirHistorico()} title={historico ? 'Voltar à conversa atual' : 'Ver e retomar conversas de voz anteriores'}>
+                  {historico ? 'Voltar' : 'Anteriores'}
+                </button>
+                <button className="btn mini" onClick={comecarConversaNova} disabled={parar || ligado !== 'ligado'}
+                  title={parar ? 'Espere o pedido em andamento terminar' : 'Começa uma conversa nova; a atual fica no histórico'}>
+                  Nova
+                </button>
+              </div>
+            </div>
+            {historico ? (
+              <div className="conversa">
+                {historico.itens === null && <div className="vazio">Carregando…</div>}
+                {historico.erro && <div className="vazio">Não consegui ler o histórico: {historico.erro}</div>}
+                {historico.itens?.length === 0 && !historico.erro && <div className="vazio">Nenhuma conversa de voz guardada ainda.</div>}
+                {historico.itens?.map((item) => (
+                  <button key={item.c.sessionId} className={`conversa-antiga ${item.c.sessionId === sessaoAtual ? 'atual' : ''}`}
+                    disabled={parar || item.c.sessionId === sessaoAtual} onClick={() => retomar(item)}>
+                    <b>{item.rotulo}</b>
+                    <small>{new Date(item.c.atualizadaEm).toLocaleString()}{item.c.sessionId === sessaoAtual ? ' · atual' : ''}</small>
+                  </button>
+                ))}
+              </div>
+            ) : (
             <div className="conversa">
               {(q?.mensagens.length ?? 0) === 0 && (q?.aprovacoes.length ?? 0) === 0 && <div className="vazio">Nada por aqui ainda.</div>}
               {q?.mensagens.map((m, i) => (
@@ -363,6 +435,7 @@ function Janela({ aoSair, semSenha }: { aoSair: () => void; semSenha: boolean })
                 </div>
               ))}
             </div>
+            )}
           </div>
           <div className="cartao modo-voz">
             <div className="topo"><span>MODO VOZ</span><span className={ligado === 'ligado' ? 'estado-ok' : ''}>{ligado === 'ligado' ? 'ATIVO' : '—'}</span></div>

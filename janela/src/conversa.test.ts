@@ -33,8 +33,11 @@ class TurnosFalsos implements ClienteDoTurno {
   private n = 0;
   private turnos = new Map<string, { onState?: (s: EstadoDoTurno) => void; fim: (r: ResultadoDaEspera) => void }>();
 
-  async send({ message }: { sessionId: string; message: string }): Promise<ResultadoDoEnvio> {
+  sessoes: string[] = [];
+
+  async send({ sessionId, message }: { sessionId: string; message: string }): Promise<ResultadoDoEnvio> {
     this.enviados.push(message);
+    this.sessoes.push(sessionId);
     return this.respostaDoEnvio ?? { kind: 'accepted', turnId: `t${++this.n}`, sessionId: 's' };
   }
   cancel(a: { sessionId: string }) { return this.send({ ...a, message: '/cancelar' }); }
@@ -309,5 +312,47 @@ describe('Conversa — texto, parar, aprovação, falhas', () => {
     relogio.andar(300);
     c.transcricao('a', false);
     expect(ultimo().desde).toBe(500);
+  });
+});
+
+describe('Conversa — trocar de conversa (nova ou retomada do histórico)', () => {
+  it('passa a mandar os pedidos para a outra conversa e mostra as mensagens dela', async () => {
+    const { c, turnos, ultimo } = montar();
+    c.enviarTexto('na primeira');
+    await tick();
+    turnos.terminar('t1', { kind: 'finished', delivery: { kind: 'delivered', text: 'ok', attachments: [] } });
+    await tick();
+    c.motorComecouAFalar();
+    c.motorParouDeFalar();
+    const anteriores = [{ quem: 'voce' as const, texto: 'Bom dia.', em: 1 }, { quem: 'newclaw' as const, texto: 'Opa!', em: 2 }];
+    expect(c.trocarDeConversa('voz-antiga', anteriores)).toBe(true);
+    expect(ultimo().mensagens).toEqual(anteriores);
+    expect(ultimo().estado).toBe('pronto');
+    c.enviarTexto('na antiga');
+    await tick();
+    expect(turnos.sessoes).toEqual(['s', 'voz-antiga']);
+  });
+
+  it('recusa enquanto há pedido em andamento (as respostas se misturariam)', async () => {
+    const { c, turnos, ultimo } = montar();
+    c.enviarTexto('demorado');
+    expect(c.ocupada()).toBe(true); // já entre o envio e o aceite
+    await tick();
+    expect(c.trocarDeConversa('voz-outra')).toBe(false);
+    expect(ultimo().mensagens.map((m) => m.texto)).toEqual(['demorado']);
+    turnos.terminar('t1', { kind: 'finished', delivery: { kind: 'delivered', text: 'pronto', attachments: [] } });
+    await tick();
+    expect(c.ocupada()).toBe(false);
+    expect(c.trocarDeConversa('voz-outra')).toBe(true);
+  });
+
+  it('corta a fala em curso e limpa a legenda', async () => {
+    const { c, motor, ultimo } = montar();
+    c.pessoaComecouAFalar();
+    c.transcricao('meio dito', false);
+    expect(c.trocarDeConversa('voz-nova')).toBe(true);
+    expect(ultimo().legenda).toBe('');
+    expect(ultimo().mensagens).toEqual([]);
+    expect(motor.interrupcoes).toBe(0); // nada falando: não interrompe à toa
   });
 });

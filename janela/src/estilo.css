@@ -177,6 +177,18 @@ main { display: grid; grid-template-columns: 300px 1fr 330px; gap: 20px; padding
 
 /* Conversa */
 .conversa { display: flex; flex-direction: column; gap: 10px; max-height: 420px; overflow-y: auto; }
+.titulo-conversa { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 12px; }
+.titulo-conversa h2 { margin: 0; }
+.acoes-conversa { display: flex; gap: 6px; }
+.btn.mini { padding: 4px 10px; font-size: 12px; }
+.conversa-antiga {
+  display: flex; flex-direction: column; gap: 2px; text-align: left; padding: 8px 10px; border-radius: 10px;
+  border: 1px solid var(--borda); background: transparent; color: var(--texto); cursor: pointer; font: inherit;
+}
+.conversa-antiga:hover:not(:disabled) { border-color: var(--destaque); }
+.conversa-antiga.atual { border-color: var(--destaque); cursor: default; }
+.conversa-antiga:disabled:not(.atual) { opacity: 0.5; cursor: not-allowed; }
+.conversa-antiga small { color: var(--texto-2); font-size: 11px; }
 .msg { padding: 9px 12px; border-radius: 12px; line-height: 1.45; max-width: 92%; white-space: pre-wrap; word-break: break-word; }
 .msg.voce { align-self: flex-end; background: var(--destaque); color: #fff; border-bottom-right-radius: 4px; }
 .msg.newclaw { align-self: flex-start; border: 1px solid var(--borda); border-bottom-left-radius: 4px; }

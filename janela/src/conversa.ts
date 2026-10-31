@@ -93,8 +93,12 @@ export class Conversa {
   private segurando = false;
   private readonly relogio: Relogio;
   private pausaMs: number;
+  private sessionId: string;
+  /** Pedidos entre o envio e o aceite do NewClaw (ainda sem `turnId` em `fases`). */
+  private enviando = 0;
 
   constructor(private readonly o: OpcoesDaConversa) {
+    this.sessionId = o.sessionId;
     this.relogio = o.relogio ?? RELOGIO_REAL;
     this.pausaMs = o.pausaParaEnviarMs ?? PAUSA_PARA_ENVIAR_PADRAO_MS;
     this.desde = this.relogio.agora();
@@ -205,12 +209,12 @@ export class Conversa {
   async parar(): Promise<void> {
     if (this.fatos.motorFalando || this.fatos.aguardandoFala) this.o.motor.interromper();
     this.mudar({ aguardandoFala: false });
-    if (this.fases.size > 0) await this.o.turnos.cancel({ sessionId: this.o.sessionId });
+    if (this.fases.size > 0) await this.o.turnos.cancel({ sessionId: this.sessionId });
   }
 
   /** Aprovação de ação perigosa: só por esta chamada, que a tela faz a partir de um clique. */
   async decidir(txnId: string, decisao: 'approved' | 'rejected'): Promise<void> {
-    const r = await this.o.turnos.decide({ sessionId: this.o.sessionId, txnId, decision: decisao });
+    const r = await this.o.turnos.decide({ sessionId: this.sessionId, txnId, decision: decisao });
     this.aprovacoes = this.aprovacoes.filter((a) => a.txnId !== txnId);
     if (r.kind === 'decided') {
       if (r.text.trim()) this.responder(r.text);
@@ -218,6 +222,30 @@ export class Conversa {
     } else {
       this.avisar(`O NewClaw recusou a decisão (HTTP ${r.status}): ${r.error}`);
     }
+  }
+
+  /** Há pedido desta conversa em andamento no NewClaw (trocar de conversa agora misturaria as respostas). */
+  ocupada(): boolean {
+    return this.fases.size > 0 || this.enviando > 0;
+  }
+
+  /**
+   * Passa a falar noutra conversa do NewClaw (uma nova ou uma retomada do histórico). `anteriores` são as mensagens que a
+   * tela mostra dela. Recusa (devolve false) enquanto houver pedido em andamento; a fala em curso é cortada.
+   */
+  trocarDeConversa(sessionId: string, anteriores: Mensagem[] = []): boolean {
+    if (this.ocupada()) return false;
+    this.desarmarEnvio();
+    if (this.fatos.motorFalando || this.fatos.aguardandoFala) this.o.motor.interromper();
+    this.sessionId = sessionId;
+    this.legendaFinal = '';
+    this.legendaParcial = '';
+    this.fala = null;
+    this.progresso = null;
+    this.aprovacoes = [];
+    this.mensagens = [...anteriores];
+    this.mudar({ ...FATOS_INICIAIS });
+    return true;
   }
 
   /** Fechar a janela não cancela os turnos (contrato do turno); só para de acompanhá-los. */
@@ -255,7 +283,13 @@ export class Conversa {
   private async enviar(texto: string, porVoz: boolean): Promise<void> {
     this.mensagens = [...this.mensagens, { quem: 'voce', texto, em: this.relogio.agora(), porVoz }];
     this.publicar();
-    const r = await this.o.turnos.send({ sessionId: this.o.sessionId, message: texto });
+    this.enviando++;
+    let r: Awaited<ReturnType<ClienteDoTurno['send']>>;
+    try {
+      r = await this.o.turnos.send({ sessionId: this.sessionId, message: texto });
+    } finally {
+      this.enviando--;
+    }
     if (r.kind === 'rejected') {
       this.mudar({ emPausa: false });
       const espera = r.retryAfterSec ? ` Tente de novo em ${r.retryAfterSec} s.` : '';
@@ -269,7 +303,7 @@ export class Conversa {
     const controle = new AbortController();
     this.esperas.set(r.turnId, controle);
     const fim = await this.o.turnos.waitForTurn({
-      sessionId: this.o.sessionId, turnId: r.turnId, signal: controle.signal,
+      sessionId: this.sessionId, turnId: r.turnId, signal: controle.signal,
       onState: (s) => this.aoEstadoDoTurno(s),
     });
     this.esperas.delete(r.turnId);

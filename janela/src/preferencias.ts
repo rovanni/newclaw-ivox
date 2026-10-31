@@ -12,7 +12,17 @@ export function gravarPref(chave: string, valor: string): void {
 export function idDaConversa(): string {
   const salvo = lerPref('ivox-conversa');
   if (salvo) return salvo;
+  return novaConversa();
+}
+
+/** "Nova conversa": um id novo, que passa a ser o desta janela. O prefixo `voz-` separa as conversas de voz no histórico. */
+export function novaConversa(): string {
   const novo = `voz-${crypto.randomUUID().slice(0, 8)}`;
   gravarPref('ivox-conversa', novo);
   return novo;
+}
+
+/** Retomar uma conversa do histórico: ela passa a ser a desta janela. */
+export function usarConversa(sessionId: string): void {
+  gravarPref('ivox-conversa', sessionId);
 }
