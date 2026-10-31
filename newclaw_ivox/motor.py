@@ -223,6 +223,9 @@ def principal(argumentos: list[str]) -> int:
         return 1
     from pipecat.runner import run
 
+    if config.stt is not None and config.stt.motor == cfg.LOCAL:
+        # Este runner de teste não tem a janela nem a rota de carregar: rodar o comando já é o pedido de carga (ADR-037).
+        stt_local.dono().pedir_carga(config)
     sys.modules["__main__"].bot = bot  # o runner procura a função `bot` no módulo principal
     endereco = f"http://localhost:{config.porta}"
     print(f"[motor] abrindo em {endereco}/client {'(modo eco: repete o que ouvir)' if _EM_ECO else ''}", flush=True)
