@@ -3,6 +3,7 @@
  *  - Áudio: voz, velocidade e volume da fala, microfone — parâmetros dos serviços de voz;
  *  - Aparência: tema, centro, modo econômico, foco — só desta tela;
  *  - Interação: jeito de falar, espera antes de enviar, sons;
+ *  - Recursos: o modelo de reconhecimento (carregar, descarregar, ao abrir, sem uso) — ADR-037 do NewClaw;
  *  - Conexão: o que está ligado, só leitura.
  *
  * Só oferece o que os serviços aceitam de verdade: velocidade na faixa do Kokoro, volume na reprodução deste navegador.
@@ -12,13 +13,15 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import type { EstiloDoCentro } from './Centro';
 import type { EsperaAntesDeEnviar, JeitoDeFalar } from './conversa';
+import { gb, type EstadoDoModelo } from './modelo';
 import { VELOCIDADE_MAXIMA, VELOCIDADE_MINIMA, type Voz } from './motor';
 
-export type Grupo = 'audio' | 'aparencia' | 'interacao' | 'conexao';
+export type Grupo = 'audio' | 'aparencia' | 'interacao' | 'recursos' | 'conexao';
 const GRUPOS: { id: Grupo; nome: string }[] = [
   { id: 'audio', nome: 'Áudio' },
   { id: 'aparencia', nome: 'Aparência' },
   { id: 'interacao', nome: 'Interação' },
+  { id: 'recursos', nome: 'Recursos' },
   { id: 'conexao', nome: 'Conexão' },
 ];
 
@@ -62,7 +65,20 @@ interface Props {
   ligado: 'ligando' | 'ligado' | 'falhou';
   info: InfoDaVoz | null;
   conversa: string;
+  // Recursos
+  modelo: EstadoDoModelo | null;
+  resumoDoModelo: { titulo: string; texto: string };
+  ouvirConfigurado: boolean;
+  aoCarregar: (naCpu: boolean) => void;
+  aoDescarregar: () => void;
+  carregarAoAbrir: boolean;
+  aoMudarCarregarAoAbrir: (v: boolean) => void;
+  aoMudarOciosidade: (minutos: number | null) => void;
+  /** Grupo aberto ao abrir (padrão: Áudio). */
+  grupoInicial?: Grupo;
 }
+
+const OCIOSIDADE: [string, string][] = [['nunca', 'Nunca'], ['15', '15 min'], ['30', '30 min'], ['60', '1 h']];
 
 function Linha({ rotulo, dica, children }: { rotulo: string; dica?: string; children: ReactNode }) {
   return (
@@ -86,7 +102,7 @@ function Segmento<T extends string>({ valor, opcoes, aoMudar, rotulo }: {
 }
 
 export function Configuracoes(p: Props) {
-  const [grupo, setGrupo] = useState<Grupo>('audio');
+  const [grupo, setGrupo] = useState<Grupo>(p.grupoInicial ?? 'audio');
   const caixa = useRef<HTMLDivElement>(null);
   useEffect(() => {
     caixa.current?.focus();
@@ -163,6 +179,42 @@ export function Configuracoes(p: Props) {
             <Linha rotulo="Atalhos de teclado">
               <span className="atalhos-teclado">Enter envia · Shift+Enter quebra a linha · Espaço fala (segurar) · F foco · Esc fecha</span>
             </Linha>
+          </>}
+
+          {grupo === 'recursos' && <>
+            {!p.ouvirConfigurado ? (
+              <Linha rotulo="Reconhecimento de voz"><span>não configurado neste motor</span></Linha>
+            ) : <>
+              <Linha rotulo="Reconhecimento de voz" dica={p.resumoDoModelo.texto}>
+                <b>{p.resumoDoModelo.titulo}</b>
+                {p.modelo?.pergunta === 'cpu' ? <>
+                  <button className="btn primario" onClick={() => p.aoCarregar(true)}>Tentar na CPU</button>
+                  <button className="btn" onClick={p.aoDescarregar}>Cancelar</button>
+                </> : p.modelo?.estado === 'carregado'
+                  ? <button className="btn" onClick={p.aoDescarregar}>Descarregar</button>
+                  : (p.modelo?.estado === 'descarregado' || p.modelo?.estado === 'falha')
+                    ? <button className="btn primario" onClick={() => p.aoCarregar(false)}>Carregar</button> : null}
+              </Linha>
+              <Linha rotulo="Onde roda" dica={p.modelo?.motivo}>
+                <span>{p.modelo?.dispositivo === 'cuda' ? 'GPU (CUDA)' : p.modelo?.dispositivo === 'cpu' ? 'CPU' : 'decidido ao carregar'}{p.modelo?.tipo ? ` · ${p.modelo.tipo}` : ''}</span>
+              </Linha>
+              <Linha rotulo="Memória da GPU" dica={p.modelo?.consumo_fonte ?? 'Lida do driver da NVIDIA na hora de carregar; sem ele, não é medida'}>
+                <span>{(() => {
+                  const g = (p.modelo?.memoria_depois ?? p.modelo?.memoria_antes)?.[0];
+                  return g ? `${gb(g.livre_bytes)} livres de ${gb(g.total_bytes)} (${g.nome})` : 'não medida';
+                })()}</span>
+              </Linha>
+              <Linha rotulo="Última carga ocupou" dica="Medido nesta máquina; serve de aviso antes de carregar, não de garantia">
+                <span>{p.modelo?.consumo_bytes !== undefined ? gb(p.modelo.consumo_bytes) : p.modelo?.consumo_medido_bytes ? gb(p.modelo.consumo_medido_bytes) : 'ainda não medido'}</span>
+              </Linha>
+              <Linha rotulo="Carregar ao abrir a janela" dica="Desligado: abrir a janela não ocupa a GPU">
+                <label className="chave"><input type="checkbox" checked={p.carregarAoAbrir} onChange={(e) => p.aoMudarCarregarAoAbrir(e.target.checked)} /> Ligado</label>
+              </Linha>
+              <Linha rotulo="Descarregar sem uso" dica="Depois de quanto tempo sem transcrever o modelo sai da memória (vale para todas as janelas)">
+                <Segmento rotulo="Descarregar sem uso" aoMudar={(v) => p.aoMudarOciosidade(v === 'nunca' ? null : Number(v))}
+                  valor={p.modelo?.ajustes?.descarregar_apos_min ? String(p.modelo.ajustes.descarregar_apos_min) : 'nunca'} opcoes={OCIOSIDADE} />
+              </Linha>
+            </>}
           </>}
 
           {grupo === 'conexao' && <>

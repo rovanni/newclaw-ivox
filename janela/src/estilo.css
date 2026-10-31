@@ -358,3 +358,14 @@ body.economico .luz-miolo, body.economico .centro[data-cor="falando"] .luz-miolo
   .ajustes-grupos h2 { width: 100%; }
   .ajuste { grid-template-columns: 1fr; gap: 6px; }
 }
+
+/* Reconhecimento de voz (ADR-037): o modelo só ocupa memória quando a pessoa pede. */
+.recursos .reconhecimento { padding: 6px 0 10px; border-bottom: 1px solid var(--borda); display: flex; flex-direction: column; gap: 6px; }
+.recursos .reconhecimento .linha { border-bottom: 0; padding-bottom: 0; }
+.recursos .reconhecimento .botoes { display: flex; gap: 6px; flex-wrap: wrap; }
+.nota-modelo { margin: 0; font-size: 12px; color: var(--texto-2); line-height: 1.4; }
+.nota-modelo.erro { color: var(--erro); }
+.reconhecimento[data-fase="carregado"] b { color: var(--c-pronto); }
+.reconhecimento[data-fase="falha"] b { color: var(--erro); }
+/* Sem o modelo, o centro fica mais apagado: a janela ouve só quando há quem transcreva. */
+.centro[data-modelo="desligado"] svg, .centro[data-modelo="desligado"] canvas { opacity: .55; transition: opacity .4s; }

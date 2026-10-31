@@ -9,6 +9,7 @@ import { Configuracoes } from './Configuracoes';
 import { Conversa, type EsperaAntesDeEnviar, type JeitoDeFalar, type Mensagem, type Quadro } from './conversa';
 import { listarConversasDeVoz, mensagensDaConversa, rotuloDaConversa, type ConversaGuardada } from './historico';
 import { podeParar } from './estado';
+import { ajustarOciosidade, carregarModelo, descarregarModelo, intervaloDeLeitura, lerModelo, ondeFala, resumoDoModelo, type EstadoDoModelo } from './modelo';
 import { LigacaoComOMotor, VELOCIDADE_MAXIMA, VELOCIDADE_MINIMA, type Voz } from './motor';
 import { gravarPref, idDaConversa, lerPref, novaConversa, usarConversa } from './preferencias';
 import { comecouAOuvir, terminouDeOuvir } from './sons';
@@ -134,6 +135,11 @@ function Janela({ aoSair, semSenha }: { aoSair: () => void; semSenha: boolean })
   const [vozes, setVozes] = useState<Voz[]>([]);
   const [vozAtual, setVozAtual] = useState<string | null>(null);
   const [info, setInfo] = useState<InfoDaVoz | null>(null);
+  // O modelo de reconhecimento (ADR-037): o estado vem do motor; a janela só pede. Abrir a janela não carrega nada, a não
+  // ser que a pessoa tenha pedido "Carregar ao abrir a janela" (desligado por padrão).
+  const [modelo, setModelo] = useState<EstadoDoModelo | null>(null);
+  const [erroDoModelo, setErroDoModelo] = useState('');
+  const [carregarAoAbrir, setCarregarAoAbrir] = useState(lerPref('ivox-carregar-ao-abrir') === 'sim');
   const [texto, setTexto] = useState('');
   const [micAberto, setMicAberto] = useState(true);
   const [agora, setAgora] = useState(Date.now());
@@ -207,6 +213,30 @@ function Janela({ aoSair, semSenha }: { aoSair: () => void; semSenha: boolean })
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [motor]);
+
+  // Estado do modelo: lido do motor, rápido enquanto muda e devagar parado (outra janela pode ter carregado ou descarregado).
+  useEffect(() => {
+    let vivo = true;
+    let id: ReturnType<typeof setTimeout>;
+    const ler = async () => {
+      let lido: EstadoDoModelo | null = null;
+      try { lido = await lerModelo(); if (vivo) setModelo(lido); } catch { if (vivo) setModelo(null); }
+      if (vivo) id = setTimeout(ler, intervaloDeLeitura(lido));
+    };
+    void ler();
+    return () => { vivo = false; clearTimeout(id); };
+  }, []);
+  const pedirModelo = useCallback(async (pedido: () => Promise<EstadoDoModelo>) => {
+    setErroDoModelo('');
+    try { setModelo(await pedido()); } catch (e) { setErroDoModelo(String(e instanceof Error ? e.message : e)); }
+  }, []);
+  const abriuComPedido = useRef(false);
+  useEffect(() => {
+    if (abriuComPedido.current || !modelo || !carregarAoAbrir) return;
+    abriuComPedido.current = true;
+    if (modelo.estado === 'descarregado' && !modelo.pergunta) void pedirModelo(() => carregarModelo(false));
+  }, [modelo, carregarAoAbrir, pedirModelo]);
+  useEffect(() => { gravarPref('ivox-carregar-ao-abrir', carregarAoAbrir ? 'sim' : 'nao'); }, [carregarAoAbrir]);
 
   // Tema, foco e preferências.
   useEffect(() => { document.documentElement.dataset.tema = tema; gravarPref('ivox-tema', tema); }, [tema]);
@@ -335,6 +365,10 @@ function Janela({ aoSair, semSenha }: { aoSair: () => void; semSenha: boolean })
   const estado = q?.estado ?? 'pronto';
   const parar = podeParar(estado);
   const podeOuvir = ligado === 'ligado' && vozAtual !== null;
+  // Sem o modelo carregado, o microfone não tem quem transcreva: fica desligado, e a janela diz por quê.
+  const ouvirConfigurado = !!info?.ouvir;
+  const modeloPronto = !ouvirConfigurado || modelo?.estado === 'carregado';
+  const resumo = resumoDoModelo(modelo);
   const h = new Date(agora).getHours();
   // A saudação vai no balão (antes era um título grande acima do centro, que ocupava espaço — pedido da operadora, 30/10).
   const saudacao = h < 12 ? 'Bom dia!' : h < 18 ? 'Boa tarde!' : 'Boa noite!';
@@ -345,7 +379,8 @@ function Janela({ aoSair, semSenha }: { aoSair: () => void; semSenha: boolean })
     ? `Não consegui ligar a voz: ${falha}`
     : ligado === 'ligando' ? 'Ligando o motor de voz…'
       : motor.semMicrofone ? `Sem microfone (${motor.semMicrofone}). Você pode escrever abaixo; a resposta continua falada.`
-        : `${saudacao} Como posso ajudar hoje? Fale comigo pelo microfone ou escreva abaixo.`;
+        : !modeloPronto ? `${saudacao} O reconhecimento de voz está desligado: escreva abaixo, ou carregue o modelo de voz para falar.`
+          : `${saudacao} Como posso ajudar hoje? Fale comigo pelo microfone ou escreva abaixo.`;
 
   return (
     <div className="app">
@@ -375,16 +410,35 @@ function Janela({ aoSair, semSenha }: { aoSair: () => void; semSenha: boolean })
 
       <main>
         <section className="coluna esq">
-          <div className="cartao">
+          <div className="cartao recursos">
             <h2>Voz neste computador</h2>
-            {info ? (
-              <>
-                <div className="linha"><span className="rot">Ouvir</span><span>{info.ouvir ? `${info.ouvir.modelo ?? '—'} · ${info.ouvir.motor === 'local' ? 'local' : 'servidor'}` : 'não configurado'}</span></div>
-                <div className="linha"><span className="rot">Falar</span><span>{info.falar ? `Kokoro · ${info.falar.motor === 'local' ? 'local' : 'servidor'}` : 'não configurado'}</span></div>
-                <div className="linha"><span className="rot">Idioma</span><span>{info.idioma ?? 'não informado'}</span></div>
-                <div className="linha"><span className="rot">Dispositivo</span><span>{info.dispositivo}</span></div>
-              </>
-            ) : <div className="vazio">Carregando…</div>}
+            <div className="linha"><span className="rot">Integração</span>
+              <span className={`indicador ${ligado === 'ligado' ? 'ok' : 'fora'}`}>{ligado === 'ligado' ? '● Conectada' : ligado === 'ligando' ? 'Conectando…' : 'Não conectou'}</span></div>
+            {ouvirConfigurado && (
+              <div className="reconhecimento" data-fase={modelo?.estado ?? 'sem-resposta'}>
+                <div className="linha"><span className="rot">Reconhecimento de voz</span><b>{resumo.titulo}</b></div>
+                <p className="nota-modelo">{resumo.texto}</p>
+                {modelo?.pergunta === 'cpu' ? (
+                  <div className="botoes">
+                    <button className="btn primario" onClick={() => void pedirModelo(() => carregarModelo(true))}>Tentar na CPU</button>
+                    <button className="btn" onClick={() => void pedirModelo(descarregarModelo)}>Cancelar</button>
+                  </div>
+                ) : modelo?.estado === 'carregado' ? (
+                  <button className="btn" onClick={() => void pedirModelo(descarregarModelo)}
+                    title="Tira o Whisper da memória; a integração continua ligada">Descarregar modelo de voz</button>
+                ) : modelo?.estado === 'descarregado' || modelo?.estado === 'falha' ? (
+                  <button className="btn primario" onClick={() => void pedirModelo(() => carregarModelo(false))}
+                    title={`Carrega o Whisper ${info?.ouvir?.modelo ?? ''} (dispositivo: ${info?.dispositivo ?? '—'})`}>Carregar modelo de voz</button>
+                ) : null}
+                {erroDoModelo && <p className="nota-modelo erro" role="alert">{erroDoModelo}</p>}
+              </div>
+            )}
+            <div className="linha"><span className="rot">Síntese de voz</span><span>{info?.falar ? `${ondeFala(modelo)} · disponível` : 'não configurada'}</span></div>
+            <div className="linha"><span className="rot">Recursos</span>
+              <span>{carregarAoAbrir || modelo?.ajustes?.descarregar_apos_min ? 'Automático' : 'Manual'}</span></div>
+            {!carregarAoAbrir && !modelo?.ajustes?.descarregar_apos_min && (
+              <div className="nota">A janela pode ficar aberta sem o modelo de reconhecimento carregado.</div>
+            )}
           </div>
           <div className="cartao voz-escolha">
             <h2><label htmlFor="voz">Voz</label></h2>
@@ -401,7 +455,7 @@ function Janela({ aoSair, semSenha }: { aoSair: () => void; semSenha: boolean })
           </div>
         </section>
 
-        <section className="centro" data-cor={estado}>
+        <section className="centro" data-cor={estado} data-modelo={modeloPronto ? 'pronto' : 'desligado'}>
           <Centro estado={estado} estilo={estilo} economico={economico} niveis={motor.niveis} tempo={tempo} />
           <div className="detalhe">
             <div className="topo"><b>{q ? detalhe(q) : 'Pronto'}</b></div>
@@ -520,6 +574,10 @@ function Janela({ aoSair, semSenha }: { aoSair: () => void; semSenha: boolean })
           economico={economico} aoMudarEconomico={setEconomico} foco={foco} aoMudarFoco={setFoco}
           jeito={jeito} aoMudarJeito={setJeito} espera={espera} aoMudarEspera={setEspera} sons={sons} aoMudarSons={setSons}
           ligado={ligado} info={info} conversa={sessaoAtual}
+          modelo={modelo} resumoDoModelo={resumo} ouvirConfigurado={ouvirConfigurado}
+          aoCarregar={(naCpu) => void pedirModelo(() => carregarModelo(naCpu))} aoDescarregar={() => void pedirModelo(descarregarModelo)}
+          carregarAoAbrir={carregarAoAbrir} aoMudarCarregarAoAbrir={setCarregarAoAbrir}
+          aoMudarOciosidade={(m) => void pedirModelo(() => ajustarOciosidade(m))}
         />
       )}
 
@@ -530,8 +588,8 @@ function Janela({ aoSair, semSenha }: { aoSair: () => void; semSenha: boolean })
               placeholder="Digite sua pergunta ou comando… (Shift+Enter quebra a linha)" aria-label="Mensagem para o NewClaw" />
             <button
               className={`icone mic ${jeito === 'livre' ? (micAberto ? 'ativo' : 'mudo') : micAberto ? 'ativo' : ''}`}
-              disabled={!!motor.semMicrofone || ligado !== 'ligado'}
-              title={motor.semMicrofone ? `Sem microfone: ${motor.semMicrofone}` : jeito === 'livre' ? (micAberto ? 'Silenciar o microfone' : 'Abrir o microfone') : 'Segure para falar'}
+              disabled={!!motor.semMicrofone || ligado !== 'ligado' || !modeloPronto}
+              title={!modeloPronto ? 'Carregue o modelo de voz para falar' : motor.semMicrofone ? `Sem microfone: ${motor.semMicrofone}` : jeito === 'livre' ? (micAberto ? 'Silenciar o microfone' : 'Abrir o microfone') : 'Segure para falar'}
               onClick={botaoMic}
               onPointerDown={() => jeito === 'segurar' && segurar(true)}
               onPointerUp={() => jeito === 'segurar' && segurar(false)}
@@ -549,6 +607,7 @@ function Janela({ aoSair, semSenha }: { aoSair: () => void; semSenha: boolean })
             {!somLiberado ? 'Clique em qualquer lugar da janela para liberar o som (exigência do navegador).'
               : ligado === 'ligando' ? 'Ligando a voz… o microfone abre quando ela estiver pronta.'
                 : motor.semMicrofone ? `Sem microfone: ${motor.semMicrofone}.`
+                  : !modeloPronto ? 'Reconhecimento de voz desligado — carregue o modelo de voz para falar'
                   : jeito === 'segurar' ? (micAberto ? '● Ouvindo enquanto você segura' : 'Segure Espaço (ou o botão do microfone) para falar')
                     : micAberto ? '● Microfone aberto — pode falar' : 'Microfone silenciado — clique no microfone para abrir'}
           </div>

@@ -11,12 +11,15 @@ const base = {
   foco: false, aoMudarFoco: () => undefined, jeito: 'livre' as const, aoMudarJeito: () => undefined,
   espera: 'media' as const, aoMudarEspera: () => undefined, sons: true, aoMudarSons: () => undefined,
   ligado: 'ligado' as const, info: null, conversa: 'voz-1234',
+  modelo: { estado: 'descarregado' as const, em_uso: 0 }, resumoDoModelo: { titulo: 'Modelo descarregado', texto: 'x' },
+  ouvirConfigurado: true, aoCarregar: () => undefined, aoDescarregar: () => undefined,
+  carregarAoAbrir: false, aoMudarCarregarAoAbrir: () => undefined, aoMudarOciosidade: () => undefined,
 };
 
 describe('ajustes', () => {
-  it('abre em Áudio, com os quatro grupos e só parâmetros que o motor aceita', () => {
+  it('abre em Áudio, com os cinco grupos e só parâmetros que o motor aceita', () => {
     const h = renderToStaticMarkup(<Configuracoes {...base} />);
-    for (const g of ['Áudio', 'Aparência', 'Interação', 'Conexão']) expect(h).toContain(`>${g}</button>`);
+    for (const g of ['Áudio', 'Aparência', 'Interação', 'Recursos', 'Conexão']) expect(h).toContain(`>${g}</button>`);
     expect(h).toMatch(/min="0.5" max="2" step="0.05" aria-label="Velocidade da fala" value="1.25"/);  // a faixa do Kokoro
     expect(h).toContain('0,5x a 2x');
     expect(h).toContain('1,25x');
@@ -28,4 +31,23 @@ describe('ajustes', () => {
     const h = renderToStaticMarkup(<Configuracoes {...base} ligado="ligando" />);
     expect(h).toMatch(/aria-label="Velocidade da fala" disabled=""/);
   });
+
+  it('recursos: descarregado por padrão, carregar só por botão, nada ao abrir a janela', () => {
+    const h = renderToStaticMarkup(<Configuracoes {...base} grupoInicial="recursos" />);
+    expect(h).toContain('Modelo descarregado');
+    expect(h).toContain('>Carregar</button>');
+    expect(h).toContain('ainda não medido');
+    expect(h).toContain('não medida');
+    expect(h).not.toMatch(/type="checkbox" checked=""/);  // "Carregar ao abrir a janela" desligado
+    expect(h).toMatch(/aria-checked="true" class="ativo">Nunca</);  // descarregar sem uso: desligado
+  });
+
+  it('recursos: a pergunta da CPU aparece só quando o motor pergunta', () => {
+    const h = renderToStaticMarkup(<Configuracoes {...base} grupoInicial="recursos"
+      modelo={{ estado: 'falha', em_uso: 0, pergunta: 'cpu', erro: 'out of memory' }} />);
+    expect(h).toContain('Tentar na CPU');
+    expect(h).toContain('>Cancelar</button>');
+    expect(renderToStaticMarkup(<Configuracoes {...base} grupoInicial="recursos" />)).not.toContain('Tentar na CPU');
+  });
+
 });
