@@ -224,6 +224,18 @@ export class Conversa {
     }
   }
 
+  /**
+   * Ouvir de novo uma resposta que já está na tela: o mesmo texto vai ao motor de voz, sem pedido nenhum ao NewClaw (o
+   * modelo de linguagem não é chamado). Se a voz estiver falando, a fala atual é cortada antes.
+   */
+  repetir(texto: string): void {
+    if (!texto.trim()) return;
+    if (this.fatos.motorFalando || this.fatos.aguardandoFala) this.o.motor.interromper();
+    this.fala = { texto, fraseAtual: null };
+    this.o.motor.falar(texto);
+    this.mudar({ aguardandoFala: true });
+  }
+
   /** Há pedido desta conversa em andamento no NewClaw (trocar de conversa agora misturaria as respostas). */
   ocupada(): boolean {
     return this.fases.size > 0 || this.enviando > 0;

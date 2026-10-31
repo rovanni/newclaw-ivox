@@ -4,6 +4,7 @@
  */
 import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent, type KeyboardEvent } from 'react';
 import { Centro, type EstiloDoCentro } from './Centro';
+import { AcoesDaResposta, TextoFormatado } from './Resposta';
 import { Conversa, type EsperaAntesDeEnviar, type JeitoDeFalar, type Mensagem, type Quadro } from './conversa';
 import { listarConversasDeVoz, mensagensDaConversa, rotuloDaConversa, type ConversaGuardada } from './historico';
 import { podeParar } from './estado';
@@ -107,6 +108,15 @@ function Janela({ aoSair, semSenha }: { aoSair: () => void; semSenha: boolean })
     return e === 'curta' || e === 'longa' ? e : 'media';
   });
   const [quadro, setQuadro] = useState<Quadro | null>(null);
+  // A voz "fala" desde a resposta pronta até o fim do áudio. O motor também avisa que parou entre duas frases: só depois de
+  // um silêncio curto (800 ms) o foco troca as frases pela resposta formatada — sem isso o balão piscava entre as duas.
+  const falandoAgora = !!quadro && (quadro.fatos.motorFalando || quadro.fatos.aguardandoFala);
+  const [vozFalando, setVozFalando] = useState(false);
+  useEffect(() => {
+    if (falandoAgora) { setVozFalando(true); return; }
+    const id = setTimeout(() => setVozFalando(false), 800);
+    return () => clearTimeout(id);
+  }, [falandoAgora]);
   const [ligado, setLigado] = useState<'ligando' | 'ligado' | 'falhou'>('ligando');
   const [falha, setFalha] = useState('');
   const [vozes, setVozes] = useState<Voz[]>([]);
@@ -298,6 +308,7 @@ function Janela({ aoSair, semSenha }: { aoSair: () => void; semSenha: boolean })
   const q = quadro;
   const estado = q?.estado ?? 'pronto';
   const parar = podeParar(estado);
+  const podeOuvir = ligado === 'ligado' && vozAtual !== null;
   const h = new Date(agora).getHours();
   // A saudação vai no balão (antes era um título grande acima do centro, que ocupava espaço — pedido da operadora, 30/10).
   const saudacao = h < 12 ? 'Bom dia!' : h < 18 ? 'Boa tarde!' : 'Boa noite!';
@@ -373,11 +384,15 @@ function Janela({ aoSair, semSenha }: { aoSair: () => void; semSenha: boolean })
           </div>
           {/* No foco a coluna da conversa some, e o balão mostra a resposta inteira. Fora dele a resposta já está na
               coluna: o balão mostra só a frase que está sendo falada, como legenda, para não repetir (pedido de 30/10). */}
-          <div className={`balao ${q?.fala && atual ? 'lendo' : ''}`}>
-            {q?.fala && foco
+          {/* No foco, terminada a fala, o balão mostra a resposta inteira formatada, com copiar e ouvir de novo. */}
+          {/* Enquanto a voz fala (inclusive na pausa entre duas frases), as frases; sem isso o balão piscava entre as duas vistas. */}
+          <div className={`balao ${q?.fala && atual ? 'lendo' : ''} ${q?.fala && foco && !vozFalando ? 'resposta' : ''}`}>
+            {q?.fala && foco && vozFalando
               ? <>{antes && <span className="frase">{antes}</span>}{atual && <span className="frase atual">{atual}</span>}{depois && <span className="frase">{depois}</span>}</>
-              : q?.fala && atual ? <span className="frase atual">{atual}</span>
-                : textoParado}
+              : q?.fala && foco
+                ? <><TextoFormatado texto={q.fala.texto} /><AcoesDaResposta texto={q.fala.texto} podeOuvir={podeOuvir} aoOuvir={() => conversaRef.current?.repetir(q.fala!.texto)} /></>
+                : q?.fala && atual ? <span className="frase atual">{atual}</span>
+                  : textoParado}
           </div>
           <div className="atalhos">
             {PEDIDOS.map((p) => (
@@ -420,10 +435,18 @@ function Janela({ aoSair, semSenha }: { aoSair: () => void; semSenha: boolean })
               {(q?.mensagens.length ?? 0) === 0 && (q?.aprovacoes.length ?? 0) === 0 && <div className="vazio">Nada por aqui ainda.</div>}
               {q?.mensagens.map((m, i) => (
                 <div key={i} className={`msg ${m.quem}`}>
-                  {m.texto}
+                  {m.quem === 'newclaw' ? <TextoFormatado texto={m.texto} /> : m.texto}
                   <small>{hora(m.em)}{m.porVoz ? ' · por voz' : ''}</small>
+                  {m.quem === 'newclaw' && <AcoesDaResposta texto={m.texto} podeOuvir={podeOuvir} aoOuvir={() => conversaRef.current?.repetir(m.texto)} />}
                 </div>
               ))}
+              {/* Resposta em andamento: a fase real do turno (fila, pensando) e o último relato de progresso do NewClaw. */}
+              {(estado === 'fila' || estado === 'pensando') && (
+                <div className="msg newclaw andamento" role="status">
+                  <span className="pontos" aria-hidden="true"><i /><i /><i /></span>
+                  {q?.progresso || (estado === 'fila' ? 'Na fila do NewClaw…' : 'Preparando a resposta…')}
+                </div>
+              )}
               {q?.aprovacoes.map((a) => (
                 <div key={a.txnId} className="aprovacao">
                   <b>Precisa da sua aprovação</b>

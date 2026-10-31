@@ -356,3 +356,22 @@ describe('Conversa — trocar de conversa (nova ou retomada do histórico)', () 
     expect(motor.interrupcoes).toBe(0); // nada falando: não interrompe à toa
   });
 });
+
+describe('Conversa — ouvir de novo', () => {
+  it('manda o mesmo texto ao motor de voz e não pede nada ao NewClaw', () => {
+    const { c, motor, turnos, ultimo } = montar();
+    c.repetir('Só o Nextcloud está fora.');
+    expect(motor.falas).toEqual(['Só o Nextcloud está fora.']);
+    expect(turnos.enviados).toEqual([]);
+    expect(ultimo().fala).toEqual({ texto: 'Só o Nextcloud está fora.', fraseAtual: null });
+  });
+
+  it('corta a fala em curso antes de repetir', () => {
+    const { c, motor } = montar();
+    c.repetir('primeira');
+    c.motorComecouAFalar();
+    c.repetir('segunda');
+    expect(motor.interrupcoes).toBe(1);
+    expect(motor.falas).toEqual(['primeira', 'segunda']);
+  });
+});
