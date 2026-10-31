@@ -14,6 +14,10 @@ export type EstiloDoCentro = 'circulo' | 'particulas';
 const N_BARRAS = 96;
 const R0 = 104;
 const N_PONTOS = 700;
+/** Modo econômico: menos pontos, metade dos quadros e sem brilho — o mesmo significado por estado, com menos GPU. */
+const N_PONTOS_ECONOMICO = 260;
+/** Ouvindo: anéis que saem da esfera, mais fortes quanto mais alto o microfone. */
+const N_ANEIS = 3;
 /** No estado "Pronto", o centro acompanha de leve o microfone: a pessoa vê que ele está vivo antes de o VAD confirmar a fala. */
 const ECO_DO_MICROFONE_PRONTO = 0.5;
 /** Amplitude própria de cada estado quando não há voz tocando (movimento calmo, sem fingir fala). */
@@ -24,11 +28,12 @@ const AMPLITUDE_PARADA: Record<EstadoDaTela, number> = {
 interface Props {
   estado: EstadoDaTela;
   estilo: EstiloDoCentro;
+  economico: boolean;
   niveis: Niveis;
   tempo: string;
 }
 
-export function Centro({ estado, estilo, niveis, tempo }: Props) {
+export function Centro({ estado, estilo, economico, niveis, tempo }: Props) {
   const area = useRef<HTMLDivElement>(null);
   const barras = useRef<SVGGElement>(null);
   const ondas = useRef<SVGGElement>(null);
@@ -36,8 +41,8 @@ export function Centro({ estado, estilo, niveis, tempo }: Props) {
   const halo = useRef<SVGCircleElement>(null);
   const luz = useRef<SVGCircleElement>(null);
   const tela = useRef<HTMLCanvasElement>(null);
-  const atual = useRef({ estado, estilo });
-  atual.current = { estado, estilo };
+  const atual = useRef({ estado, estilo, economico });
+  atual.current = { estado, estilo, economico };
 
   useEffect(() => {
     const NS = 'http://www.w3.org/2000/svg';
@@ -62,7 +67,7 @@ export function Centro({ estado, estilo, niveis, tempo }: Props) {
       return { x: Math.cos(th) * r, y, z: Math.sin(th) * r, ruido: Math.random() };
     });
     const calmo = matchMedia('(prefers-reduced-motion: reduce)').matches;
-    let t = 0, suave = 0, giro = 0, quadro = 0;
+    let t = 0, suave = 0, giro = 0, quadro = 0, fluxo = 0, impar = false;
     let corChave = '', cor = '#3ea6ff';
 
     const nivelAgora = (e: EstadoDaTela) => {
@@ -73,7 +78,14 @@ export function Centro({ estado, estilo, niveis, tempo }: Props) {
       return e === 'aprovacao' ? a * (0.5 + 0.5 * Math.sin(t * 3)) : a * (0.6 + 0.4 * Math.sin(t * 1.2));
     };
 
-    const desenharParticulas = (e: EstadoDaTela, ehNewClaw: boolean) => {
+    /**
+     * Cada estado tem um movimento que diz o que está acontecendo de verdade (nada decorativo):
+     *  - pronto: giro lento e respiração mínima;
+     *  - ouvindo: a esfera se abre e anéis saem dela no ritmo do microfone (volume real da pessoa);
+     *  - fila / pensando: os pontos correm da casca para o centro, em fluxo contínuo (convergindo); na fila, mais devagar;
+     *  - falando: ondas na superfície no ritmo do áudio que está tocando (volume real do motor).
+     */
+    const desenharParticulas = (e: EstadoDaTela, ehNewClaw: boolean, economico: boolean) => {
       const c = tela.current!;
       const ctx = c.getContext('2d');
       if (!ctx) return;
@@ -89,26 +101,47 @@ export function Centro({ estado, estilo, niveis, tempo }: Props) {
         cor = getComputedStyle(area.current!).getPropertyValue('--cor-voz').trim() || cor;
       }
       const pensando = e === 'pensando' || e === 'fila';
-      giro += pensando ? 0.02 : 0.004 + suave * 0.01;
-      const R = 120 * (pensando ? 0.85 + 0.05 * Math.sin(t * 3) : 1) * (e === 'aprovacao' ? 1 + 0.06 * Math.sin(t * 6) : 1);
+      giro += (pensando ? 0.012 : 0.004 + suave * 0.01) * (economico ? 2 : 1);
+      // Convergência: quanto da casca já foi percorrido rumo ao centro (0 → 1), por ponto, em fluxo contínuo.
+      if (pensando) fluxo += (e === 'fila' ? 0.0035 : 0.009) * (economico ? 2 : 1);
+      const R = 120 * (e === 'aprovacao' ? 1 + 0.06 * Math.sin(t * 6) : 1);
       const cg = Math.cos(giro), sg = Math.sin(giro), ci = Math.cos(0.35), si = Math.sin(0.35);
       ctx.fillStyle = cor;
-      for (const p of pontos) {
+      const lista = economico ? pontos.slice(0, N_PONTOS_ECONOMICO) : pontos;
+      for (const p of lista) {
         const x = p.x * cg + p.z * sg;
         let z = -p.x * sg + p.z * cg;
         const y = p.y * ci - z * si;
         z = p.y * si + z * ci;
         let k = 1;
+        let alfa = 1;
         if (e === 'ouvindo') k += suave * (0.25 + 0.6 * p.ruido);
         else if (ehNewClaw) k += suave * 0.22 * Math.sin(p.y * 9 - t * 7);
-        else k += 0.02 * Math.sin(t * 1.5 + p.ruido * 6);
+        else if (pensando) {
+          const f = (fluxo + p.ruido) % 1;
+          k = 1 - 0.82 * f * f;   // acelera ao se aproximar do centro
+          alfa = f < 0.08 ? f / 0.08 : 1 - 0.6 * f;  // nasce na casca, apaga ao chegar
+        } else k += 0.02 * Math.sin(t * 1.5 + p.ruido * 6);
         const prof = (z + 1) / 2;
-        ctx.globalAlpha = 0.15 + prof * 0.75;
+        ctx.globalAlpha = (0.15 + prof * 0.75) * alfa;
         ctx.beginPath();
         ctx.arc(200 + x * R * k, 200 + y * R * k, 0.6 + prof * 1.6 + (ehNewClaw ? suave * 0.8 : 0), 0, Math.PI * 2);
         ctx.fill();
       }
-      const g = ctx.createRadialGradient(200, 200, 0, 200, 200, 70 + suave * 50);
+      if (e === 'ouvindo') {
+        // Anéis de expansão: a força de cada um é o volume do microfone agora; em silêncio, somem.
+        ctx.strokeStyle = cor;
+        for (let i = 0; i < N_ANEIS; i++) {
+          const p = (t * 0.35 + i / N_ANEIS) % 1;
+          ctx.globalAlpha = (1 - p) * Math.min(1, suave * 1.6);
+          ctx.lineWidth = 2.5 * (1 - p) + 0.5;
+          ctx.beginPath();
+          ctx.arc(200, 200, R * (1.05 + p * 0.55), 0, Math.PI * 2);
+          ctx.stroke();
+        }
+      }
+      if (economico) { ctx.globalAlpha = 1; return; }
+      const g = ctx.createRadialGradient(200, 200, 0, 200, 200, (pensando ? 45 : 70) + suave * 50);
       g.addColorStop(0, cor);
       g.addColorStop(1, 'transparent');
       ctx.globalAlpha = 0.18 + suave * 0.4;
@@ -118,12 +151,15 @@ export function Centro({ estado, estilo, niveis, tempo }: Props) {
     };
 
     const passo = () => {
-      t += 0.05;
-      const { estado: e, estilo: s } = atual.current;
+      const { estado: e, estilo: s, economico } = atual.current;
+      // Econômico: desenha um quadro sim, um não (~30 por segundo), com o tempo andando o dobro para manter a velocidade.
+      impar = !impar;
+      if (economico && impar) { quadro = requestAnimationFrame(passo); return; }
+      t += economico ? 0.1 : 0.05;
       suave += (nivelAgora(e) - suave) * 0.3;
       const ehNewClaw = e === 'falando';
       if (s === 'particulas') {
-        desenharParticulas(e, ehNewClaw);
+        desenharParticulas(e, ehNewClaw, economico);
       } else {
         // Você fala: as barras em volta reagem (o som "entra"). O NewClaw fala: a luz pulsa e saem ondas (o som "sai").
         for (const o of circulosOnda) {

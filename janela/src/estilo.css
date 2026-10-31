@@ -321,3 +321,7 @@ body.foco .entrada-wrap { max-width: 760px; width: 100%; margin: 0 auto; }
 /* Foco: o balão vira a área da resposta — mais largo e mais alto, texto alinhado à esquerda. */
 body.foco .balao { max-width: min(760px, 92vw); width: 100%; max-height: 38dvh; }
 .balao.resposta { white-space: normal; text-align: left; }
+
+/* Modo econômico: os anéis decorativos param de girar e o brilho sai; o núcleo continua dizendo o estado. */
+body.economico .gira-1, body.economico .gira-2 { animation: none; }
+body.economico .luz-miolo, body.economico .centro[data-cor="falando"] .luz-miolo { filter: none; }

@@ -103,6 +103,7 @@ function Janela({ aoSair, semSenha }: { aoSair: () => void; semSenha: boolean })
   const [jeito, setJeito] = useState<JeitoDeFalar>(lerPref('ivox-fala') === 'segurar' ? 'segurar' : 'livre');
   const [estilo, setEstilo] = useState<EstiloDoCentro>(lerPref('ivox-centro') === 'particulas' ? 'particulas' : 'circulo');
   const [sons, setSons] = useState(lerPref('ivox-sons') !== 'nao');
+  const [economico, setEconomico] = useState(lerPref('ivox-economico') === 'sim');
   const [espera, setEspera] = useState<EsperaAntesDeEnviar>(() => {
     const e = lerPref('ivox-espera');
     return e === 'curta' || e === 'longa' ? e : 'media';
@@ -198,6 +199,7 @@ function Janela({ aoSair, semSenha }: { aoSair: () => void; semSenha: boolean })
   useEffect(() => { document.body.classList.toggle('foco', foco); gravarPref('ivox-foco', foco ? 'sim' : 'nao'); }, [foco]);
   useEffect(() => { gravarPref('ivox-centro', estilo); }, [estilo]);
   useEffect(() => { gravarPref('ivox-sons', sons ? 'sim' : 'nao'); }, [sons]);
+  useEffect(() => { document.body.classList.toggle('economico', economico); gravarPref('ivox-economico', economico ? 'sim' : 'nao'); }, [economico]);
   useEffect(() => { gravarPref('ivox-espera', espera); conversaRef.current?.definirEspera(espera); }, [espera]);
   useEffect(() => {
     gravarPref('ivox-fala', jeito);
@@ -372,7 +374,7 @@ function Janela({ aoSair, semSenha }: { aoSair: () => void; semSenha: boolean })
         </section>
 
         <section className="centro" data-cor={estado}>
-          <Centro estado={estado} estilo={estilo} niveis={motor.niveis} tempo={tempo} />
+          <Centro estado={estado} estilo={estilo} economico={economico} niveis={motor.niveis} tempo={tempo} />
           <div className="detalhe">
             <div className="topo"><b>{q ? detalhe(q) : 'Pronto'}</b></div>
             <div className={`trilho ${parar || estado === 'ouvindo' ? 'indeterminado' : ''}`}><i /></div>
@@ -477,6 +479,9 @@ function Janela({ aoSair, semSenha }: { aoSair: () => void; semSenha: boolean })
               <button className={espera === 'longa' ? 'ativo' : ''} onClick={() => setEspera('longa')} title="Envia com ~3 s de silêncio (para quem pensa enquanto fala)">Longa</button>
             </div>
             <label className="chave"><input type="checkbox" checked={sons} onChange={(e) => setSons(e.target.checked)} /> Sons ao começar e terminar de ouvir</label>
+            <label className="chave" title="Menos pontos, metade dos quadros, sem brilho nem anéis girando: menos uso da placa de vídeo">
+              <input type="checkbox" checked={economico} onChange={(e) => setEconomico(e.target.checked)} /> Modo econômico (animação mais leve)
+            </label>
             <div className="nota">
               {motor.semMicrofone ? `Sem microfone: ${motor.semMicrofone}.` : jeito === 'livre'
                 ? 'O microfone fica aberto; ele percebe sozinho quando você termina. O botão do microfone silencia.'
