@@ -19,7 +19,7 @@ Em desenvolvimento, em sprints — ver [docs/SPRINTS.md](docs/SPRINTS.md).
 - **Modelo de reconhecimento por pedido** (ADR-037 do NewClaw): a janela abre com o modelo descarregado; **Carregar** e
   **Descarregar** ficam no cartão "Voz neste computador" e em Ajustes → Recursos. Na GPU, a memória livre é lida do driver
   da NVIDIA antes de carregar; faltando memória, ou falhando na GPU, a janela pergunta se tenta na CPU.
-- **Ainda não:** instalação pelo painel provada no Linux; prova de que descarregar devolve a VRAM (na CPU, devolveu a RAM).
+- **Ainda não:** instalação pelo painel provada no Linux.
 
 ## Instalar pelo painel do NewClaw
 

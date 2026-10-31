@@ -649,6 +649,20 @@ Iniciar a integração, carregar o modelo e abrir a janela passam a ser três co
   onnxruntime.
 - **Achado de medição:** no Windows (WDDM) o driver não informa a memória da GPU por processo (`[N/A]` no `nvidia-smi`);
   o consumo gravado é a diferença do dispositivo inteiro, e a janela diz isso.
-- **Falta (com autorização da operadora, sem o Strata):** carregar e descarregar na GPU e medir se a VRAM volta. Se não
-  voltar (diferença maior que 10% do consumo medido), a descarga passa a ser por processo filho (alternativa C da ADR).
+- **Prova na GPU** (autorizada pela operadora):
+
+Prova autorizada pela operadora em 31/10/2026: harness isolado na porta 7861, NewClaw falso só para o login, Strata
+desligado, nenhuma cota; carga e descarga pelas rotas `/api/modelo`, VRAM medida por fora pela NVML.
+
+| Ciclo | Carga | VRAM ao carregar | VRAM ao descarregar |
+|---|---|---|---|
+| 1 | 17,4 s (com a inicialização da CUDA) | +1,17 GB | −2,09 GB |
+| 2 | 6,4 s | +2,10 GB | −2,09 GB (100%) |
+
+- **Hipótese 1 confirmada:** `unload_model()` mais a remoção das referências devolve a VRAM. A alternativa B fica; a C
+  (processo filho) não é necessária.
+- **Limite da medida, visto na prática:** no ciclo 1 outro programa liberou memória da GPU durante a carga, e a diferença
+  do dispositivo deu 1,17 GB em vez de ~2,1 GB. No Windows (WDDM) o driver não informa a memória por processo; o consumo
+  gravado é um aviso antes de carregar, não uma garantia — como a decisão já previa.
+- Na CPU (mesmo dia): carga em 22,5 s; descarregar devolveu ~0,87 GB de RAM ao processo.
 
