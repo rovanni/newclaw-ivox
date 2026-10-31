@@ -13,10 +13,19 @@ sem depender de outro computador. Um servidor externo continua possível, se voc
 ## Estado
 
 Em desenvolvimento, em sprints — ver [docs/SPRINTS.md](docs/SPRINTS.md).
-- **Pronto:** instalador; transcrição local, com GPU medida; síntese local (Kokoro), frase a frase.
-- **Ainda não:** janela e fluxo completo com microfone (Sprint 5) e Linux (Sprint 6).
+- **Pronto:** instalador (também chamado pelo painel do NewClaw); transcrição local, com GPU medida; síntese local
+  (Kokoro), frase a frase; janela de voz com microfone, interrupção pela voz, texto, vozes e ajustes; motor provado no
+  Windows e no Linux.
+- **Ainda não:** instalação pelo painel provada no Linux; carregar e descarregar o modelo de transcrição por botão (hoje
+  ele entra na memória quando a janela conecta e só sai quando o processo da voz para).
 
-## Instalar
+## Instalar pelo painel do NewClaw
+
+No painel: **Configurações → Integrações → Interface de voz → Configurar**. O cartão confere os requisitos, mostra as
+escolhas e as licenças de terceiros, instala e depois oferece **Abrir**, **Ligar/Desligar**, **Atualizar** e
+**Desinstalar**. A janela abre em `http://127.0.0.1:7860` e usa a mesma senha do painel.
+
+## Instalar pelo terminal
 
 Precisa do Python 3.10 ou mais novo. Na pasta do projeto:
 

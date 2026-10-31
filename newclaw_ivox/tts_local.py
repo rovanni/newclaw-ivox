@@ -5,8 +5,8 @@ arquivos já baixados em `modelos/tts/kokoro`, a voz escolhida e o idioma config
 de vozes antes de usar. Aqui nunca se baixa nada.
 
 Licença (achado da Sprint 4): o kokoro-onnx carrega `phonemizer` e `espeak-ng`, ambos GPL-3.0, no mesmo processo. Pesa só
-na distribuição; a decisão (manter no processo ou mover para subprocesso, que a H1 permite) fica pendente para antes de
-qualquer publicação.
+na distribuição. Decisão da operadora em 30/10/2026: o repositório segue MIT, as peças GPL são baixadas na máquina de quem
+instala depois do aceite, e o NOTICE explica a redistribuição (docs/SPRINTS.md, "Decisão sobre o eSpeak NG").
 """
 
 from __future__ import annotations

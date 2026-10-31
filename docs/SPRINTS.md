@@ -612,3 +612,21 @@ newclaw-ivox; a evolução do contrato do turno (etapas, contexto, modelo) ficou
   `{"t": "velocidade", "d": {"velocidade": 1.2}}`, na faixa que o serviço Kokoro do Pipecat documenta; fora dela, a
   mensagem é ignorada com o motivo. Prova real: o mesmo texto levou 9,9 s a 1x e 6,2 s a 1,5x.
 - **Testes:** janela 50/50 (vitest), motor 128/128 (unittest), `tsc` ok.
+- **Um modelo por computador** (`d4f02ec`, 31/10): depois de religar o computador, o navegador reabriu três abas e cada
+  conexão carregou a sua cópia do Whisper (~5,7 GB de VRAM). A carga agora é feita sob uma trava: medido com três janelas
+  abertas juntas, uma cópia só (~2,2 GB).
+
+## Ativação pelo painel — Sprints 2 a 4 (no NewClaw, 30–31/10/2026)
+
+Feitas no repositório do NewClaw (ADR-030, "Etapa 5 — ativação pelo painel"), publicadas nas duas produções:
+
+- **Sprints 2 e 3 — catálogo, mecanismo e cartão** (PR #27 do NewClaw): catálogo com o endereço deste manifesto, validação
+  estrita, comandos sem shell, registro no PM2 (`newclaw-integracao-newclaw-ivox`) e o cartão genérico nos três idiomas.
+- **Sprint 4 — instalação real pelo painel do Windows** (30/10): instalada em `~/newclaw-ivox`, roda com `pythonw.exe`
+  (sem janela) e aponta para o NewClaw local.
+- **Depois:** botão **Atualizar** no cartão (PR #31), skill `interface-de-voz` que orienta a pessoa (PR #30), atalho das
+  integrações no cabeçalho e 🎙 no título das conversas faladas (PR #33).
+- **Achado de 31/10:** depois de reiniciar o Windows, a integração não voltava ligada — o `newclaw start` sobe o PM2 só
+  com o NewClaw. Correção no NewClaw (ramo `fix/integracao-volta-apos-reiniciar`): o gerenciador anota o que a pessoa
+  ligou e religa ao subir, sem depender da rede.
+- **Falta:** instalação pelo painel provada no Linux.
