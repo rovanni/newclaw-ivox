@@ -16,8 +16,10 @@ Em desenvolvimento, em sprints — ver [docs/SPRINTS.md](docs/SPRINTS.md).
 - **Pronto:** instalador (também chamado pelo painel do NewClaw); transcrição local, com GPU medida; síntese local
   (Kokoro), frase a frase; janela de voz com microfone, interrupção pela voz, texto, vozes e ajustes; motor provado no
   Windows e no Linux.
-- **Ainda não:** instalação pelo painel provada no Linux; carregar e descarregar o modelo de transcrição por botão (hoje
-  ele entra na memória quando a janela conecta e só sai quando o processo da voz para).
+- **Modelo de reconhecimento por pedido** (ADR-037 do NewClaw): a janela abre com o modelo descarregado; **Carregar** e
+  **Descarregar** ficam no cartão "Voz neste computador" e em Ajustes → Recursos. Na GPU, a memória livre é lida do driver
+  da NVIDIA antes de carregar; faltando memória, ou falhando na GPU, a janela pergunta se tenta na CPU.
+- **Ainda não:** instalação pelo painel provada no Linux; prova de que descarregar devolve a VRAM (na CPU, devolveu a RAM).
 
 ## Instalar pelo painel do NewClaw
 

@@ -630,3 +630,25 @@ Feitas no repositório do NewClaw (ADR-030, "Etapa 5 — ativação pelo painel"
   com o NewClaw. Correção no NewClaw (ramo `fix/integracao-volta-apos-reiniciar`): o gerenciador anota o que a pessoa
   ligou e religa ao subir, sem depender da rede.
 - **Falta:** instalação pelo painel provada no Linux.
+
+## Modelo de reconhecimento por pedido (31/10/2026, ADR-037 do NewClaw)
+
+Pedido da operadora: a interface de voz não decide sozinha quando ocupar a GPU — a mesma GPU roda modelos locais do NewClaw.
+Iniciar a integração, carregar o modelo e abrir a janela passam a ser três coisas separadas (decisões D1–D7 na ADR-037).
+
+- **Motor** (`29de78f`, `2f81a88`, `ff25ef9`): `DonoDoModelo` em `stt_local.py`, um por processo, com estados; o serviço da
+  linha não carrega mais no construtor; memória da GPU pela NVML (`dispositivo.py`); rotas `/api/modelo` com sessão e
+  origem; descarregar por ociosidade, desligado por padrão; o runner de teste (`motor --eco`) carrega ao subir.
+- **Janela** (`aafa391`): cartão com Integração, Reconhecimento, Síntese e Recursos; pergunta "Tentar na CPU / Cancelar";
+  microfone desligado sem modelo; grupo Recursos nos Ajustes.
+- **Testes:** motor 151/151, janela 60/60.
+- **Prova real** (harness isolado na porta 7861, NewClaw falso só para o login, `VOZ_DISPOSITIVO=cpu`, nenhuma cota):
+  a janela abriu com "Modelo descarregado"; Carregar → "Carregando na CPU" → "Modelo carregado · CPU" em 22,5 s; o harness
+  não apareceu entre os processos da GPU; Descarregar → a RAM do processo caiu de 1,66 GB para 0,79 GB. Dois achados
+  corrigidos: o idioma chegava cru ao Whisper (`pt-BR` em vez de `pt`) e a síntese era descrita pela lista crua do
+  onnxruntime.
+- **Achado de medição:** no Windows (WDDM) o driver não informa a memória da GPU por processo (`[N/A]` no `nvidia-smi`);
+  o consumo gravado é a diferença do dispositivo inteiro, e a janela diz isso.
+- **Falta (com autorização da operadora, sem o Strata):** carregar e descarregar na GPU e medir se a VRAM volta. Se não
+  voltar (diferença maior que 10% do consumo medido), a descarga passa a ser por processo filho (alternativa C da ADR).
+
