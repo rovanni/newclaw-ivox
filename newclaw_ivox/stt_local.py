@@ -8,6 +8,7 @@ baixada; aqui nunca se baixa nada.
 from __future__ import annotations
 
 import asyncio
+import threading
 import time
 import wave
 from dataclasses import dataclass
@@ -58,7 +59,10 @@ def criar_servico(config: cfg.Configuracao):
 
 # Um modelo do Whisper carregado por processo: cada conexão da janela monta um serviço novo (o pipeline é por conexão),
 # mas carregar o modelo leva ~9 s e ocupa a memória da GPU; o modelo em si não guarda nada da conversa.
+# A trava faz a 2ª conexão esperar a carga da 1ª em vez de carregar outra cópia: sem ela, três janelas abertas juntas
+# (o navegador reabrindo as abas depois de religar o computador, 31/10/2026) carregaram três cópias — ~5,7 GB de VRAM.
 _MODELOS_CARREGADOS: dict[tuple, object] = {}
+_TRAVA_DA_CARGA = threading.Lock()
 _CLASSE = None
 
 
@@ -70,14 +74,15 @@ def _classe_com_cache():
         class WhisperComModeloReaproveitado(WhisperSTTService):
             def _load(self):
                 chave = (self._settings.model, self._device, self._compute_type)
-                if chave in _MODELOS_CARREGADOS:
-                    self._model = _MODELOS_CARREGADOS[chave]
-                    problema = self._unsupported_language()
-                    if problema:
-                        raise ValueError(problema)
-                    return
-                super()._load()
-                _MODELOS_CARREGADOS[chave] = self._model
+                with _TRAVA_DA_CARGA:
+                    if chave in _MODELOS_CARREGADOS:
+                        self._model = _MODELOS_CARREGADOS[chave]
+                        problema = self._unsupported_language()
+                        if problema:
+                            raise ValueError(problema)
+                        return
+                    super()._load()
+                    _MODELOS_CARREGADOS[chave] = self._model
 
         _CLASSE = WhisperComModeloReaproveitado
     return _CLASSE
