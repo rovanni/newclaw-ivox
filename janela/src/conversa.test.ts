@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { Conversa, type Quadro, type Relogio } from './conversa';
-import type { ClienteDoTurno, EstadoDoTurno, ResultadoDaEspera, ResultadoDoEnvio } from './turnos';
+import type { ClienteDoTurno, Entrega, EstadoDoTurno, ResultadoDaEspera, ResultadoDoEnvio } from './turnos';
+import { versaoAceita } from './turnos';
 
 /** Relógio manual: o tempo só anda quando o teste manda. */
 class RelogioFalso implements Relogio {
@@ -31,7 +32,7 @@ class TurnosFalsos implements ClienteDoTurno {
   decisoes: { txnId: string; decision: string }[] = [];
   respostaDoEnvio: ResultadoDoEnvio | null = null;
   private n = 0;
-  private turnos = new Map<string, { onState?: (s: EstadoDoTurno) => void; fim: (r: ResultadoDaEspera) => void }>();
+  private turnos = new Map<string, { onState?: (s: EstadoDoTurno) => void; onProvisional?: (e: Entrega) => void; fim: (r: ResultadoDaEspera) => void }>();
 
   sessoes: string[] = [];
 
@@ -45,8 +46,11 @@ class TurnosFalsos implements ClienteDoTurno {
     this.decisoes.push({ txnId, decision });
     return { kind: 'decided' as const, text: 'Feito: espaço liberado.', attachments: [] };
   }
-  waitForTurn({ turnId, onState }: { sessionId: string; turnId: string; onState?: (s: EstadoDoTurno) => void }) {
-    return new Promise<ResultadoDaEspera>((fim) => this.turnos.set(turnId, { onState, fim }));
+  waitForTurn({ turnId, onState, onProvisional }: { sessionId: string; turnId: string; onState?: (s: EstadoDoTurno) => void; onProvisional?: (e: Entrega) => void }) {
+    return new Promise<ResultadoDaEspera>((fim) => this.turnos.set(turnId, { onState, onProvisional, fim }));
+  }
+  provisorio(turnId: string, text: string) {
+    this.turnos.get(turnId)!.onProvisional?.({ kind: 'delivered', text, attachments: [], provisional: true });
   }
   fase(turnId: string, phase: EstadoDoTurno['phase'], extra: Partial<EstadoDoTurno> = {}) {
     this.turnos.get(turnId)!.onState?.({ turnId, phase, elapsedMs: 0, approvals: [], progress: null, ...extra });
@@ -408,5 +412,67 @@ describe('Conversa — corrigir e reenviar (ADR-039 do NewClaw)', () => {
     expect(c.corrigirEReenviar(1, 'outra coisa')).toBe(false);  // a resposta do NewClaw
     expect(c.corrigirEReenviar(0, '   ')).toBe(false);
     expect(turnos.enviados).toEqual(['oi']);
+  });
+});
+
+describe('Conversa — contrato do turno v2 (ADR-033 do NewClaw)', () => {
+  it('aceita a versão 1 e as maiores; recusa o que não é versão', () => {
+    expect([1, 2, 3].every(versaoAceita)).toBe(true);
+    expect([0, 1.5, '2', undefined, null].some(versaoAceita)).toBe(false);
+  });
+
+  it('mostra as etapas reais do objetivo e mantém as que já tinha quando nada mudou', async () => {
+    const { c, turnos, ultimo } = montar();
+    c.enviarTexto('Diagnostique os logs');
+    await tick();
+    expect(ultimo().etapas).toBeNull();
+    const steps = [
+      { id: 's1', description: 'Coletar os logs de hoje', state: 'concluida' as const },
+      { id: 's2', description: 'Analisar os erros', state: 'executando' as const },
+    ];
+    turnos.fase('t1', 'running', { plan: { state: 'executando', generation: 1, revision: 3, steps } });
+    expect(ultimo().etapas).toEqual(steps);
+    turnos.fase('t1', 'running', { plan: { state: 'executando', generation: 1, revision: 3 } });
+    expect(ultimo().etapas).toEqual(steps);
+    turnos.fase('t1', 'running', { plan: null });
+    expect(ultimo().etapas).toBeNull();
+  });
+
+  it('o aviso de fila provisório aparece como andamento, não é falado e não encerra o pedido', async () => {
+    const { c, motor, turnos, ultimo } = montar();
+    c.enviarTexto('E me envia');
+    await tick();
+    turnos.fase('t1', 'running');
+    turnos.provisorio('t1', '🧠 Estou concluindo a tarefa anterior.');
+    expect(ultimo().progresso).toBe('🧠 Estou concluindo a tarefa anterior.');
+    expect(motor.falas).toEqual([]);
+    expect(ultimo().mensagens.filter((m) => m.quem === 'newclaw')).toEqual([]);
+    turnos.terminar('t1', { kind: 'finished', delivery: { kind: 'delivered', text: 'Enviado.', attachments: [] } });
+    await tick();
+    expect(motor.falas).toEqual(['Enviado.']);
+    expect(ultimo().etapas).toBeNull();
+  });
+
+  it('a resposta guarda o resultado que o NewClaw decidiu', async () => {
+    const { c, turnos, ultimo } = montar();
+    c.enviarTexto('Gera o relatório');
+    await tick();
+    const outcome = { state: 'parcial' as const, steps: { total: 3, done: 2 } };
+    turnos.terminar('t1', { kind: 'finished', delivery: { kind: 'delivered', text: 'Fiz parte.', attachments: [], outcome } });
+    await tick();
+    const resposta = ultimo().mensagens.find((m) => m.quem === 'newclaw');
+    expect(resposta).toMatchObject({ texto: 'Fiz parte.', resultado: outcome });
+  });
+
+  it('com um NewClaw da versão 1 (sem campos novos), nada muda', async () => {
+    const { c, turnos, ultimo } = montar();
+    c.enviarTexto('oi');
+    await tick();
+    turnos.fase('t1', 'running');
+    turnos.terminar('t1', { kind: 'finished', delivery: { kind: 'delivered', text: 'Olá!', attachments: [] } });
+    await tick();
+    const resposta = ultimo().mensagens.find((m) => m.quem === 'newclaw');
+    expect(resposta && 'resultado' in resposta).toBe(false);
+    expect(ultimo().etapas).toBeNull();
   });
 });

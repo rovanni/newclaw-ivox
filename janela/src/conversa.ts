@@ -8,7 +8,7 @@
  * `decidir()`, que a tela chama a partir de um clique.
  */
 import { estadoDaTela, FATOS_INICIAIS, faseMaisRelevante, type EstadoDaTela, type FaseDoTurno, type Fatos } from './estado';
-import type { Aprovacao, ClienteDoTurno, EstadoDoTurno } from './turnos';
+import type { Aprovacao, ClienteDoTurno, Entrega, Etapa, EstadoDoTurno, ResultadoDaTarefa } from './turnos';
 
 /** O que a janela pede ao motor de voz (protocolo v3 do `controle.py`). */
 export interface Motor {
@@ -38,6 +38,8 @@ export interface Mensagem {
   porVoz?: boolean;
   /** A pessoa corrigiu esta fala e reenviou o texto certo (a fala continua na coluna, marcada). */
   corrigida?: boolean;
+  /** Contrato v2: o resultado que o NewClaw decidiu para a tarefa desta resposta (só em objetivo). */
+  resultado?: ResultadoDaTarefa;
   /** Esta mensagem é a correção da fala anterior marcada como `corrigida`. */
   correcao?: boolean;
 }
@@ -52,6 +54,8 @@ export interface Quadro {
   /** A resposta que o motor está falando e a frase em curso, para destacar. */
   fala: { texto: string; fraseAtual: string | null } | null;
   progresso: string | null;
+  /** Contrato v2: as etapas reais do objetivo em andamento; `null` quando não há objetivo (ou o NewClaw é da versão 1). */
+  etapas: Etapa[] | null;
   aprovacoes: Aprovacao[];
   mensagens: Mensagem[];
 }
@@ -88,6 +92,7 @@ export class Conversa {
   private legendaParcial = '';
   private fala: Quadro['fala'] = null;
   private progresso: string | null = null;
+  private etapas: Etapa[] | null = null;
   private aprovacoes: Aprovacao[] = [];
   private mensagens: Mensagem[] = [];
   private fases = new Map<string, FaseDoTurno>();
@@ -112,7 +117,7 @@ export class Conversa {
     const legenda = [this.legendaFinal, this.legendaParcial].filter(Boolean).join(' ');
     return {
       estado: this.estado, fatos: { ...this.fatos }, desde: this.desde, legenda, fala: this.fala,
-      progresso: this.progresso, aprovacoes: this.aprovacoes, mensagens: this.mensagens,
+      progresso: this.progresso, etapas: this.etapas, aprovacoes: this.aprovacoes, mensagens: this.mensagens,
     };
   }
 
@@ -335,15 +340,17 @@ export class Conversa {
     const fim = await this.o.turnos.waitForTurn({
       sessionId: this.sessionId, turnId: r.turnId, signal: controle.signal,
       onState: (s) => this.aoEstadoDoTurno(s),
+      // v2: o aviso de fila não é a resposta. Aparece como andamento, sem ser falado, e a espera continua.
+      onProvisional: (e: Entrega) => { this.progresso = e.text; this.publicar(); },
     });
     this.esperas.delete(r.turnId);
     this.fases.delete(r.turnId);
-    if (this.fases.size === 0) { this.progresso = null; this.aprovacoes = []; }
+    if (this.fases.size === 0) { this.progresso = null; this.etapas = null; this.aprovacoes = []; }
     const resposta = fim.kind === 'finished' && fim.delivery && fim.delivery.text.trim() ? fim.delivery.text : null;
     if (resposta) {
       // O turno sai e a fala entra na mesma mudança: sem passar por "pronto" entre "pensando" e "falando".
       this.fatos = { ...this.fatos, turno: faseMaisRelevante(this.fases.values()) };
-      this.responder(resposta);
+      this.responder(resposta, fim.kind === 'finished' ? fim.delivery?.outcome : undefined);
       return;
     }
     this.atualizarTurno();
@@ -371,6 +378,9 @@ export class Conversa {
     if (s.phase !== 'finished') this.fases.set(s.turnId, s.phase);
     this.aprovacoes = s.approvals;
     this.progresso = s.progress ? s.progress.texto : null;
+    // v2: etapas só quando há objetivo; `steps` ausente quer dizer "nada mudou" e vale o que já está na tela.
+    if (!s.plan) this.etapas = null;
+    else if (s.plan.steps) this.etapas = s.plan.steps;
     if (this.fatos.erro) this.fatos = { ...this.fatos, erro: null };
     this.atualizarTurno();
   }
@@ -379,8 +389,8 @@ export class Conversa {
     this.mudar({ turno: faseMaisRelevante(this.fases.values()) });
   }
 
-  private responder(texto: string): void {
-    this.mensagens = [...this.mensagens, { quem: 'newclaw', texto, em: this.relogio.agora() }];
+  private responder(texto: string, resultado?: ResultadoDaTarefa): void {
+    this.mensagens = [...this.mensagens, { quem: 'newclaw', texto, em: this.relogio.agora(), ...(resultado ? { resultado } : {}) }];
     this.fala = { texto, fraseAtual: null };
     this.o.motor.falar(texto);
     this.mudar({ aguardandoFala: true });

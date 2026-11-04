@@ -1,5 +1,26 @@
 /** Textos derivados do quadro da conversa, puros para serem testados. */
 import type { Quadro } from './conversa';
+import type { Etapa, ResultadoDaTarefa } from './turnos';
+
+/** Contrato v2: a marca de cada estado de etapa na lista do trabalho em andamento. */
+export const MARCA_DA_ETAPA: Record<Etapa['state'], string> = {
+  pendente: '○', executando: '◐', concluida: '✓', pulada: '–', falhou: '✕',
+};
+
+/**
+ * Contrato v2: o selo da resposta quando a tarefa não terminou inteira. Concluída inteira não ganha selo (é o normal). O
+ * estado é o que o NewClaw decidiu; a janela só o mostra.
+ */
+export function seloDoResultado(r: ResultadoDaTarefa | undefined): string | null {
+  if (!r) return null;
+  const contagem = r.steps.total > 0 ? ` (${r.steps.done} de ${r.steps.total} etapas)` : '';
+  switch (r.state) {
+    case 'concluido': return null;
+    case 'parcial': return `Concluída em parte${contagem}`;
+    case 'falhou': return `Não concluída${contagem}`;
+    case 'cancelado': return `Cancelada${contagem}`;
+  }
+}
 
 /** A linha de detalhe embaixo do centro: o que está acontecendo, em palavras. */
 export function detalhe(q: Quadro): string {

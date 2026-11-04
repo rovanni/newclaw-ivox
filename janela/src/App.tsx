@@ -16,7 +16,7 @@ import { ajustarOciosidade, carregarModelo, descarregarModelo, intervaloDeLeitur
 import { LigacaoComOMotor, VELOCIDADE_MAXIMA, VELOCIDADE_MINIMA, type Voz } from './motor';
 import { gravarPref, idDaConversa, lerPref, novaConversa, usarConversa } from './preferencias';
 import { comecouAOuvir, terminouDeOuvir } from './sons';
-import { detalhe, hora, partesDaFala, tempoDecorrido } from './textos';
+import { detalhe, hora, MARCA_DA_ETAPA, partesDaFala, seloDoResultado, tempoDecorrido } from './textos';
 import { carregarClienteDoTurno } from './turnos';
 
 interface InfoDaVoz {
@@ -550,6 +550,9 @@ function Janela({ aoSair, semSenha }: { aoSair: () => void; semSenha: boolean })
               {(q?.mensagens.length ?? 0) === 0 && (q?.aprovacoes.length ?? 0) === 0 && <div className="vazio">Nada por aqui ainda.</div>}
               {q?.mensagens.map((m, i) => (
                 <div key={i} className={`msg ${m.quem} ${m.corrigida ? 'corrigida' : ''}`}>
+                  {m.quem === 'newclaw' && seloDoResultado(m.resultado) && (
+                    <span className={`selo-resultado ${m.resultado!.state}`}>{seloDoResultado(m.resultado)}</span>
+                  )}
                   {m.quem === 'newclaw' ? <TextoFormatado texto={m.texto} /> : m.texto}
                   <small>{hora(m.em)}{m.porVoz ? ' · por voz' : ''}{m.correcao ? ' · correção' : ''}{m.corrigida ? ' · corrigida abaixo' : ''}</small>
                   {m.quem === 'newclaw' && <AcoesDaResposta texto={m.texto} podeOuvir={podeOuvir} aoOuvir={() => conversaRef.current?.repetir(m.texto)} />}
@@ -565,6 +568,17 @@ function Janela({ aoSair, semSenha }: { aoSair: () => void; semSenha: boolean })
                   <span className="pontos" aria-hidden="true"><i /><i /><i /></span>
                   {q?.progresso || (estado === 'fila' ? 'Na fila do NewClaw…' : 'Preparando a resposta…')}
                 </div>
+              )}
+              {/* Contrato v2: as etapas reais do objetivo, como o NewClaw as descreveu. */}
+              {(estado === 'fila' || estado === 'pensando') && q?.etapas && q.etapas.length > 0 && (
+                <ol className="etapas" aria-label="Etapas do trabalho">
+                  {q.etapas.map((e) => (
+                    <li key={e.id} className={`etapa ${e.state}`}>
+                      <span className="marca" aria-hidden="true">{MARCA_DA_ETAPA[e.state] ?? '•'}</span>
+                      {e.description}
+                    </li>
+                  ))}
+                </ol>
               )}
               {q?.aprovacoes.map((a) => (
                 <div key={a.txnId} className="aprovacao">

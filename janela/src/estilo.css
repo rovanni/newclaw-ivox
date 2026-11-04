@@ -311,6 +311,14 @@ body.foco .entrada-wrap { max-width: 760px; width: 100%; margin: 0 auto; }
 
 /* Resposta em andamento: três pontos e a fase real do turno. */
 .msg.andamento { display: flex; align-items: center; gap: 8px; color: var(--texto-2); font-size: 13px; white-space: normal; }
+/* Contrato v2: etapas reais do objetivo e o selo do resultado. */
+.etapas { list-style: none; margin: 0; padding: 4px 12px; display: flex; flex-direction: column; gap: 4px; color: var(--texto-2); font-size: 13px; }
+.etapa .marca { display: inline-block; width: 1.4em; }
+.etapa.executando { color: var(--texto); }
+.etapa.concluida .marca { color: var(--ok, var(--texto)); }
+.etapa.falhou .marca { color: var(--erro); }
+.selo-resultado { display: inline-block; margin-bottom: 6px; padding: 2px 8px; border-radius: 999px; font-size: 12px; border: 1px solid var(--texto-2); color: var(--texto-2); }
+.selo-resultado.falhou, .selo-resultado.cancelado { border-color: var(--erro); color: var(--erro); }
 .pontos { display: inline-flex; gap: 3px; }
 .pontos i { width: 6px; height: 6px; border-radius: 50%; background: var(--cor-voz, var(--destaque)); animation: ponto 1.2s infinite ease-in-out; }
 .pontos i:nth-child(2) { animation-delay: .15s; }
