@@ -328,8 +328,13 @@ def _classe_da_linha():
     return _CLASSE
 
 
-def servico_da_linha(config: cfg.Configuracao, dono_do_modelo: DonoDoModelo | None = None):
-    """O serviço de transcrição de uma conexão. Não carrega o modelo (ADR-037): só confere a configuração."""
+def servico_da_linha(config: cfg.Configuracao, dono_do_modelo: DonoDoModelo | None = None,
+                     hotwords: str | None = None, initial_prompt: str | None = None):
+    """O serviço de transcrição de uma conexão. Não carrega o modelo (ADR-037): só confere a configuração.
+
+    `hotwords` e `initial_prompt` são os dois apoios de vocabulário que o faster-whisper aceita e o Pipecat repassa;
+    sem eles (o padrão), o Whisper transcreve sem apoio nenhum, como sempre fez.
+    """
     if config.stt is None or config.stt.motor != cfg.LOCAL:
         raise SttIndisponivel("Transcrição local não configurada (VOZ_STT_MOTOR=local e VOZ_STT_MODELO).")
     from pipecat.transcriptions.language import Language
@@ -341,8 +346,41 @@ def servico_da_linha(config: cfg.Configuracao, dono_do_modelo: DonoDoModelo | No
         settings=cls.Settings(
             model=str(modelos.pasta_do_modelo(config.modelos_dir, config.stt.modelo)),
             language=Language(config.idioma) if config.idioma else None,
+            hotwords=hotwords or None,
+            initial_prompt=initial_prompt or None,
         ),
     )
+
+
+# ─── Medição da transcrição (comando `medir-stt`) ────────────────────────────────────────────────────────────────────
+# Compara modelos e apoios de vocabulário com a voz de quem usa, antes de decidir qualquer troca. A conta é a taxa de
+# erro de palavras (WER): substituições + omissões + inserções, divididas pelas palavras do texto dito.
+
+def palavras_para_comparar(texto: str) -> list[str]:
+    """Minúsculas, sem pontuação; acentos e números ficam como estão (são parte do que se quer acertar)."""
+    limpo = "".join(c if c.isalnum() or c.isspace() else " " for c in texto.lower())
+    return limpo.split()
+
+
+def erros_de_palavras(dito: str, ouvido: str) -> tuple[int, int]:
+    """(erros, palavras do texto dito): distância de edição entre as duas listas de palavras."""
+    a, b = palavras_para_comparar(dito), palavras_para_comparar(ouvido)
+    anterior = list(range(len(b) + 1))
+    for i, pa in enumerate(a, 1):
+        atual = [i]
+        for j, pb in enumerate(b, 1):
+            atual.append(min(anterior[j] + 1, atual[j - 1] + 1, anterior[j - 1] + (pa != pb)))
+        anterior = atual
+    return anterior[-1], len(a)
+
+
+def ler_audio_16k(caminho: Path) -> bytes:
+    """Qualquer áudio que o PyAV abra (wav, m4a, mp3…), em PCM de 16 bits a 16 kHz, mono — o que o `run_stt` recebe."""
+    import numpy as np
+    from faster_whisper import decode_audio
+
+    amostras = decode_audio(str(caminho), sampling_rate=16_000)
+    return (np.clip(amostras, -1.0, 1.0) * 32767).astype(np.int16).tobytes()
 
 
 def criar_servico(config: cfg.Configuracao):
@@ -350,8 +388,12 @@ def criar_servico(config: cfg.Configuracao):
     estado = dono().pedir_carga(config, esperar=True)
     if estado["estado"] != CARREGADO:
         raise SttIndisponivel(estado.get("erro") or estado.get("aviso") or f"modelo {estado['estado']}")
-    escolha = disp.Escolha(estado["dispositivo"], estado["tipo"], estado["motivo"])
-    return servico_da_linha(config), escolha
+    return servico_da_linha(config), escolha_do_estado(estado)
+
+
+def escolha_do_estado(estado: dict) -> disp.Escolha:
+    """O dispositivo e o tipo com que o dono carregou, como `Escolha` (para medir o tempo de cada transcrição)."""
+    return disp.Escolha(estado["dispositivo"], estado["tipo"], estado["motivo"])
 
 
 def ler_wav_pcm16(caminho: Path) -> tuple[bytes, int]:

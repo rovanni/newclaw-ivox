@@ -15,6 +15,12 @@ def _testar_stt(argumentos):
     return comandos.testar_stt(argumentos)
 
 
+def _medir_stt(argumentos):
+    from . import comandos
+
+    return comandos.medir_stt(argumentos)
+
+
 def _testar_tts(argumentos):
     from . import comandos
 
@@ -49,6 +55,7 @@ COMANDOS = {
     "diagnostico": diagnostico.principal,
     "exportar-vozes": _exportar_vozes,
     "instalar": _instalar,
+    "medir-stt": _medir_stt,
     "modelos": _modelos,
     "motor": _motor,
     "servidor": _servidor,

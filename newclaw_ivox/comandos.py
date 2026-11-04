@@ -190,6 +190,122 @@ def testar_tts(argumentos: list[str]) -> int:
     return 0
 
 
+AUDIOS_ACEITOS = (".wav", ".m4a", ".mp3", ".ogg", ".opus", ".webm", ".flac")
+
+
+def medir_stt(argumentos: list[str]) -> int:
+    """`medir-stt --audios PASTA --frases ARQ [--vocabulario ARQ] [--modelos a,b] [--json]`
+
+    Transcreve cada gravação da pasta com cada modelo e cada apoio de vocabulário (sem apoio, `hotwords`,
+    `initial_prompt`) pelo mesmo `run_stt` da janela, e mede a taxa de erro de palavras contra o texto dito.
+
+    - As gravações são pareadas com as linhas de `--frases` pela ordem em que foram gravadas (data de modificação); o
+      pareamento é impresso para conferir.
+    - `--vocabulario`: um termo por linha.
+    - `--modelos`: padrão, o modelo configurado; modelo não baixado é relatado como ausente, nunca baixado aqui.
+    - Cada modelo é carregado, usado e descarregado antes do próximo.
+    """
+    import dataclasses
+
+    from . import modelos as m
+    from . import stt_local
+
+    pasta_audios = _valor(argumentos, "--audios")
+    arquivo_frases = _valor(argumentos, "--frases")
+    if not pasta_audios or not arquivo_frases:
+        print("uso: medir-stt --audios PASTA --frases ARQUIVO [--vocabulario ARQUIVO] [--modelos a,b] [--json]")
+        return 64
+    audios = sorted((p for p in Path(pasta_audios).iterdir() if p.suffix.lower() in AUDIOS_ACEITOS),
+                    key=lambda p: p.stat().st_mtime)
+    frases = [linha.strip() for linha in Path(arquivo_frases).read_text(encoding="utf-8").splitlines() if linha.strip()]
+    if len(audios) != len(frases):
+        print(f"{len(audios)} gravação(ões) em {pasta_audios} e {len(frases)} frase(s) em {arquivo_frases}: "
+              "o número precisa ser igual para parear.")
+        return 1
+    termos: list[str] = []
+    arquivo_vocab = _valor(argumentos, "--vocabulario")
+    if arquivo_vocab:
+        termos = [t.strip() for t in Path(arquivo_vocab).read_text(encoding="utf-8").splitlines() if t.strip()]
+
+    config = cfg.carregar(None, RAIZ / ".env", RAIZ)
+    if config.stt is None or config.stt.motor != cfg.LOCAL:
+        print("Transcrição local não configurada (VOZ_STT_MOTOR=local e VOZ_STT_MODELO).")
+        return 1
+    nomes = [n.strip() for n in (_valor(argumentos, "--modelos") or config.stt.modelo).split(",") if n.strip()]
+
+    apoios: list[tuple[str, str | None, str | None]] = [("sem apoio", None, None)]
+    if termos:
+        apoios.append(("hotwords", " ".join(termos), None))
+        apoios.append(("initial_prompt", None, "Vocabulário: " + ", ".join(termos) + "."))
+
+    print("Pareamento (ordem de gravação):")
+    for audio, frase in zip(audios, frases):
+        print(f"  {audio.name}  →  {frase}")
+    pcm = [stt_local.ler_audio_16k(a) for a in audios]
+    com_termo = [any(t.lower() in f.lower() for t in termos) for f in frases]
+
+    resultados: list[dict] = []
+    for nome in nomes:
+        if not m.instalado(config.modelos_dir, nome):
+            print(f"\n{nome}: não baixado em {m.pasta_do_modelo(config.modelos_dir, nome)} — fora da medição.")
+            resultados.append({"modelo": nome, "ausente": True})
+            continue
+        config_m = dataclasses.replace(config, stt=dataclasses.replace(config.stt, modelo=nome))
+        dono = stt_local.DonoDoModelo()
+        estado = dono.pedir_carga(config_m, esperar=True)
+        if estado["estado"] != stt_local.CARREGADO:
+            print(f"\n{nome}: não carregou — {estado.get('erro') or estado.get('aviso') or estado['estado']}")
+            resultados.append({"modelo": nome, "falha": estado.get("erro") or estado.get("aviso") or estado["estado"]})
+            continue
+        escolha = stt_local.escolha_do_estado(estado)
+        try:
+            for rotulo, hotwords, prompt in apoios:
+                servico = stt_local.servico_da_linha(config_m, dono, hotwords=hotwords, initial_prompt=prompt)
+                stt_local.transcrever(servico, escolha, pcm[0], 16_000)  # aquecimento, fora da conta
+                linhas, erros, total, segundos = [], [0, 0], [0, 0], 0.0
+                for i, (audio, frase) in enumerate(zip(audios, frases)):
+                    volta = stt_local.transcrever(servico, escolha, pcm[i], 16_000)
+                    e, n = stt_local.erros_de_palavras(frase, volta.texto)
+                    grupo = 0 if com_termo[i] else 1
+                    erros[grupo] += e
+                    total[grupo] += n
+                    segundos += volta.segundos_para_transcrever
+                    linhas.append({"audio": audio.name, "dito": frase, "ouvido": volta.texto, "erros": e, "palavras": n})
+                resultados.append({
+                    "modelo": nome, "apoio": rotulo, "dispositivo": f"{escolha.dispositivo}/{escolha.tipo}",
+                    "erros": sum(erros), "palavras": sum(total),
+                    "erros_com_termo": erros[0], "palavras_com_termo": total[0],
+                    "erros_sem_termo": erros[1], "palavras_sem_termo": total[1],
+                    "segundos_para_transcrever": round(segundos, 2), "frases": linhas,
+                })
+        finally:
+            dono.descarregar()
+
+    if "--json" in argumentos:
+        print(json.dumps(resultados, ensure_ascii=False, indent=1))
+        return 0
+
+    def taxa(e: int, n: int) -> str:
+        return f"{100 * e / n:5.1f}%" if n else "   — "
+
+    for r in resultados:
+        if "apoio" not in r:
+            continue
+        print(f"\n── {r['modelo']} · {r['apoio']} ({r['dispositivo']}, {r['segundos_para_transcrever']} s no total)")
+        for linha in r["frases"]:
+            marca = "  " if linha["erros"] == 0 else "✗ "
+            print(f"  {marca}{linha['ouvido']!r}  ({linha['erros']}/{linha['palavras']})")
+    print("\nTaxa de erro de palavras (menor é melhor):")
+    print(f"  {'modelo':<18} {'apoio':<15} {'geral':>7} {'frases c/ termo':>16} {'frases s/ termo':>16} {'tempo':>8}")
+    for r in resultados:
+        if "apoio" not in r:
+            continue
+        print(f"  {r['modelo']:<18} {r['apoio']:<15} {taxa(r['erros'], r['palavras']):>7} "
+              f"{taxa(r['erros_com_termo'], r['palavras_com_termo']):>16} "
+              f"{taxa(r['erros_sem_termo'], r['palavras_sem_termo']):>16} {r['segundos_para_transcrever']:>7.1f}s")
+    return 0
+
+
 def testar_stt(argumentos: list[str]) -> int:
     """`testar-stt [--audio arquivo.wav]` — carrega o modelo no dispositivo medido e transcreve duas vezes.
 
