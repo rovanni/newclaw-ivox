@@ -666,3 +666,31 @@ desligado, nenhuma cota; carga e descarga pelas rotas `/api/modelo`, VRAM medida
   gravado é um aviso antes de carregar, não uma garantia — como a decisão já previa.
 - Na CPU (mesmo dia): carga em 22,5 s; descarregar devolveu ~0,87 GB de RAM ao processo.
 
+
+## Reconhecimento e janela mais limpa (04/11/2026, pedidos da operadora)
+
+**Reconhecimento (ADR-039 do NewClaw, proposta):** a operadora achou a transcrição pior que o ditado do navegador.
+- **Medido nos 38 trechos dela:** o modelo é bom (`large-v3-turbo` na GPU). Os erros são nomes próprios e frases curtas, porque o Whisper não recebia vocabulário nenhum.
+- **Não eram erros:** frases como "Obrigado por assistir" eram o áudio de um vídeo tocando perto, transcrito certo.
+- **O ditado do navegador** manda o áudio para servidores do Google ou da Microsoft.
+
+O que ficou pronto:
+- `servico_da_linha(hotwords, initial_prompt)`;
+- o comando `python -m newclaw_ivox medir-stt --audios PASTA --frases ARQ [--vocabulario ARQ] [--modelos a,b]`: transcreve as gravações pelo mesmo `run_stt` da janela e mostra a taxa de erro de palavras, separando as frases com e sem termo do vocabulário;
+- `large-v3` baixado na instalação para entrar na comparação.
+
+Prova na CPU com duas falas do Kokoro: 3,6% de erro sem apoio, 0% com `hotwords` ou `initial_prompt`. **Falta:** a medição com as gravações da operadora.
+
+**Janela:**
+- **Ajustes:** saíram da caixa por cima da conversa e viraram uma aba (Conversa | Ajustes).
+- **Atalhos de pedido e saudação:** somem quando a conversa começa. Em Aparência há também "Sempre" e "Nunca". Avisos como "sem microfone" continuam aparecendo.
+- **Aparência:**
+  - tema **Neon**, com tudo em azul e brilho;
+  - **fundo**: do tema, azul claro, marinho ou grafite;
+  - **cores do centro**: por estado, ou uma cor só (azul, ciano, verde, roxo). Aprovação e erro continuam vermelhos.
+- **Falas da pessoa:** ganharam **Copiar** e **Corrigir e reenviar** (Sprint 3 da ADR-039). A fala errada fica marcada, e o texto certo vai como pedido novo. Com pedido em andamento o reenvio fica desligado: parar a resposta é decisão da pessoa (D2 segue aberta).
+
+**Testes e conferência:**
+- testes da janela: 70/70; testes do motor: 161/161;
+- conferido no navegador, e copiado para a instalação (versão anterior em `janela/dist.bak-antes-abas`).
+- **Falta:** a prova com microfone de verdade (o navegador do teste bloqueia o microfone).
