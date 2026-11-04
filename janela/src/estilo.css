@@ -421,3 +421,14 @@ body.economico .luz-miolo, body.economico .centro[data-cor="falando"] .luz-miolo
 :root[data-cores]:not([data-cores="estados"]) [data-cor="ouvindo"] { --cor-estado: var(--cor-unica); }
 .ajuste-valor .segmento { flex-wrap: wrap; }
 .ajuste-valor .segmento button { white-space: nowrap; padding: 6px 10px; }
+
+/* Falas da pessoa: copiar e "Corrigir e reenviar" (ADR-039 do NewClaw, 04/11/2026). */
+.msg.voce .acoes-resposta { justify-content: flex-end; }
+.msg.voce .btn.mini { background: rgba(255, 255, 255, .14); color: #fff; border-color: rgba(255, 255, 255, .35); }
+.msg.voce .btn.mini:hover:not(:disabled) { background: rgba(255, 255, 255, .24); }
+.msg.voce .btn.mini.primario { background: #fff; color: var(--destaque); border-color: #fff; }
+.msg.corrigida { opacity: .55; }
+.corrigir textarea { width: 100%; min-width: 220px; font: inherit; color: #fff; background: rgba(0, 0, 0, .22);
+  border: 1px solid rgba(255, 255, 255, .5); border-radius: 8px; padding: 6px 8px; resize: vertical; }
+/* No neon o azul de destaque é claro: com texto branco, o balão da pessoa e o botão escolhido ficam num azul mais fundo. */
+:root[data-tema="neon"] .msg.voce, :root[data-tema="neon"] .segmento button.ativo { background: #0e78c2; }

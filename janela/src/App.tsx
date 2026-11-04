@@ -4,7 +4,7 @@
  */
 import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent, type KeyboardEvent } from 'react';
 import { Centro, type EstiloDoCentro } from './Centro';
-import { AcoesDaResposta, TextoFormatado } from './Resposta';
+import { AcoesDaResposta, FalaDaPessoa, TextoFormatado } from './Resposta';
 import { Configuracoes } from './Configuracoes';
 import { Conversa, type EsperaAntesDeEnviar, type JeitoDeFalar, type Mensagem, type Quadro } from './conversa';
 import { listarConversasDeVoz, mensagensDaConversa, rotuloDaConversa, type ConversaGuardada } from './historico';
@@ -549,10 +549,14 @@ function Janela({ aoSair, semSenha }: { aoSair: () => void; semSenha: boolean })
             <div className="conversa">
               {(q?.mensagens.length ?? 0) === 0 && (q?.aprovacoes.length ?? 0) === 0 && <div className="vazio">Nada por aqui ainda.</div>}
               {q?.mensagens.map((m, i) => (
-                <div key={i} className={`msg ${m.quem}`}>
+                <div key={i} className={`msg ${m.quem} ${m.corrigida ? 'corrigida' : ''}`}>
                   {m.quem === 'newclaw' ? <TextoFormatado texto={m.texto} /> : m.texto}
-                  <small>{hora(m.em)}{m.porVoz ? ' · por voz' : ''}</small>
+                  <small>{hora(m.em)}{m.porVoz ? ' · por voz' : ''}{m.correcao ? ' · correção' : ''}{m.corrigida ? ' · corrigida abaixo' : ''}</small>
                   {m.quem === 'newclaw' && <AcoesDaResposta texto={m.texto} podeOuvir={podeOuvir} aoOuvir={() => conversaRef.current?.repetir(m.texto)} />}
+                  {m.quem === 'voce' && (
+                    <FalaDaPessoa texto={m.texto} podeReenviar={!parar}
+                      aoReenviar={(t) => conversaRef.current?.corrigirEReenviar(i, t) ?? false} />
+                  )}
                 </div>
               ))}
               {/* Resposta em andamento: a fase real do turno (fila, pensando) e o último relato de progresso do NewClaw. */}

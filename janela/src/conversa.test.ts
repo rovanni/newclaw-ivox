@@ -375,3 +375,38 @@ describe('Conversa — ouvir de novo', () => {
     expect(motor.falas).toEqual(['primeira', 'segunda']);
   });
 });
+
+describe('Conversa — corrigir e reenviar (ADR-039 do NewClaw)', () => {
+  it('a fala errada fica marcada e o texto certo vai ao NewClaw como pedido novo', async () => {
+    const { c, turnos, ultimo } = montar();
+    c.enviarTexto('Qual a previsão do tempo para a Cornelia Procobre?');
+    await tick();
+    turnos.terminar('t1', { kind: 'finished', delivery: { kind: 'delivered', text: 'Qual cidade?', attachments: [] } });
+    await tick();
+    expect(c.corrigirEReenviar(0, 'Qual a previsão do tempo para Cornélio Procópio?')).toBe(true);
+    await tick();
+    expect(turnos.enviados).toEqual(['Qual a previsão do tempo para a Cornelia Procobre?', 'Qual a previsão do tempo para Cornélio Procópio?']);
+    const m = ultimo().mensagens;
+    expect(m[0]).toMatchObject({ quem: 'voce', corrigida: true });
+    expect(m[m.length - 1]).toMatchObject({ quem: 'voce', texto: 'Qual a previsão do tempo para Cornélio Procópio?', correcao: true });
+  });
+
+  it('com pedido em andamento, recusa: parar a resposta é decisão da pessoa', async () => {
+    const { c, turnos } = montar();
+    c.enviarTexto('E o Rigger?');
+    await tick();
+    expect(c.corrigirEReenviar(0, 'E o River?')).toBe(false);
+    expect(turnos.enviados).toEqual(['E o Rigger?']);
+  });
+
+  it('só corrige fala da pessoa, e não manda texto vazio', async () => {
+    const { c, turnos } = montar();
+    c.enviarTexto('oi');
+    await tick();
+    turnos.terminar('t1', { kind: 'finished', delivery: { kind: 'delivered', text: 'Olá!', attachments: [] } });
+    await tick();
+    expect(c.corrigirEReenviar(1, 'outra coisa')).toBe(false);  // a resposta do NewClaw
+    expect(c.corrigirEReenviar(0, '   ')).toBe(false);
+    expect(turnos.enviados).toEqual(['oi']);
+  });
+});

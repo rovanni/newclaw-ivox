@@ -36,6 +36,10 @@ export interface Mensagem {
   texto: string;
   em: number;
   porVoz?: boolean;
+  /** A pessoa corrigiu esta fala e reenviou o texto certo (a fala continua na coluna, marcada). */
+  corrigida?: boolean;
+  /** Esta mensagem é a correção da fala anterior marcada como `corrigida`. */
+  correcao?: boolean;
 }
 
 export interface Quadro {
@@ -205,6 +209,20 @@ export class Conversa {
     if (t) void this.enviar(t, false);
   }
 
+  /**
+   * Corrigir e reenviar (ADR-039 do NewClaw, pedido da operadora em 04/11/2026): a fala na posição `indice` fica marcada
+   * como corrigida e o texto certo vai ao NewClaw como pedido novo. Com pedido em andamento, recusa (devolve false): parar
+   * a resposta atual é decisão da pessoa, pelo botão Parar, não desta função.
+   */
+  corrigirEReenviar(indice: number, texto: string): boolean {
+    const t = texto.trim();
+    const original = this.mensagens[indice];
+    if (!t || !original || original.quem !== 'voce' || this.ocupada()) return false;
+    this.mensagens = this.mensagens.map((m, i) => (i === indice ? { ...m, corrigida: true } : m));
+    void this.enviar(t, false, true);
+    return true;
+  }
+
   /** Parar: corta a fala do motor e pede ao NewClaw que interrompa o que esta conversa estiver fazendo. */
   async parar(): Promise<void> {
     if (this.fatos.motorFalando || this.fatos.aguardandoFala) this.o.motor.interromper();
@@ -292,8 +310,8 @@ export class Conversa {
     this.cancelarEnvio = null;
   }
 
-  private async enviar(texto: string, porVoz: boolean): Promise<void> {
-    this.mensagens = [...this.mensagens, { quem: 'voce', texto, em: this.relogio.agora(), porVoz }];
+  private async enviar(texto: string, porVoz: boolean, correcao = false): Promise<void> {
+    this.mensagens = [...this.mensagens, { quem: 'voce', texto, em: this.relogio.agora(), porVoz, ...(correcao ? { correcao } : {}) }];
     this.publicar();
     this.enviando++;
     let r: Awaited<ReturnType<ClienteDoTurno['send']>>;

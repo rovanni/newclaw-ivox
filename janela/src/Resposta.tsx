@@ -1,11 +1,12 @@
 /**
  * Texto de uma mensagem do NewClaw em Markdown (títulos, listas, tabelas, código), e as ações dela: copiar e ouvir de novo.
+ * Nas falas da pessoa: copiar e "Corrigir e reenviar" (quando a transcrição errou).
  *
  * Seguro por construção: o `react-markdown` não interpreta HTML embutido (vira texto) e só aceita links http(s), mailto
  * e âncoras; os links abrem numa aba nova, sem acesso a esta página. Nada aqui reescreve o conteúdo — a tela mostra o
  * que o NewClaw respondeu, como ele respondeu.
  */
-import { useState } from 'react';
+import { useState, type KeyboardEvent } from 'react';
 import Markdown, { defaultUrlTransform } from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
@@ -51,17 +52,63 @@ export async function copiar(texto: string): Promise<boolean> {
   }
 }
 
-export function AcoesDaResposta({ texto, aoOuvir, podeOuvir }: { texto: string; aoOuvir: () => void; podeOuvir: boolean }) {
+function BotaoCopiar({ texto, dica }: { texto: string; dica: string }) {
   const [copiado, setCopiado] = useState<'sim' | 'falhou' | null>(null);
   return (
+    <button className="btn mini" onClick={async () => { setCopiado((await copiar(texto)) ? 'sim' : 'falhou'); setTimeout(() => setCopiado(null), 1500); }}
+      title={dica}>
+      {copiado === 'sim' ? 'Copiado' : copiado === 'falhou' ? 'Não copiou' : 'Copiar'}
+    </button>
+  );
+}
+
+export function AcoesDaResposta({ texto, aoOuvir, podeOuvir }: { texto: string; aoOuvir: () => void; podeOuvir: boolean }) {
+  return (
     <div className="acoes-resposta">
-      <button className="btn mini" onClick={async () => { setCopiado((await copiar(texto)) ? 'sim' : 'falhou'); setTimeout(() => setCopiado(null), 1500); }}
-        title="Copiar a resposta (com a formatação em Markdown)">
-        {copiado === 'sim' ? 'Copiado' : copiado === 'falhou' ? 'Não copiou' : 'Copiar'}
-      </button>
+      <BotaoCopiar texto={texto} dica="Copiar a resposta (com a formatação em Markdown)" />
       <button className="btn mini" onClick={aoOuvir} disabled={!podeOuvir}
         title={podeOuvir ? 'Ouvir de novo: a voz lê o mesmo texto, sem pedir nada ao NewClaw' : 'Escolha uma voz para ouvir'}>
         Ouvir de novo
+      </button>
+    </div>
+  );
+}
+
+/**
+ * Uma fala (ou mensagem escrita) da pessoa, com copiar e "Corrigir e reenviar". Corrigir abre o texto para editar ali
+ * mesmo; reenviar manda o texto certo como pedido novo. Com pedido em andamento o botão fica desligado e diz por quê.
+ */
+export function FalaDaPessoa({ texto, podeReenviar, aoReenviar, iniciarEditando = false }: {
+  texto: string; podeReenviar: boolean; aoReenviar: (texto: string) => boolean; iniciarEditando?: boolean;
+}) {
+  const [editando, setEditando] = useState(iniciarEditando);
+  const [novo, setNovo] = useState(texto);
+  const reenviar = () => { if (novo.trim() && novo.trim() !== texto.trim() && aoReenviar(novo)) setEditando(false); };
+  const tecla = (ev: KeyboardEvent<HTMLTextAreaElement>) => {
+    if (ev.key === 'Enter' && !ev.shiftKey) { ev.preventDefault(); reenviar(); }
+    if (ev.key === 'Escape') { ev.stopPropagation(); setEditando(false); setNovo(texto); }
+  };
+  if (editando) {
+    return (
+      <div className="corrigir">
+        <textarea value={novo} onChange={(e) => setNovo(e.target.value)} onKeyDown={tecla} autoFocus rows={2}
+          aria-label="Texto corrigido" />
+        <div className="acoes-resposta">
+          <button className="btn mini primario" onClick={reenviar} disabled={!podeReenviar || !novo.trim() || novo.trim() === texto.trim()}
+            title={podeReenviar ? 'Manda o texto corrigido ao NewClaw (Enter)' : 'Espere a resposta em andamento terminar, ou aperte Parar'}>
+            Reenviar
+          </button>
+          <button className="btn mini" onClick={() => { setEditando(false); setNovo(texto); }} title="Desistir da correção (Esc)">Cancelar</button>
+        </div>
+      </div>
+    );
+  }
+  return (
+    <div className="acoes-resposta">
+      <BotaoCopiar texto={texto} dica="Copiar o que você disse ou escreveu" />
+      <button className="btn mini" onClick={() => { setNovo(texto); setEditando(true); }}
+        title="A transcrição errou? Corrija o texto e mande de novo">
+        Corrigir e reenviar
       </button>
     </div>
   );
