@@ -95,7 +95,8 @@ export function Centro({ estado, estilo, economico, niveis, tempo }: Props) {
       const esc = (lado * dpr) / 400;
       ctx.setTransform(esc, 0, 0, esc, 0, 0);
       ctx.clearRect(0, 0, 400, 400);
-      const chave = `${e}${document.documentElement.dataset.tema}`;
+      const { tema, cores, fundo } = document.documentElement.dataset;
+      const chave = `${e}|${tema}|${cores}|${fundo}`;
       if (chave !== corChave) {
         corChave = chave;
         cor = getComputedStyle(area.current!).getPropertyValue('--cor-voz').trim() || cor;

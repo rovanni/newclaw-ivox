@@ -8,15 +8,16 @@ import { AcoesDaResposta, TextoFormatado } from './Resposta';
 import { Configuracoes } from './Configuracoes';
 import { Conversa, type EsperaAntesDeEnviar, type JeitoDeFalar, type Mensagem, type Quadro } from './conversa';
 import { listarConversasDeVoz, mensagensDaConversa, rotuloDaConversa, type ConversaGuardada } from './historico';
-import { podeParar } from './estado';
+import {
+  CORES_DO_CENTRO, conversaComecou, daLista, FUNDOS, mostrarAtalhos, podeParar, TEMAS,
+  type AtalhosDePedido, type CoresDoCentro, type FundoDaTela, type Tema,
+} from './estado';
 import { ajustarOciosidade, carregarModelo, descarregarModelo, intervaloDeLeitura, lerModelo, ondeFala, resumoDoModelo, type EstadoDoModelo } from './modelo';
 import { LigacaoComOMotor, VELOCIDADE_MAXIMA, VELOCIDADE_MINIMA, type Voz } from './motor';
 import { gravarPref, idDaConversa, lerPref, novaConversa, usarConversa } from './preferencias';
 import { comecouAOuvir, terminouDeOuvir } from './sons';
 import { detalhe, hora, partesDaFala, tempoDecorrido } from './textos';
 import { carregarClienteDoTurno } from './turnos';
-
-type Tema = 'claro' | 'escuro';
 
 interface InfoDaVoz {
   ouvir: { motor: string; modelo: string | null } | null;
@@ -35,8 +36,16 @@ const PEDIDOS = [
 
 function temaInicial(): Tema {
   const salvo = lerPref('ivox-tema');
-  if (salvo === 'claro' || salvo === 'escuro') return salvo;
+  if (salvo !== null && TEMAS.includes(salvo as Tema)) return salvo as Tema;
   return matchMedia('(prefers-color-scheme: light)').matches ? 'claro' : 'escuro';
+}
+
+/** Tema, fundo e cores do centro vão para o `<html>`: o CSS e o desenho do centro (canvas) leem dali. */
+function aplicarAparencia(tema: Tema, fundo: FundoDaTela, cores: CoresDoCentro) {
+  const raiz = document.documentElement.dataset;
+  raiz.tema = tema;
+  raiz.fundo = fundo;
+  raiz.cores = cores;
 }
 
 /** Agrupa na ordem em que o motor manda (misturas, português, os outros idiomas). */
@@ -106,7 +115,13 @@ function Janela({ aoSair, semSenha }: { aoSair: () => void; semSenha: boolean })
   const [estilo, setEstilo] = useState<EstiloDoCentro>(lerPref('ivox-centro') === 'particulas' ? 'particulas' : 'circulo');
   const [sons, setSons] = useState(lerPref('ivox-sons') !== 'nao');
   const [economico, setEconomico] = useState(lerPref('ivox-economico') === 'sim');
-  const [ajustes, setAjustes] = useState(false);
+  const [fundo, setFundo] = useState<FundoDaTela>(() => daLista(lerPref('ivox-fundo'), FUNDOS, 'padrao'));
+  const [cores, setCores] = useState<CoresDoCentro>(() => daLista(lerPref('ivox-cores'), CORES_DO_CENTRO, 'estados'));
+  const [atalhos, setAtalhos] = useState<AtalhosDePedido>(() => daLista(lerPref('ivox-atalhos'), ['auto', 'sempre', 'nunca'] as const, 'auto'));
+  // Os ajustes são uma aba da janela, não uma caixa por cima da conversa: dá para ler com calma (pedido de 04/11/2026).
+  // A conversa continua viva por baixo (só fica escondida), com o microfone como estava.
+  const [aba, setAba] = useState<'conversa' | 'ajustes'>('conversa');
+  const ajustes = aba === 'ajustes';
   // Velocidade e volume da fala, lembrados neste navegador; fora da faixa (preferência antiga ou editada), o padrão.
   const [velocidade, setVelocidade] = useState(() => {
     const v = Number(lerPref('ivox-velocidade'));
@@ -239,7 +254,11 @@ function Janela({ aoSair, semSenha }: { aoSair: () => void; semSenha: boolean })
   useEffect(() => { gravarPref('ivox-carregar-ao-abrir', carregarAoAbrir ? 'sim' : 'nao'); }, [carregarAoAbrir]);
 
   // Tema, foco e preferências.
-  useEffect(() => { document.documentElement.dataset.tema = tema; gravarPref('ivox-tema', tema); }, [tema]);
+  useEffect(() => {
+    aplicarAparencia(tema, fundo, cores);
+    gravarPref('ivox-tema', tema); gravarPref('ivox-fundo', fundo); gravarPref('ivox-cores', cores);
+  }, [tema, fundo, cores]);
+  useEffect(() => { gravarPref('ivox-atalhos', atalhos); }, [atalhos]);
   useEffect(() => { document.body.classList.toggle('foco', foco); gravarPref('ivox-foco', foco ? 'sim' : 'nao'); }, [foco]);
   useEffect(() => { gravarPref('ivox-centro', estilo); }, [estilo]);
   useEffect(() => { gravarPref('ivox-sons', sons ? 'sim' : 'nao'); }, [sons]);
@@ -374,6 +393,10 @@ function Janela({ aoSair, semSenha }: { aoSair: () => void; semSenha: boolean })
   const saudacao = h < 12 ? 'Bom dia!' : h < 18 ? 'Boa tarde!' : 'Boa noite!';
   const mostraTempo = parar || estado === 'ouvindo' || estado === 'aprovacao';
   const tempo = q && mostraTempo ? tempoDecorrido(agora - q.desde) : '';
+  // Atalhos e saudação somem quando a conversa começa (ou sempre/nunca, nos Ajustes). Avisos — sem microfone, modelo
+  // descarregado, voz que não ligou — continuam no balão: eles explicam por que a janela não ouve.
+  const verAtalhos = mostrarAtalhos(atalhos, conversaComecou(q?.mensagens.length ?? 0, estado));
+  const soSaudacao = ligado === 'ligado' && !motor.semMicrofone && modeloPronto;
   const [antes, atual, depois] = q?.fala ? partesDaFala(q.fala.texto, q.fala.fraseAtual) : ['', '', ''];
   const textoParado = ligado === 'falhou'
     ? `Não consegui ligar a voz: ${falha}`
@@ -392,11 +415,19 @@ function Janela({ aoSair, semSenha }: { aoSair: () => void; semSenha: boolean })
             <span className="ponto" />{ligado === 'ligado' && !q?.fatos.erro ? 'Voz ligada' : ligado === 'ligando' ? 'Ligando' : 'Sem voz'}
           </span>
           <span className="relogio">{hora(agora)}</span>
-          <button className="botao-tema" onClick={() => setAjustes(true)} title="Ajustes: áudio, aparência, interação e conexão">
+          <div className="abas" role="tablist" aria-label="Telas da janela">
+            <button role="tab" aria-selected={aba === 'conversa'} className={`botao-tema ${aba === 'conversa' ? 'ativo' : ''}`}
+              onClick={() => setAba('conversa')} title="A conversa por voz">
+              <Icone d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+              <span>Conversa</span>
+            </button>
+          <button role="tab" aria-selected={aba === 'ajustes'} className={`botao-tema ${aba === 'ajustes' ? 'ativo' : ''}`}
+            onClick={() => setAba('ajustes')} title="Ajustes: áudio, aparência, interação, recursos e conexão">
             <Icone d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z" />
             <span>Ajustes</span>
           </button>
-          <button className="botao-tema" onClick={() => setFoco(!foco)} title="Modo foco: só o centro e a conversa (tecla F)">
+          </div>
+          <button className="botao-tema" onClick={() => { setAba('conversa'); setFoco(!foco); }} title="Modo foco: só o centro e a conversa (tecla F)">
             <Icone d="M8 3H5a2 2 0 0 0-2 2v3M21 8V5a2 2 0 0 0-2-2h-3M3 16v3a2 2 0 0 0 2 2h3M16 21h3a2 2 0 0 0 2-2v-3" />
             <span>{foco ? 'Sair do foco' : 'Foco'}</span>
           </button>
@@ -408,7 +439,7 @@ function Janela({ aoSair, semSenha }: { aoSair: () => void; semSenha: boolean })
         </div>
       </header>
 
-      <main>
+      <main hidden={ajustes}>
         <section className="coluna esq">
           <div className="cartao recursos">
             <h2>Voz neste computador</h2>
@@ -470,21 +501,21 @@ function Janela({ aoSair, semSenha }: { aoSair: () => void; semSenha: boolean })
               coluna: o balão mostra só a frase que está sendo falada, como legenda, para não repetir (pedido de 30/10). */}
           {/* No foco, terminada a fala, o balão mostra a resposta inteira formatada, com copiar e ouvir de novo. */}
           {/* Enquanto a voz fala (inclusive na pausa entre duas frases), as frases; sem isso o balão piscava entre as duas vistas. */}
-          <div className={`balao ${q?.fala && atual ? 'lendo' : ''} ${q?.fala && foco && !vozFalando ? 'resposta' : ''}`}>
+          {(q?.fala || !soSaudacao || verAtalhos) && <div className={`balao ${q?.fala && atual ? 'lendo' : ''} ${q?.fala && foco && !vozFalando ? 'resposta' : ''}`}>
             {q?.fala && foco && vozFalando
               ? <>{antes && <span className="frase">{antes}</span>}{atual && <span className="frase atual">{atual}</span>}{depois && <span className="frase">{depois}</span>}</>
               : q?.fala && foco
                 ? <><TextoFormatado texto={q.fala.texto} /><AcoesDaResposta texto={q.fala.texto} podeOuvir={podeOuvir} aoOuvir={() => conversaRef.current?.repetir(q.fala!.texto)} /></>
                 : q?.fala && atual ? <span className="frase atual">{atual}</span>
                   : textoParado}
-          </div>
-          <div className="atalhos">
+          </div>}
+          {verAtalhos && <div className="atalhos">
             {PEDIDOS.map((p) => (
               <button key={p.titulo} className="atalho" title={p.pedido} onClick={() => conversaRef.current?.enviarTexto(p.pedido)}>
                 <Icone d={p.icone} /><b>{p.titulo}</b><small>{p.sub}</small>
               </button>
             ))}
-          </div>
+          </div>}
         </section>
 
         <section className="coluna dir">
@@ -559,18 +590,19 @@ function Janela({ aoSair, semSenha }: { aoSair: () => void; semSenha: boolean })
                 ? 'O microfone fica aberto; ele percebe sozinho quando você termina. O botão do microfone silencia.'
                 : 'Segure a barra de espaço (ou o botão do microfone) enquanto fala e solte quando terminar.'}
             </div>
-            <button className="btn mini mais-ajustes" onClick={() => setAjustes(true)}>Espera, sons, velocidade, volume e mais…</button>
+            <button className="btn mini mais-ajustes" onClick={() => setAba('ajustes')}>Espera, sons, velocidade, volume e mais…</button>
           </div>
         </section>
       </main>
 
       {ajustes && (
         <Configuracoes
-          aoFechar={() => setAjustes(false)}
+          aoFechar={() => setAba('conversa')}
           vozes={vozes} vozAtual={vozAtual} aoTrocarVoz={(n) => void trocarVoz(n)} gruposDeVozes={gruposDeVozes}
           velocidade={velocidade} aoMudarVelocidade={mudarVelocidade} volume={volume} aoMudarVolume={setVolume}
           semMicrofone={motor.semMicrofone} micAberto={micAberto}
           tema={tema} aoMudarTema={setTema} estilo={estilo} aoMudarEstilo={setEstilo}
+          fundo={fundo} aoMudarFundo={setFundo} cores={cores} aoMudarCores={setCores} atalhos={atalhos} aoMudarAtalhos={setAtalhos}
           economico={economico} aoMudarEconomico={setEconomico} foco={foco} aoMudarFoco={setFoco}
           jeito={jeito} aoMudarJeito={setJeito} espera={espera} aoMudarEspera={setEspera} sons={sons} aoMudarSons={setSons}
           ligado={ligado} info={info} conversa={sessaoAtual}
@@ -581,7 +613,7 @@ function Janela({ aoSair, semSenha }: { aoSair: () => void; semSenha: boolean })
         />
       )}
 
-      <footer>
+      <footer hidden={ajustes}>
         <div className="entrada-wrap">
           <div className="entrada">
             <textarea ref={campo} rows={1} value={texto} onChange={(e) => setTexto(e.target.value)} onKeyDown={teclaNaCaixa}
@@ -625,7 +657,7 @@ export function App() {
   // Painel do NewClaw sem senha: a janela entra direto, e "Sair" some (sairia e entraria de novo na hora).
   const [semSenha, setSemSenha] = useState(false);
   useEffect(() => {
-    document.documentElement.dataset.tema = temaInicial();
+    aplicarAparencia(temaInicial(), daLista(lerPref('ivox-fundo'), FUNDOS, 'padrao'), daLista(lerPref('ivox-cores'), CORES_DO_CENTRO, 'estados'));
     fetch('/sessao').then((r) => r.json()).then((d) => { setSemSenha(!!d.sem_senha); setEntrou(!!d.entrou); })
       .catch(() => setEntrou(false));
   }, []);

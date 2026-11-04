@@ -369,3 +369,55 @@ body.economico .luz-miolo, body.economico .centro[data-cor="falando"] .luz-miolo
 .reconhecimento[data-fase="falha"] b { color: var(--erro); }
 /* Sem o modelo, o centro fica mais apagado: a janela ouve só quando há quem transcreva. */
 .centro[data-modelo="desligado"] svg, .centro[data-modelo="desligado"] canvas { opacity: .55; transition: opacity .4s; }
+
+/* ─── Aba de ajustes, tema neon, fundo e cores do centro (pedidos de 04/11/2026) ──────────────────────────────────── */
+[hidden] { display: none !important; }
+.abas { display: flex; gap: 6px; }
+.botao-tema.ativo { border-color: var(--borda-forte); background: var(--borda); }
+.ajustes-pagina { padding: 20px 0; display: flex; justify-content: center; align-items: flex-start; }
+.ajustes-pagina .ajustes { width: min(980px, 100%); max-height: none; min-height: 60dvh; }
+
+:root[data-tema="neon"] {
+  --fundo: #020a1a;
+  --fundo-2: #041330;
+  --painel: rgba(4, 22, 48, 0.78);
+  --borda: rgba(41, 197, 255, 0.45);
+  --borda-forte: rgba(90, 225, 255, 0.9);
+  --texto: #e6f7ff;
+  --texto-2: #8cc8ec;
+  --destaque: #29c5ff;
+  --destaque-2: #6fe3ff;
+  --brilho: rgba(41, 197, 255, 0.5);
+  --voz-ia: #29c5ff;
+  --c-pronto: #4fb8e8;
+  --c-fila: #6fe3ff;
+  --c-falando: #6fe3ff;
+  --grade: rgba(41, 197, 255, 0.08);
+  --sombra: 0 0 18px rgba(41, 197, 255, 0.35), inset 0 0 12px rgba(41, 197, 255, 0.08);
+  color-scheme: dark;
+}
+
+/* Fundo: depois dos temas, para valer por cima deles. No claro, a versão clara de cada cor. */
+:root[data-fundo="azul-claro"] { --fundo: #12305a; --fundo-2: #173a6b; }
+:root[data-fundo="marinho"] { --fundo: #030e22; --fundo-2: #06173a; }
+:root[data-fundo="grafite"] { --fundo: #111418; --fundo-2: #191d23; }
+:root[data-tema="claro"][data-fundo="azul-claro"] { --fundo: #d4e6fb; --fundo-2: #e6f0fd; }
+:root[data-tema="claro"][data-fundo="marinho"] { --fundo: #c5d6ec; --fundo-2: #dbe6f4; }
+:root[data-tema="claro"][data-fundo="grafite"] { --fundo: #e7e9ec; --fundo-2: #f4f5f7; }
+
+/* Cores do centro: uma cor só para tudo. Aprovação e erro continuam vermelhos (são avisos). */
+:root[data-cores="azul"] { --cor-unica: #3ea6ff; }
+:root[data-cores="ciano"] { --cor-unica: #4fe0ff; }
+:root[data-cores="verde"] { --cor-unica: #2fd47a; }
+:root[data-cores="roxo"] { --cor-unica: #a78bfa; }
+:root[data-tema="claro"][data-cores="azul"] { --cor-unica: #1673e0; }
+:root[data-tema="claro"][data-cores="ciano"] { --cor-unica: #0a8fb8; }
+:root[data-tema="claro"][data-cores="verde"] { --cor-unica: #129a55; }
+:root[data-tema="claro"][data-cores="roxo"] { --cor-unica: #7c3aed; }
+:root[data-cores]:not([data-cores="estados"]) {
+  --voz-ia: var(--cor-unica); --c-pronto: var(--cor-unica); --c-fila: var(--cor-unica); --c-falando: var(--cor-unica);
+}
+:root[data-cores]:not([data-cores="estados"]) .centro { --cor-voz: var(--cor-unica); }
+:root[data-cores]:not([data-cores="estados"]) [data-cor="ouvindo"] { --cor-estado: var(--cor-unica); }
+.ajuste-valor .segmento { flex-wrap: wrap; }
+.ajuste-valor .segmento button { white-space: nowrap; padding: 6px 10px; }

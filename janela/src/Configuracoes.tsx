@@ -1,7 +1,8 @@
 /**
- * Ajustes da janela, em quatro grupos, fora da tela principal (pedido de 31/10/2026):
+ * Ajustes da janela, numa aba própria (pedido de 04/11/2026: a caixa por cima da conversa parecia exigir pressa; antes,
+ * em 31/10, os ajustes já tinham saído da tela principal):
  *  - Áudio: voz, velocidade e volume da fala, microfone — parâmetros dos serviços de voz;
- *  - Aparência: tema, centro, modo econômico, foco — só desta tela;
+ *  - Aparência: tema, fundo, cores e estilo do centro, atalhos de pedido, modo econômico, foco — só desta tela;
  *  - Interação: jeito de falar, espera antes de enviar, sons;
  *  - Recursos: o modelo de reconhecimento (carregar, descarregar, ao abrir, sem uso) — ADR-037 do NewClaw;
  *  - Conexão: o que está ligado, só leitura.
@@ -13,6 +14,7 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import type { EstiloDoCentro } from './Centro';
 import type { EsperaAntesDeEnviar, JeitoDeFalar } from './conversa';
+import type { AtalhosDePedido, CoresDoCentro, FundoDaTela, Tema } from './estado';
 import { gb, type EstadoDoModelo } from './modelo';
 import { VELOCIDADE_MAXIMA, VELOCIDADE_MINIMA, type Voz } from './motor';
 
@@ -46,8 +48,14 @@ interface Props {
   semMicrofone: string | null;
   micAberto: boolean;
   // Aparência
-  tema: 'claro' | 'escuro';
-  aoMudarTema: (t: 'claro' | 'escuro') => void;
+  tema: Tema;
+  aoMudarTema: (t: Tema) => void;
+  fundo: FundoDaTela;
+  aoMudarFundo: (f: FundoDaTela) => void;
+  cores: CoresDoCentro;
+  aoMudarCores: (c: CoresDoCentro) => void;
+  atalhos: AtalhosDePedido;
+  aoMudarAtalhos: (a: AtalhosDePedido) => void;
   estilo: EstiloDoCentro;
   aoMudarEstilo: (e: EstiloDoCentro) => void;
   economico: boolean;
@@ -79,6 +87,9 @@ interface Props {
 }
 
 const OCIOSIDADE: [string, string][] = [['nunca', 'Nunca'], ['15', '15 min'], ['30', '30 min'], ['60', '1 h']];
+const NOMES_DOS_TEMAS: [Tema, string][] = [['escuro', 'Escuro'], ['claro', 'Claro'], ['neon', 'Neon']];
+const NOMES_DOS_FUNDOS: [FundoDaTela, string][] = [['padrao', 'Do tema'], ['azul-claro', 'Azul claro'], ['marinho', 'Marinho'], ['grafite', 'Grafite']];
+const NOMES_DAS_CORES: [CoresDoCentro, string][] = [['estados', 'Por estado'], ['azul', 'Azul'], ['ciano', 'Ciano'], ['verde', 'Verde'], ['roxo', 'Roxo']];
 
 function Linha({ rotulo, dica, children }: { rotulo: string; dica?: string; children: ReactNode }) {
   return (
@@ -112,8 +123,8 @@ export function Configuracoes(p: Props) {
   }, [p]);
 
   return (
-    <div className="ajustes-fundo" onClick={p.aoFechar}>
-      <div className="ajustes" role="dialog" aria-modal="true" aria-label="Ajustes" tabIndex={-1} ref={caixa} onClick={(e) => e.stopPropagation()}>
+    <div className="ajustes-pagina" role="tabpanel">
+      <div className="ajustes" aria-label="Ajustes" tabIndex={-1} ref={caixa}>
         <nav className="ajustes-grupos" aria-label="Grupos de ajustes">
           <h2>Ajustes</h2>
           {GRUPOS.map((g) => (
@@ -123,7 +134,7 @@ export function Configuracoes(p: Props) {
         <section className="ajustes-corpo">
           <div className="ajustes-topo">
             <h3>{GRUPOS.find((g) => g.id === grupo)!.nome}</h3>
-            <button className="btn mini" onClick={p.aoFechar} title="Fechar (Esc)">Fechar</button>
+            <button className="btn mini" onClick={p.aoFechar} title="Voltar à conversa (Esc)">Voltar à conversa</button>
           </div>
 
           {grupo === 'audio' && <>
@@ -154,9 +165,21 @@ export function Configuracoes(p: Props) {
           </>}
 
           {grupo === 'aparencia' && <>
-            <Linha rotulo="Tema"><Segmento rotulo="Tema" valor={p.tema} aoMudar={p.aoMudarTema} opcoes={[['escuro', 'Escuro'], ['claro', 'Claro']]} /></Linha>
+            <Linha rotulo="Tema" dica="Neon: tudo em azul, com brilho nas bordas">
+              <Segmento rotulo="Tema" valor={p.tema} aoMudar={p.aoMudarTema} opcoes={NOMES_DOS_TEMAS} />
+            </Linha>
+            <Linha rotulo="Fundo" dica="A cor atrás de tudo; no tema claro, a versão clara de cada uma">
+              <Segmento rotulo="Fundo" valor={p.fundo} aoMudar={p.aoMudarFundo} opcoes={NOMES_DOS_FUNDOS} />
+            </Linha>
             <Linha rotulo="Centro" dica="Os dois reagem aos mesmos estados reais">
               <Segmento rotulo="Estilo do centro" valor={p.estilo} aoMudar={p.aoMudarEstilo} opcoes={[['circulo', 'Círculo'], ['particulas', 'Partículas']]} />
+            </Linha>
+            <Linha rotulo="Cores do centro" dica="Por estado: azul ao ouvir, amarelo quando o NewClaw pensa ou fala. Uma cor só: tudo nela; aprovação e erro continuam vermelhos">
+              <Segmento rotulo="Cores do centro" valor={p.cores} aoMudar={p.aoMudarCores} opcoes={NOMES_DAS_CORES} />
+            </Linha>
+            <Linha rotulo="Atalhos de pedido" dica="Os cartões abaixo do centro (Resumo do dia, Analisar logs…) e a saudação">
+              <Segmento rotulo="Atalhos de pedido" valor={p.atalhos} aoMudar={p.aoMudarAtalhos}
+                opcoes={[['auto', 'Somem ao começar'], ['sempre', 'Sempre'], ['nunca', 'Nunca']]} />
             </Linha>
             <Linha rotulo="Modo econômico" dica="Menos pontos, metade dos quadros, sem brilho: menos uso da placa de vídeo">
               <label className="chave"><input type="checkbox" checked={p.economico} onChange={(e) => p.aoMudarEconomico(e.target.checked)} /> Animação mais leve</label>

@@ -7,7 +7,9 @@ const base = {
   aoTrocarVoz: () => undefined, gruposDeVozes: (v: { nome: string; rotulo: string }[]) => [['Português (Brasil)', v]] as never,
   velocidade: 1.25, aoMudarVelocidade: () => undefined, volume: 0.8, aoMudarVolume: () => undefined,
   semMicrofone: null, micAberto: true, tema: 'escuro' as const, aoMudarTema: () => undefined,
-  estilo: 'particulas' as const, aoMudarEstilo: () => undefined, economico: false, aoMudarEconomico: () => undefined,
+  estilo: 'particulas' as const, aoMudarEstilo: () => undefined,
+  fundo: 'padrao' as const, aoMudarFundo: () => undefined, cores: 'estados' as const, aoMudarCores: () => undefined,
+  atalhos: 'auto' as const, aoMudarAtalhos: () => undefined, economico: false, aoMudarEconomico: () => undefined,
   foco: false, aoMudarFoco: () => undefined, jeito: 'livre' as const, aoMudarJeito: () => undefined,
   espera: 'media' as const, aoMudarEspera: () => undefined, sons: true, aoMudarSons: () => undefined,
   ligado: 'ligado' as const, info: null, conversa: 'voz-1234',
@@ -50,4 +52,21 @@ describe('ajustes', () => {
     expect(renderToStaticMarkup(<Configuracoes {...base} grupoInicial="recursos" />)).not.toContain('Tentar na CPU');
   });
 
+  it('é uma aba da janela, não uma caixa por cima da conversa', () => {
+    const h = renderToStaticMarkup(<Configuracoes {...base} />);
+    expect(h).toContain('role="tabpanel"');
+    expect(h).not.toContain('aria-modal');
+    expect(h).toContain('Voltar à conversa');
+  });
+
+  it('aparência: temas, fundos, cores do centro e atalhos, com o escolhido marcado', () => {
+    const h = renderToStaticMarkup(<Configuracoes {...base} grupoInicial="aparencia" tema="neon" fundo="azul-claro" cores="azul" />);
+    for (const o of ['Escuro', 'Claro', 'Neon', 'Do tema', 'Azul claro', 'Marinho', 'Grafite', 'Por estado', 'Ciano', 'Verde', 'Roxo', 'Somem ao começar', 'Sempre', 'Nunca']) {
+      expect(h).toContain(`>${o}</button>`);
+    }
+    expect(h).toMatch(/aria-checked="true" class="ativo">Neon</);
+    expect(h).toMatch(/aria-checked="true" class="ativo">Azul claro</);
+    expect(h).toMatch(/aria-checked="true" class="ativo">Azul</);
+    expect(h).toMatch(/aria-checked="true" class="ativo">Somem ao começar</);
+  });
 });

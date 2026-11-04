@@ -78,3 +78,35 @@ export const NOMES: Record<EstadoDaTela, string> = {
 export function podeParar(e: EstadoDaTela): boolean {
   return e === 'fila' || e === 'pensando' || e === 'falando';
 }
+
+/** Os atalhos de pedido abaixo do centro: sempre, nunca, ou só até a conversa começar (pedido da operadora, 04/11/2026). */
+export type AtalhosDePedido = 'auto' | 'sempre' | 'nunca';
+
+/** A conversa começou quando já há mensagem na coluna ou a tela saiu de "pronto" (a pessoa falou, ou há pedido em curso). */
+export function conversaComecou(mensagens: number, estado: EstadoDaTela): boolean {
+  return mensagens > 0 || estado !== 'pronto';
+}
+
+export function mostrarAtalhos(pref: AtalhosDePedido, comecou: boolean): boolean {
+  return pref === 'sempre' || (pref === 'auto' && !comecou);
+}
+
+/**
+ * Cores do centro: por estado (o padrão: azul ouvindo, amarelo quando o NewClaw pensa ou fala) ou uma cor só para tudo
+ * (pedido da operadora, 04/11/2026). Aprovação e erro continuam vermelhos em qualquer escolha: são avisos, não enfeite.
+ */
+export type CoresDoCentro = 'estados' | 'azul' | 'ciano' | 'verde' | 'roxo';
+export const CORES_DO_CENTRO: CoresDoCentro[] = ['estados', 'azul', 'ciano', 'verde', 'roxo'];
+
+/** Tema da janela: escuro e claro (os de sempre) e neon, tudo em azul com brilho (exemplo da operadora, 04/11/2026). */
+export type Tema = 'escuro' | 'claro' | 'neon';
+export const TEMAS: Tema[] = ['escuro', 'claro', 'neon'];
+
+/** Cor de fundo, por cima do tema; cada tema tem a sua versão de cada fundo (no claro, tons claros). */
+export type FundoDaTela = 'padrao' | 'azul-claro' | 'marinho' | 'grafite';
+export const FUNDOS: FundoDaTela[] = ['padrao', 'azul-claro', 'marinho', 'grafite'];
+
+/** Preferência lida do navegador: valor fora da lista (antigo ou editado) vira o padrão. */
+export function daLista<T extends string>(valor: string | null, lista: readonly T[], padrao: T): T {
+  return lista.includes(valor as T) ? (valor as T) : padrao;
+}
