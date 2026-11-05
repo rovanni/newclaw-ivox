@@ -2,6 +2,7 @@
   "formato": 1,
   "id": "newclaw-ivox",
   "nome": "Interface de voz",
+  "icone": "🎙",
   "descricao": "Converse com o NewClaw falando: uma janela no navegador que ouve e responde em voz, com transcrição (Whisper) e síntese (Kokoro) rodando nesta máquina.",
   "site": "https://github.com/rovanni/newclaw-ivox",
   "pacote": "https://codeload.github.com/rovanni/newclaw-ivox/tar.gz/refs/heads/main",
