@@ -395,12 +395,83 @@ describe('Conversa — corrigir e reenviar (ADR-039 do NewClaw)', () => {
     expect(m[m.length - 1]).toMatchObject({ quem: 'voce', texto: 'Qual a previsão do tempo para Cornélio Procópio?', correcao: true });
   });
 
-  it('com pedido em andamento, recusa: parar a resposta é decisão da pessoa', async () => {
-    const { c, turnos } = montar();
+  it('Parar e corrigir: para o pedido errado na hora, a tela sai da fila, e a resposta dele é descartada', async () => {
+    const { c, motor, turnos, ultimo } = montar();
     c.enviarTexto('E o Rigger?');
     await tick();
-    expect(c.corrigirEReenviar(0, 'E o River?')).toBe(false);
-    expect(turnos.enviados).toEqual(['E o Rigger?']);
+    expect(c.emAndamento()).toBe(true);
+    expect(ultimo().estado).toBe('fila');
+    await c.pararParaCorrigir();
+    expect(turnos.enviados).toEqual(['E o Rigger?', '/cancelar']);
+    expect(ultimo().estado).toBe('pronto');  // sem esperar o NewClaw encerrar o turno parado
+    expect(c.emAndamento()).toBe(false);
+    // A fase do turno parado não volta à tela.
+    turnos.fase('t1', 'running', { progress: { texto: 'buscando Rigger' } as never });
+    expect(ultimo().estado).toBe('pronto');
+    expect(ultimo().progresso).toBeNull();
+    // A pessoa corrige e envia.
+    expect(c.corrigirEReenviar(0, 'E o River?')).toBe(true);
+    await tick();
+    expect(turnos.enviados).toEqual(['E o Rigger?', '/cancelar', 'E o River?']);  // sem um segundo /cancelar
+    // O pedido parado ainda termina (com o aviso do cancelamento ou com a resposta errada): nada disso é falado.
+    turnos.terminar('t1', { kind: 'finished', delivery: { kind: 'delivered', text: 'Rigger é um cargo de montagem.', attachments: [] } });
+    await tick();
+    expect(motor.falas).toEqual([]);
+    expect(ultimo().mensagens.map((m) => m.texto)).not.toContain('Rigger é um cargo de montagem.');
+    expect(ultimo().estado).toBe('fila');  // a correção continua em andamento
+    // A resposta da correção é falada normalmente.
+    turnos.terminar('t3', { kind: 'finished', delivery: { kind: 'delivered', text: 'River é uma criptomoeda.', attachments: [] } });
+    await tick();
+    expect(motor.falas).toEqual(['River é uma criptomoeda.']);
+    const m = ultimo().mensagens;
+    expect(m[0]).toMatchObject({ quem: 'voce', corrigida: true });
+    expect(m.find((x) => x.quem === 'aviso')?.texto).toBe('Parei o pedido para você corrigir.');
+  });
+
+  it('com a voz lendo a resposta: Parar e corrigir corta a fala, sem nada a cancelar no NewClaw', async () => {
+    const { c, motor, turnos } = montar();
+    c.enviarTexto('E o Rigger?');
+    await tick();
+    turnos.terminar('t1', { kind: 'finished', delivery: { kind: 'delivered', text: 'Rigger é um cargo.', attachments: [] } });
+    await tick();
+    c.motorComecouAFalar();
+    await c.pararParaCorrigir();
+    expect(motor.interrupcoes).toBe(1);
+    expect(c.corrigirEReenviar(0, 'E o River?')).toBe(true);
+    await tick();
+    expect(turnos.enviados).toEqual(['E o Rigger?', 'E o River?']);
+  });
+
+  it('algo começou enquanto a pessoa editava: Enviar para antes e manda a correção', async () => {
+    const { c, motor, turnos } = montar();
+    c.enviarTexto('E o Rigger?');
+    await tick();
+    expect(c.corrigirEReenviar(0, 'E o River?')).toBe(true);
+    await tick();
+    await tick();
+    expect(turnos.enviados).toEqual(['E o Rigger?', '/cancelar', 'E o River?']);
+    turnos.terminar('t1', { kind: 'finished', delivery: { kind: 'delivered', text: 'Rigger é um cargo.', attachments: [] } });
+    await tick();
+    expect(motor.falas).toEqual([]);
+  });
+
+  it('sem nada em andamento, Parar e corrigir não faz nada', async () => {
+    const { c, turnos, ultimo } = montar();
+    await c.pararParaCorrigir();
+    expect(turnos.enviados).toEqual([]);
+    expect(ultimo()).toBeUndefined();
+  });
+
+  it('se o cancelamento falhar, a falha aparece e a correção vai assim mesmo', async () => {
+    const { c, turnos, ultimo } = montar();
+    c.enviarTexto('E o Rigger?');
+    await tick();
+    turnos.cancel = () => Promise.reject(new Error('sem rede'));
+    await c.pararParaCorrigir();
+    expect(ultimo().mensagens.map((m) => m.texto)).toContain('Não consegui parar o pedido anterior: sem rede');
+    expect(c.corrigirEReenviar(0, 'E o River?')).toBe(true);
+    await tick();
+    expect(turnos.enviados).toEqual(['E o Rigger?', 'E o River?']);
   });
 
   it('só corrige fala da pessoa, e não manda texto vazio', async () => {

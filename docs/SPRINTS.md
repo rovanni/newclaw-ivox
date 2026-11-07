@@ -689,6 +689,7 @@ Prova na CPU com duas falas do Kokoro: 3,6% de erro sem apoio, 0% com `hotwords`
   - **fundo**: do tema, azul claro, marinho ou grafite;
   - **cores do centro**: por estado, ou uma cor só (azul, ciano, verde, roxo). Aprovação e erro continuam vermelhos.
 - **Falas da pessoa:** ganharam **Copiar** e **Corrigir e reenviar** (Sprint 3 da ADR-039). A fala errada fica marcada, e o texto certo vai como pedido novo. Com pedido em andamento o reenvio fica desligado: parar a resposta é decisão da pessoa (D2 segue aberta).
+  - **D2 decidida em 07/11/2026:** com pedido em andamento, ou com a voz lendo uma resposta, o botão é **Parar e corrigir**. Quem corrige já sabe que o pedido foi entendido errado, e não adianta o NewClaw continuar nele. O clique cancela o pedido no NewClaw, corta a fala e abre o texto. Na caixa, o botão é **Enviar**. A resposta do pedido parado, se ainda chegar, não é falada nem entra na coluna, e a tela sai de "Na fila" na hora. Se algo começar enquanto a pessoa edita, "Enviar" para antes de mandar. Testes da janela: 83/83.
 
 **Testes e conferência:**
 - testes da janela: 70/70; testes do motor: 161/161;

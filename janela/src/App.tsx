@@ -557,7 +557,8 @@ function Janela({ aoSair, semSenha }: { aoSair: () => void; semSenha: boolean })
                   <small>{hora(m.em)}{m.porVoz ? ' · por voz' : ''}{m.correcao ? ' · correção' : ''}{m.corrigida ? ' · corrigida abaixo' : ''}</small>
                   {m.quem === 'newclaw' && <AcoesDaResposta texto={m.texto} podeOuvir={podeOuvir} aoOuvir={() => conversaRef.current?.repetir(m.texto)} />}
                   {m.quem === 'voce' && (
-                    <FalaDaPessoa texto={m.texto} podeReenviar={!parar}
+                    <FalaDaPessoa texto={m.texto} emAndamento={parar}
+                      aoPararParaCorrigir={() => void conversaRef.current?.pararParaCorrigir()}
                       aoReenviar={(t) => conversaRef.current?.corrigirEReenviar(i, t) ?? false} />
                   )}
                 </div>

@@ -105,6 +105,10 @@ export class Conversa {
   private sessionId: string;
   /** Pedidos entre o envio e o aceite do NewClaw (ainda sem `turnId` em `fases`). */
   private enviando = 0;
+  /** Sobe a cada "Parar e corrigir": um turno de geração anterior foi cancelado pela correção e a resposta dele é descartada. */
+  private geracao = 0;
+  /** A geração em que cada turno foi enviado. */
+  private geracaoDoTurno = new Map<string, number>();
 
   constructor(private readonly o: OpcoesDaConversa) {
     this.sessionId = o.sessionId;
@@ -215,16 +219,48 @@ export class Conversa {
   }
 
   /**
+   * Há trabalho que ainda vale para a pessoa: um turno da geração atual, um envio esperando o aceite, ou a voz lendo (ou
+   * prestes a ler) uma resposta. Turnos parados por "Parar e corrigir" não contam.
+   */
+  emAndamento(): boolean {
+    return this.fasesDaGeracaoAtual().length > 0 || this.enviando > 0 || this.fatos.motorFalando || this.fatos.aguardandoFala;
+  }
+
+  /**
+   * "Parar e corrigir" (decisão D2 da ADR-039 do NewClaw, operadora em 07/11/2026): quem vai corrigir já sabe que o pedido
+   * foi entendido errado, e não adianta o NewClaw continuar nele. O pedido em curso é cancelado e a fala é cortada na hora,
+   * antes de a pessoa editar. O que o pedido parado ainda devolver (a resposta errada ou o aviso do cancelamento) é
+   * descartado: não é falado nem entra na coluna. Sem nada em andamento, não faz nada.
+   */
+  async pararParaCorrigir(): Promise<void> {
+    if (!this.emAndamento()) return;
+    // Os turnos que já existem (e os ainda em envio) passam a ser de uma geração vencida.
+    this.geracao++;
+    this.progresso = null;
+    this.etapas = null;
+    this.aprovacoes = [];
+    this.avisar('Parei o pedido para você corrigir.');
+    this.atualizarTurno();  // a tela sai de "Na fila"/"Pensando" agora, sem esperar o NewClaw encerrar o turno
+    try {
+      await this.parar();
+    } catch (e) {
+      // A correção ainda pode ir (o NewClaw a põe na fila); a falha aparece como veio.
+      this.avisar(`Não consegui parar o pedido anterior: ${e instanceof Error ? e.message : String(e)}`);
+    }
+  }
+
+  /**
    * Corrigir e reenviar (ADR-039 do NewClaw, pedido da operadora em 04/11/2026): a fala na posição `indice` fica marcada
-   * como corrigida e o texto certo vai ao NewClaw como pedido novo. Com pedido em andamento, recusa (devolve false): parar
-   * a resposta atual é decisão da pessoa, pelo botão Parar, não desta função.
+   * como corrigida e o texto certo vai ao NewClaw como pedido novo. Se algo começou enquanto a pessoa editava, para antes,
+   * como em "Parar e corrigir".
    */
   corrigirEReenviar(indice: number, texto: string): boolean {
     const t = texto.trim();
     const original = this.mensagens[indice];
-    if (!t || !original || original.quem !== 'voce' || this.ocupada()) return false;
+    if (!t || !original || original.quem !== 'voce') return false;
     this.mensagens = this.mensagens.map((m, i) => (i === indice ? { ...m, corrigida: true } : m));
-    void this.enviar(t, false, true);
+    if (this.emAndamento()) void this.pararParaCorrigir().then(() => this.enviar(t, false, true));
+    else void this.enviar(t, false, true);
     return true;
   }
 
@@ -318,6 +354,7 @@ export class Conversa {
   private async enviar(texto: string, porVoz: boolean, correcao = false): Promise<void> {
     this.mensagens = [...this.mensagens, { quem: 'voce', texto, em: this.relogio.agora(), porVoz, ...(correcao ? { correcao } : {}) }];
     this.publicar();
+    const geracao = this.geracao;
     this.enviando++;
     let r: Awaited<ReturnType<ClienteDoTurno['send']>>;
     try {
@@ -334,6 +371,7 @@ export class Conversa {
     // A pausa acaba e o turno entra na mesma mudança: de "Ouvindo" direto para "Na fila".
     this.fatos = { ...this.fatos, emPausa: false };
     this.fases.set(r.turnId, 'accepted');
+    this.geracaoDoTurno.set(r.turnId, geracao);
     this.atualizarTurno();
     const controle = new AbortController();
     this.esperas.set(r.turnId, controle);
@@ -341,15 +379,18 @@ export class Conversa {
       sessionId: this.sessionId, turnId: r.turnId, signal: controle.signal,
       onState: (s) => this.aoEstadoDoTurno(s),
       // v2: o aviso de fila não é a resposta. Aparece como andamento, sem ser falado, e a espera continua.
-      onProvisional: (e: Entrega) => { this.progresso = e.text; this.publicar(); },
+      onProvisional: (e: Entrega) => { if (geracao === this.geracao) { this.progresso = e.text; this.publicar(); } },
     });
     this.esperas.delete(r.turnId);
     this.fases.delete(r.turnId);
-    if (this.fases.size === 0) { this.progresso = null; this.etapas = null; this.aprovacoes = []; }
+    this.geracaoDoTurno.delete(r.turnId);
+    // Pedido parado por "Parar e corrigir": o que ele ainda devolver (a resposta ou o aviso do cancelamento) não vale mais.
+    if (geracao !== this.geracao) { this.atualizarTurno(); return; }
+    if (this.fasesDaGeracaoAtual().length === 0) { this.progresso = null; this.etapas = null; this.aprovacoes = []; }
     const resposta = fim.kind === 'finished' && fim.delivery && fim.delivery.text.trim() ? fim.delivery.text : null;
     if (resposta) {
       // O turno sai e a fala entra na mesma mudança: sem passar por "pronto" entre "pensando" e "falando".
-      this.fatos = { ...this.fatos, turno: faseMaisRelevante(this.fases.values()) };
+      this.fatos = { ...this.fatos, turno: faseMaisRelevante(this.fasesDaGeracaoAtual()) };
       this.responder(resposta, fim.kind === 'finished' ? fim.delivery?.outcome : undefined);
       return;
     }
@@ -376,6 +417,8 @@ export class Conversa {
     // "finished" chega antes de a resposta ser retirada da outbox: a fase anterior continua valendo até `waitForTurn`
     // devolver a entrega (sem isso a tela passava por "pronto" por um instante — achado da prova real, 30/10).
     if (s.phase !== 'finished') this.fases.set(s.turnId, s.phase);
+    // Turno parado por "Parar e corrigir": a fase fica guardada (para o Parar saber o que cancelar), mas não vai à tela.
+    if (this.geracaoDoTurno.get(s.turnId) !== this.geracao) return;
     this.aprovacoes = s.approvals;
     this.progresso = s.progress ? s.progress.texto : null;
     // v2: etapas só quando há objetivo; `steps` ausente quer dizer "nada mudou" e vale o que já está na tela.
@@ -386,7 +429,12 @@ export class Conversa {
   }
 
   private atualizarTurno(): void {
-    this.mudar({ turno: faseMaisRelevante(this.fases.values()) });
+    this.mudar({ turno: faseMaisRelevante(this.fasesDaGeracaoAtual()) });
+  }
+
+  /** As fases dos turnos que ainda valem para a pessoa (os parados por "Parar e corrigir" ficam de fora). */
+  private fasesDaGeracaoAtual(): FaseDoTurno[] {
+    return [...this.fases].filter(([id]) => this.geracaoDoTurno.get(id) === this.geracao).map(([, f]) => f);
   }
 
   private responder(texto: string, resultado?: ResultadoDaTarefa): void {
