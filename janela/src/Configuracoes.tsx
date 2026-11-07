@@ -4,6 +4,7 @@
  *  - Áudio: voz, velocidade e volume da fala, microfone — parâmetros dos serviços de voz;
  *  - Aparência: tema, fundo, cores e estilo do centro, atalhos de pedido, modo econômico, foco — só desta tela;
  *  - Interação: jeito de falar, espera antes de enviar, sons;
+ *  - Palavras que eu conheço: o dicionário da voz (ADR-039 do NewClaw, Revisão 2), guardado no NewClaw;
  *  - Recursos: o modelo de reconhecimento (carregar, descarregar, ao abrir, sem uso) — ADR-037 do NewClaw;
  *  - Conexão: o que está ligado, só leitura.
  *
@@ -18,11 +19,13 @@ import type { AtalhosDePedido, CoresDoCentro, FundoDaTela, Tema } from './estado
 import { gb, type EstadoDoModelo } from './modelo';
 import { VELOCIDADE_MAXIMA, VELOCIDADE_MINIMA, type Voz } from './motor';
 
-export type Grupo = 'audio' | 'aparencia' | 'interacao' | 'recursos' | 'conexao';
+export type Grupo = 'audio' | 'aparencia' | 'interacao' | 'palavras' | 'recursos' | 'conexao';
 const GRUPOS: { id: Grupo; nome: string }[] = [
   { id: 'audio', nome: 'Áudio' },
   { id: 'aparencia', nome: 'Aparência' },
   { id: 'interacao', nome: 'Interação' },
+  // Dicionário da voz (ADR-039 do NewClaw, Revisão 2): o conteúdo vem pronto da janela (`Palavras.tsx`).
+  { id: 'palavras', nome: 'Palavras que eu conheço' },
   { id: 'recursos', nome: 'Recursos' },
   { id: 'conexao', nome: 'Conexão' },
 ];
@@ -84,6 +87,8 @@ interface Props {
   aoMudarOciosidade: (minutos: number | null) => void;
   /** Grupo aberto ao abrir (padrão: Áudio). */
   grupoInicial?: Grupo;
+  /** Palavras que eu conheço: a tela do dicionário, montada pela janela. */
+  telaDePalavras?: ReactNode;
 }
 
 const OCIOSIDADE: [string, string][] = [['nunca', 'Nunca'], ['15', '15 min'], ['30', '30 min'], ['60', '1 h']];
@@ -203,6 +208,8 @@ export function Configuracoes(p: Props) {
               <span className="atalhos-teclado">Enter envia · Shift+Enter quebra a linha · Espaço fala (segurar) · F foco · Esc fecha</span>
             </Linha>
           </>}
+
+          {grupo === 'palavras' && (p.telaDePalavras ?? <p className="nota">O dicionário da voz não está disponível.</p>)}
 
           {grupo === 'recursos' && <>
             {!p.ouvirConfigurado ? (

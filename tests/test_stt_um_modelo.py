@@ -202,6 +202,59 @@ class TestDescarregar(ComModelo):
         self.assertEqual(dono.estado()["estado"], stt_local.DESCARREGADO)
 
 
+class _TokensFalsos:
+    """Um token por letra: a conta fica previsível sem baixar o tokenizador do Whisper."""
+
+    class _Saida:
+        def __init__(self, ids):
+            self.ids = ids
+
+    def encode(self, texto, add_special_tokens=True):
+        assert add_special_tokens is False, "a conta do get_prompt não usa os tokens especiais"
+        return self._Saida(list(range(len(texto.replace(" ", "")))))
+
+
+class _ModeloComTokenizador:
+    max_length = 20  # teto do prompt: 20 // 2 - 1 = 9 tokens
+    hf_tokenizer = _TokensFalsos()
+
+
+class TestPalavrasQueCabem(ComModelo):
+    """Dicionário da voz (ADR-039 do NewClaw, Revisão 2): o faster-whisper corta `hotwords` sem avisar; o motor conta
+    antes quantas palavras inteiras cabem, com o tokenizador do modelo carregado."""
+
+    def dono_com(self, modelo):
+        f = Falsos()
+        dono = stt_local.DonoDoModelo(carregar=lambda *a: modelo, descarregar=f.descarregar,
+                                      medir_motor=lambda: f.motor, medir_memoria=f.memoria, relogio=lambda: f.agora)
+        dono.pedir_carga(self.config, esperar=True)
+        return dono, f
+
+    def test_conta_as_que_cabem_inteiras_do_comeco_da_lista(self):
+        dono, _ = self.dono_com(_ModeloComTokenizador())
+        conta = stt_local.palavras_que_cabem(("River", "Rio", "Cornélio"), dono)  # 5, 8 e 16 letras acumuladas
+        self.assertEqual(conta, {"usadas": 2, "total": 3, "tokens": 8, "teto": 9})
+        self.assertEqual(dono.estado()["em_uso"], 0, "o modelo emprestado volta")
+
+    def test_lista_vazia_e_tudo_cabe(self):
+        dono, _ = self.dono_com(_ModeloComTokenizador())
+        self.assertEqual(stt_local.palavras_que_cabem((), dono), {"usadas": 0, "total": 0, "tokens": 0, "teto": 9})
+        self.assertEqual(stt_local.palavras_que_cabem(("River",), dono)["usadas"], 1)
+
+    def test_sem_modelo_nao_ha_conta(self):
+        self.assertIsNone(stt_local.palavras_que_cabem(("River",), Falsos().dono()))
+
+    def test_contar_nao_adia_o_descarregar_por_ociosidade(self):
+        dono, f = self.dono_com(_ModeloComTokenizador())
+        f.agora += 3600
+        stt_local.palavras_que_cabem(("River",), dono)
+        self.assertTrue(dono.descarregar_se_ocioso(30), "contar tokens não é uma transcrição")
+
+    def test_texto_das_hotwords(self):
+        self.assertEqual(stt_local.texto_das_hotwords(("River", "Cornélio Procópio")), "River Cornélio Procópio")
+        self.assertIsNone(stt_local.texto_das_hotwords(()))
+
+
 @unittest.skipUnless(TEM_PIPECAT, "Pipecat não instalado neste Python")
 class TestServicoDaLinha(ComModelo):
     def test_idioma_da_configuracao_vira_o_codigo_do_whisper(self):

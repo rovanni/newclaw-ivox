@@ -1,7 +1,8 @@
 import unittest
 
 from newclaw_ivox.controle import (
-    FALAR, IGNORAR, INTERROMPER, LISTAR_VOZES, TEXTO_MAXIMO, TROCAR_VOZ, VELOCIDADE, interpretar,
+    FALAR, IGNORAR, INTERROMPER, LISTAR_VOZES, TEXTO_MAXIMO, TROCAR_VOZ, VELOCIDADE, VOCABULARIO, VOCABULARIO_MAXIMO,
+    interpretar,
 )
 
 VOZES = ("bm_george", "pf_dora", "pm_alex")
@@ -83,3 +84,27 @@ class TestVelocidade(unittest.TestCase):
     def test_sem_sintese_local_nao_ha_velocidade(self):
         self.assertEqual(interpretar({"t": "velocidade", "d": {"velocidade": 1.2}}, True, vozes=None).tipo, IGNORAR)
 
+
+
+class TestVocabulario(unittest.TestCase):
+    """Dicionário da voz (ADR-039 do NewClaw, Revisão 2): a janela manda a lista, o motor só confere a forma."""
+
+    def test_lista_de_palavras(self):
+        acao = interpretar({"t": "vocabulario", "d": {"palavras": ["River", "  Cornélio   Procópio ", ""]}}, True,
+                           ouvir_ligado=True)
+        self.assertEqual((acao.tipo, acao.palavras), (VOCABULARIO, ("River", "Cornélio Procópio")))
+
+    def test_lista_vazia_limpa_o_apoio(self):
+        acao = interpretar({"t": "vocabulario", "d": {"palavras": []}}, True, ouvir_ligado=True)
+        self.assertEqual((acao.tipo, acao.palavras), (VOCABULARIO, ()))
+
+    def test_formas_invalidas_sao_ignoradas(self):
+        for d in (None, {}, {"palavras": "River"}, {"palavras": ["River", 3]},
+                  {"palavras": ["p"] * (VOCABULARIO_MAXIMO + 1)}, {"palavras": ["x" * 61]}):
+            with self.subTest(d=d):
+                self.assertEqual(interpretar({"t": "vocabulario", "d": d}, True, ouvir_ligado=True).tipo, IGNORAR)
+
+    def test_sem_reconhecimento_local_nao_ha_vocabulario(self):
+        acao = interpretar({"t": "vocabulario", "d": {"palavras": ["River"]}}, True)
+        self.assertEqual(acao.tipo, IGNORAR)
+        self.assertIn("reconhecimento", acao.motivo)

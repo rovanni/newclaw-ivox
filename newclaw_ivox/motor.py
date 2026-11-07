@@ -110,7 +110,7 @@ async def bot(runner_args):
     """Chamado pelo runner do Pipecat a cada conexão da janela."""
     from pipecat.audio.vad.silero import SileroVADAnalyzer
     from pipecat.audio.vad.vad_analyzer import VADParams
-    from pipecat.frames.frames import TTSSpeakFrame, TTSUpdateSettingsFrame
+    from pipecat.frames.frames import STTUpdateSettingsFrame, TTSSpeakFrame, TTSUpdateSettingsFrame
     from pipecat.pipeline.pipeline import Pipeline
     from pipecat.pipeline.runner import PipelineRunner
     from pipecat.pipeline.task import PipelineParams, PipelineTask
@@ -182,8 +182,19 @@ async def bot(runner_args):
     async def mensagem(rtvi, msg):
         acao = controle.interpretar(
             {"t": msg.type, "d": msg.data}, fala_ligada=tts is not None or vozes is not None,
-            voz_atual=estado["voz"], vozes=vozes,
+            voz_atual=estado["voz"], vozes=vozes, ouvir_ligado=stt is not None,
         )
+        if acao.tipo == controle.VOCABULARIO and stt is not None:
+            # Dicionário da voz (ADR-039 do NewClaw): só as palavras que cabem inteiras, para o corte do Whisper não partir
+            # uma no meio. Com o modelo descarregado não há como contar: vão todas, e a janela manda de novo quando ele
+            # carregar.
+            conta = await asyncio.to_thread(stt_local.palavras_que_cabem, acao.palavras)
+            usadas = acao.palavras if conta is None else acao.palavras[: conta["usadas"]]
+            await task.queue_frame(STTUpdateSettingsFrame(delta=type(stt).Settings(hotwords=stt_local.texto_das_hotwords(usadas))))
+            print(f"[motor] vocabulário: {len(usadas)} de {len(acao.palavras)} palavras no Whisper"
+                  f"{'' if conta else ' (modelo descarregado: sem conta de tokens)'}", flush=True)
+            await rtvi.send_server_response(msg, {"ok": True, "acao": acao.tipo, "conta": conta})
+            return
         if acao.tipo == controle.FALAR and tts is not None:
             await task.queue_frames([TTSSpeakFrame(f, append_to_context=False) for f in acao.frases])
         elif acao.tipo == controle.INTERROMPER:

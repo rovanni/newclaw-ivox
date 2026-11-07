@@ -199,10 +199,13 @@ class DonoDoModelo:
             self._em_uso += 1
             return self._modelo
 
-    def devolver(self) -> None:
+    def devolver(self, contar_como_uso: bool = True) -> None:
+        """`contar_como_uso=False`: o empréstimo não foi uma transcrição (contar tokens do vocabulário, por exemplo) e não
+        adia o descarregar por ociosidade."""
         with self._cond:
             self._em_uso -= 1
-            self._ultimo_uso = self._relogio()
+            if contar_como_uso:
+                self._ultimo_uso = self._relogio()
             self._cond.notify_all()
 
     # ─── descarregar ──────────────────────────────────────────────────────────
@@ -350,6 +353,41 @@ def servico_da_linha(config: cfg.Configuracao, dono_do_modelo: DonoDoModelo | No
             initial_prompt=initial_prompt or None,
         ),
     )
+
+
+# ─── Dicionário da voz (ADR-039 do NewClaw, Revisão 2) ───────────────────────────────────────────────────────────────
+# As palavras vão ao Whisper como `hotwords` (escolha provisória até a medição com a voz da operadora, D1). O faster-whisper
+# corta `hotwords` em `max_length // 2 - 1` tokens e descarta o resto sem avisar (`WhisperModel.get_prompt`): por isso a
+# lista vai em ordem de importância, e o motor conta, com o tokenizador do próprio modelo, quantas palavras inteiras cabem.
+
+def texto_das_hotwords(palavras: tuple[str, ...] | list[str]) -> str | None:
+    """As palavras juntas como o `medir-stt` mediu (separadas por espaço); lista vazia = sem apoio."""
+    return " ".join(palavras) or None
+
+
+def palavras_que_cabem(palavras: tuple[str, ...] | list[str], dono_do_modelo: DonoDoModelo | None = None) -> dict | None:
+    """Quantas palavras, do começo da lista, cabem inteiras no prompt do Whisper carregado.
+
+    Devolve `{"usadas", "total", "tokens", "teto"}`, ou None com o modelo descarregado: sem o tokenizador do modelo não há
+    como contar, e o número não é adivinhado. Contar não é usar: não adia o descarregar por ociosidade.
+    """
+    d = dono_do_modelo or dono()
+    modelo = d.tomar()
+    if modelo is None:
+        return None
+    try:
+        # A mesma conta do `get_prompt` do faster-whisper: `Tokenizer.encode` é `hf_tokenizer.encode(texto,
+        # add_special_tokens=False).ids` sobre " " + hotwords; ele corta quando os tokens chegam a max_length // 2.
+        teto = modelo.max_length // 2 - 1
+        usadas, tokens = 0, 0
+        for k in range(1, len(palavras) + 1):
+            n = len(modelo.hf_tokenizer.encode(" " + " ".join(palavras[:k]).strip(), add_special_tokens=False).ids)
+            if n > teto:
+                break
+            usadas, tokens = k, n
+        return {"usadas": usadas, "total": len(palavras), "tokens": tokens, "teto": teto}
+    finally:
+        d.devolver(contar_como_uso=False)
 
 
 # ─── Medição da transcrição (comando `medir-stt`) ────────────────────────────────────────────────────────────────────

@@ -690,6 +690,25 @@ Prova na CPU com duas falas do Kokoro: 3,6% de erro sem apoio, 0% com `hotwords`
   - **cores do centro**: por estado, ou uma cor só (azul, ciano, verde, roxo). Aprovação e erro continuam vermelhos.
 - **Falas da pessoa:** ganharam **Copiar** e **Corrigir e reenviar** (Sprint 3 da ADR-039). A fala errada fica marcada, e o texto certo vai como pedido novo. Com pedido em andamento o reenvio fica desligado: parar a resposta é decisão da pessoa (D2 segue aberta).
   - **D2 decidida em 07/11/2026:** com pedido em andamento, ou com a voz lendo uma resposta, o botão é **Parar e corrigir**. Quem corrige já sabe que o pedido foi entendido errado, e não adianta o NewClaw continuar nele. O clique cancela o pedido no NewClaw, corta a fala e abre o texto. Na caixa, o botão é **Enviar**. A resposta do pedido parado, se ainda chegar, não é falada nem entra na coluna, e a tela sai de "Na fila" na hora. Se algo começar enquanto a pessoa edita, "Enviar" para antes de mandar. Testes da janela: 83/83.
+- **Dicionário da voz (ADR-039 do NewClaw, Revisão 2, 07/11/2026):**
+  - **Onde fica:** a lista mora no NewClaw (`GET`/`PUT /api/voz/vocabulario`, tabela `memory`), para ir no backup dele. O harness repassa só essas duas rotas.
+  - **Aprender:**
+    - depois de corrigir uma fala por voz, o cartão pergunta: "Quer que eu aprenda X? Eu tinha ouvido Y", com Aprender, Mudar a palavra e Agora não;
+    - logo depois, "Aprendi X. [Desfazer]".
+  - **Ajustes → Palavras que eu conheço:** ensinar palavra nova, editar a palavra e o que ele ouvia, apagar com Desfazer, e busca quando a lista passa de 10.
+  - **No Whisper (provisório até a D1):**
+    - a janela manda a lista ao motor, protocolo v4 (`vocabulario`), e o motor põe em `hotwords` só as palavras inteiras que cabem;
+    - a conta usa o tokenizador do modelo carregado, com teto de `max_length // 2 - 1` (223 tokens no `large-v3-turbo`);
+    - na ordem: as mais corrigidas e, no empate, as mais recentes;
+    - com o modelo descarregado, a tela diz que a conta aparece quando ele carregar.
+  - **Prova real** (NewClaw isolado na 3199, harness isolado na 7870):
+    - a rota gravou e leu a lista;
+    - o backup gerado pelo painel tem a lista dentro do `data/newclaw.db`;
+    - Ensinar, Editar ("Cornelio Procopio" → "Cornélio Procópio"), Apagar e Desfazer funcionaram pelo navegador;
+    - com o Whisper carregado na CPU, o motor contou e a tela mostrou "2 palavras, todas valendo no reconhecimento";
+    - com o tokenizador real: "River", "Cornélio Procópio" e "Código de Salomão" = 15 de 223 tokens.
+  - **Não provado ao vivo:** o cartão depois de uma correção por voz, porque o painel do navegador não dá acesso ao microfone. Ele foi coberto pelos testes da comparação e do cartão.
+  - **Testes:** janela 99/99, motor 172/172.
 
 **Testes e conferência:**
 - testes da janela: 70/70; testes do motor: 161/161;

@@ -2,13 +2,14 @@
  * Ligação com o motor de voz do harness: Pipecat (cliente RTVI) com o transporte SmallWebRTC, pela sinalização do próprio
  * harness (`/api/offer`, que exige a sessão). Nenhum servidor STUN/TURN de terceiros: a ligação é local.
  *
- * Traduz os eventos do motor para a `Conversa` e implementa o protocolo v3 da janela → motor (`controle.py`): falar,
+ * Traduz os eventos do motor para a `Conversa` e implementa o protocolo v4 da janela → motor (`controle.py`): falar,
  * interromper, vozes, voz, velocidade.
  */
 import { PipecatClient } from '@pipecat-ai/client-js';
 import { SmallWebRTCTransport } from '@pipecat-ai/small-webrtc-transport';
 import type { Conversa, Motor } from './conversa';
 import { aoPrimeiroGesto, medirVolume, MicrofoneLocal } from './microfone';
+import type { ContaDoMotor } from './vocabulario';
 
 type OpcoesDoTransporte = NonNullable<ConstructorParameters<typeof SmallWebRTCTransport>[0]>;
 
@@ -101,7 +102,7 @@ export class LigacaoComOMotor implements Motor {
     this.cliente = null;
   }
 
-  // ─── Motor (protocolo v3) ──────────────────────────────────────────────────
+  // ─── Motor (protocolo v4) ──────────────────────────────────────────────────
 
   falar(texto: string): void {
     if (!this.cliente) return this.conversa().motorRecusou('o motor de voz não está ligado');
@@ -128,6 +129,16 @@ export class LigacaoComOMotor implements Motor {
   async velocidade(v: number): Promise<void> {
     if (!this.cliente) throw new Error('o motor de voz não está ligado');
     await this.cliente.sendClientRequest('velocidade', { velocidade: v }, ESPERA_RESPOSTA_MS);
+  }
+
+  /**
+   * Dicionário da voz (protocolo v4, ADR-039 do NewClaw): as palavras, em ordem de importância, para o Whisper. O motor
+   * responde quantas cabem; `null` com o modelo descarregado (sem o tokenizador não há conta, e ela não é adivinhada).
+   */
+  async vocabulario(palavras: string[]): Promise<ContaDoMotor | null> {
+    if (!this.cliente) throw new Error('o motor de voz não está ligado');
+    const r = (await this.cliente.sendClientRequest('vocabulario', { palavras }, ESPERA_RESPOSTA_MS)) as { conta?: ContaDoMotor | null };
+    return r?.conta ?? null;
   }
 
   /** Volume da voz neste navegador (0 a 1): só a reprodução daqui, não a síntese do motor. */

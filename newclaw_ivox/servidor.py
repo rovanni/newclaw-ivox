@@ -55,7 +55,8 @@ ARQUIVO_DAS_SESSOES = ".sessoes-da-janela.json"
 # Ajustes do modelo que valem para o processo (D2: descarregar depois de um tempo sem uso). Ficam só nesta máquina.
 ARQUIVO_DOS_AJUSTES = ".ajustes-do-modelo.json"
 
-# (método, padrão da rota depois de /api/) — só o contrato do turno, nada de configuração, memória ou ferramentas.
+# (método, padrão da rota depois de /api/) — o contrato do turno e o dicionário da voz; nada de configuração, memória do
+# agente ou ferramentas.
 ROTAS_DO_CONTRATO = (
     ("POST", re.compile(r"chat")),
     ("GET", re.compile(r"chat/active")),
@@ -63,6 +64,9 @@ ROTAS_DO_CONTRATO = (
     ("POST", re.compile(r"chat/auth-decision")),
     ("GET", re.compile(r"conversations")),
     ("GET", re.compile(r"conversations/[^/]+/messages")),
+    # Dicionário da voz (ADR-039 do NewClaw, Revisão 2): as palavras moram no banco do NewClaw para irem no backup dele.
+    ("GET", re.compile(r"voz/vocabulario")),
+    ("PUT", re.compile(r"voz/vocabulario")),
 )
 # /api/status fica fora: além da versão (que o próprio harness confere no login), ele traz nome da máquina, pid e memória
 # do servidor do NewClaw, que a janela não precisa ver.
@@ -309,7 +313,7 @@ def criar_app(config: cfg.Configuracao, cliente_http=None, montar_motor=None, ja
         resposta = await abrir_sessao(token, {"entrou": True, "sem_senha": True})
         return resposta if resposta.status_code == 200 else {"entrou": False, "sem_senha": True}
 
-    @app.api_route("/newclaw/api/{caminho:path}", methods=["GET", "POST"])
+    @app.api_route("/newclaw/api/{caminho:path}", methods=["GET", "POST", "PUT"])
     async def repassar(caminho: str, request: Request):
         s = sessao_de(request)
         if s is None:

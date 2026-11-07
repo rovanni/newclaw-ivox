@@ -5,7 +5,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent, type KeyboardEvent } from 'react';
 import { Centro, type EstiloDoCentro } from './Centro';
 import { AcoesDaResposta, FalaDaPessoa, TextoFormatado } from './Resposta';
-import { Configuracoes } from './Configuracoes';
+import { Configuracoes, type Grupo } from './Configuracoes';
+import { AvisoDesfazer, CartaoAprender, TelaDePalavras, type Proposta } from './Palavras';
+import {
+  aprender, gravarVocabulario, lerVocabulario, ListaMudou, palavrasParaOMotor, trechoTrocado,
+  type ContaDoMotor, type PalavraDaVoz, type Vocabulario,
+} from './vocabulario';
 import { Conversa, type EsperaAntesDeEnviar, type JeitoDeFalar, type Mensagem, type Quadro } from './conversa';
 import { listarConversasDeVoz, mensagensDaConversa, rotuloDaConversa, type ConversaGuardada } from './historico';
 import {
@@ -228,6 +233,63 @@ function Janela({ aoSair, semSenha }: { aoSair: () => void; semSenha: boolean })
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [motor]);
+
+  // Dicionário da voz (ADR-039 do NewClaw, Revisão 2): a lista mora no NewClaw (vai no backup dele); a janela a lê, propõe
+  // palavras depois de uma correção e manda a lista ao motor, que diz quantas cabem no Whisper.
+  const [vocab, setVocab] = useState<Vocabulario | null>(null);
+  const [erroDoVocab, setErroDoVocab] = useState('');
+  const [contaDoVocab, setContaDoVocab] = useState<ContaDoMotor | null>(null);
+  const [proposta, setProposta] = useState<Proposta | null>(null);
+  const [desfazer, setDesfazer] = useState<{ texto: string; anterior: PalavraDaVoz[] } | null>(null);
+  const [gravandoVocab, setGravandoVocab] = useState(false);
+  const [grupoDosAjustes, setGrupoDosAjustes] = useState<Grupo | undefined>();
+  useEffect(() => {
+    let vivo = true;
+    lerVocabulario()
+      .then((v) => vivo && setVocab(v))
+      .catch((e) => vivo && setErroDoVocab(String(e instanceof Error ? e.message : e)));
+    return () => { vivo = false; };
+  }, []);
+  // A cada mudança da lista, ao ligar a voz e quando o modelo carrega (só com ele há a conta de quantas cabem).
+  const modeloCarregado = modelo?.estado === 'carregado';
+  useEffect(() => {
+    if (ligado !== 'ligado' || !vocab) return;
+    let vivo = true;
+    motor.vocabulario(palavrasParaOMotor(vocab.palavras))
+      .then((c) => vivo && setContaDoVocab(c))
+      .catch(() => vivo && setContaDoVocab(null));
+    return () => { vivo = false; };
+  }, [vocab, ligado, modeloCarregado, motor]);
+  const fecharDesfazer = useCallback(() => setDesfazer(null), []);
+  const gravarLista = async (lista: PalavraDaVoz[], aviso: string | null): Promise<boolean> => {
+    if (!vocab) return false;
+    const anterior = vocab.palavras;
+    setGravandoVocab(true);
+    try {
+      setVocab(await gravarVocabulario(vocab.revisao, lista));
+      setErroDoVocab('');
+      setDesfazer(aviso ? { texto: aviso, anterior } : null);
+      return true;
+    } catch (e) {
+      if (e instanceof ListaMudou) setVocab(e.atual);
+      setErroDoVocab(String(e instanceof Error ? e.message : e));
+      return false;
+    } finally {
+      setGravandoVocab(false);
+    }
+  };
+  const aprenderPalavra = async (palavra: string, ouvido: string | null) => {
+    if (!vocab) return;
+    const limpa = palavra.trim().split(/\s+/).join(' ');
+    if (await gravarLista(aprender(vocab.palavras, limpa, ouvido, new Date().toISOString()), `Aprendi “${limpa}”.`)) setProposta(null);
+  };
+  const desfazerAgora = () => {
+    if (!desfazer) return;
+    const anterior = desfazer.anterior;
+    setDesfazer(null);
+    void gravarLista(anterior, null);
+  };
+  const verPalavras = () => { setGrupoDosAjustes('palavras'); setAba('ajustes'); };
 
   // Estado do modelo: lido do motor, rápido enquanto muda e devagar parado (outra janela pode ter carregado ou descarregado).
   useEffect(() => {
@@ -559,10 +621,22 @@ function Janela({ aoSair, semSenha }: { aoSair: () => void; semSenha: boolean })
                   {m.quem === 'voce' && (
                     <FalaDaPessoa texto={m.texto} emAndamento={parar}
                       aoPararParaCorrigir={() => void conversaRef.current?.pararParaCorrigir()}
-                      aoReenviar={(t) => conversaRef.current?.corrigirEReenviar(i, t) ?? false} />
+                      aoReenviar={(t) => {
+                        const ok = conversaRef.current?.corrigirEReenviar(i, t) ?? false;
+                        // Só em fala por voz: em texto digitado não houve erro de escuta para aprender.
+                        if (ok && m.porVoz && vocab) setProposta(trechoTrocado(m.texto, t));
+                        return ok;
+                      }} />
                   )}
                 </div>
               ))}
+              {/* Dicionário da voz: logo abaixo da correção, a proposta (a pessoa decide) e o "Desfazer". */}
+              {proposta && (
+                <CartaoAprender proposta={proposta} aoAprender={(p) => void aprenderPalavra(p, proposta.ouvido)}
+                  aoRecusar={() => setProposta(null)} aoVerPalavras={verPalavras} />
+              )}
+              {desfazer && <AvisoDesfazer texto={desfazer.texto} aoDesfazer={desfazerAgora} aoFechar={fecharDesfazer} />}
+              {erroDoVocab && proposta && <div className="msg aviso">{erroDoVocab}</div>}
               {/* Resposta em andamento: a fase real do turno (fila, pensando) e o último relato de progresso do NewClaw. */}
               {(estado === 'fila' || estado === 'pensando') && (
                 <div className="msg newclaw andamento" role="status">
@@ -616,7 +690,16 @@ function Janela({ aoSair, semSenha }: { aoSair: () => void; semSenha: boolean })
 
       {ajustes && (
         <Configuracoes
-          aoFechar={() => setAba('conversa')}
+          aoFechar={() => { setAba('conversa'); setGrupoDosAjustes(undefined); }}
+          grupoInicial={grupoDosAjustes}
+          telaDePalavras={<>
+            <TelaDePalavras vocab={vocab} erro={erroDoVocab} conta={contaDoVocab} modeloCarregado={modeloCarregado}
+              motorLigado={ligado === 'ligado'} ocupado={gravandoVocab}
+              aoEnsinar={(p) => void aprenderPalavra(p, null)}
+              aoSalvar={(lista, aviso) => void gravarLista(lista, aviso)}
+              aoApagar={(p) => vocab && void gravarLista(vocab.palavras.filter((x) => x !== p), `Apaguei “${p.palavra}”.`)} />
+            {desfazer && <AvisoDesfazer texto={desfazer.texto} aoDesfazer={desfazerAgora} aoFechar={fecharDesfazer} />}
+          </>}
           vozes={vozes} vozAtual={vozAtual} aoTrocarVoz={(n) => void trocarVoz(n)} gruposDeVozes={gruposDeVozes}
           velocidade={velocidade} aoMudarVelocidade={mudarVelocidade} volume={volume} aoMudarVolume={setVolume}
           semMicrofone={motor.semMicrofone} micAberto={micAberto}

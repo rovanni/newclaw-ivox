@@ -284,10 +284,29 @@ class TestServidor(unittest.TestCase):
         self.entrar(c)
         antes = len(self.newclaw.pedidos)
         for metodo, rota in (("GET", "config"), ("POST", "config"), ("GET", "status"), ("GET", "memory"),
-                             ("POST", "chat/../config"), ("GET", "chat/outbox/../../config"), ("POST", "chat/active")):
-            with self.subTest(rota=rota):
+                             ("POST", "chat/../config"), ("GET", "chat/outbox/../../config"), ("POST", "chat/active"),
+                             ("PUT", "chat"), ("POST", "voz/vocabulario"), ("PUT", "voz/vocabulario/../../config"),
+                             ("GET", "voz/outra")):
+            with self.subTest(metodo=metodo, rota=rota):
                 r = c.request(metodo, f"/newclaw/api/{rota}", headers={"Origin": ORIGEM})
                 self.assertIn(r.status_code, (404,))
+        self.assertEqual(len(self.newclaw.pedidos), antes)
+
+    def test_dicionario_da_voz_e_repassado(self):
+        # ADR-039 do NewClaw, Revisão 2: as palavras moram no NewClaw (vão no backup dele); a janela lê e grava por aqui.
+        c = self.montar()
+        self.entrar(c)
+        r = c.get("/newclaw/api/voz/vocabulario")
+        self.assertEqual(self.newclaw.pedidos[-1].url.path, "/api/voz/vocabulario")
+        self.assertEqual(self.newclaw.pedidos[-1].headers["authorization"], f"Bearer {TOKEN}")
+        self.assertEqual(r.status_code, 404)  # o NewClaw falso não tem a rota: a resposta dele vem como veio
+        r = c.put("/newclaw/api/voz/vocabulario", json={"revisao": 0, "palavras": []}, headers={"Origin": ORIGEM})
+        self.assertEqual(self.newclaw.pedidos[-1].method, "PUT")
+        self.assertEqual(json.loads(self.newclaw.pedidos[-1].content), {"revisao": 0, "palavras": []})
+        antes = len(self.newclaw.pedidos)
+        r = c.put("/newclaw/api/voz/vocabulario", json={"revisao": 0, "palavras": []},
+                  headers={"Origin": "http://atacante.example"})
+        self.assertEqual(r.status_code, 403)  # gravar exige a origem da janela, como o POST
         self.assertEqual(len(self.newclaw.pedidos), antes)
 
     def test_token_revogado_encerra_a_sessao(self):
