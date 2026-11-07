@@ -211,12 +211,23 @@ class TestServidor(unittest.TestCase):
                 self.assertEqual(r.status_code, 403)
         self.assertEqual(self.newclaw.pedidos, [])
 
-    def test_contrato_de_outra_versao(self):
-        c = self.montar(contrato=2)
-        r = self.entrar(c)
-        self.assertEqual(r.status_code, 409)
-        self.assertIn("contrato do turno", r.json()["erro"])
-        self.assertEqual(self.app.state.sessoes, {})
+    def test_contrato_abaixo_do_minimo_ou_invalido_e_recusado(self):
+        for contrato in (0, None, "2", 1.5, True):
+            with self.subTest(contrato=contrato):
+                c = self.montar(contrato=contrato)
+                r = self.entrar(c)
+                self.assertEqual(r.status_code, 409)
+                self.assertIn("contrato do turno", r.json()["erro"])
+                self.assertEqual(self.app.state.sessoes, {})
+
+    def test_contrato_de_versao_maior_e_aceito(self):
+        # O NewClaw da versão 2 (ADR-033) recusava o login com o harness exigindo a versão exata 1 (achado de 07/11/2026).
+        for contrato in (1, 2, 3):
+            with self.subTest(contrato=contrato):
+                c = self.montar(contrato=contrato)
+                r = self.entrar(c)
+                self.assertEqual(r.status_code, 200)
+                self.assertEqual(r.json()["contrato_do_turno"], contrato)
 
     def test_idioma_vem_do_newclaw_quando_o_env_nao_diz(self):
         c = self.montar()

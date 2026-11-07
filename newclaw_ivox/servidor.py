@@ -38,8 +38,16 @@ from pathlib import Path
 from . import configuracao as cfg
 from . import stt_local
 
-# Versão do contrato do turno que este harness sabe usar (NewClaw, status.contracts.turn).
-CONTRATO_DO_TURNO = 1
+# Versão mínima do contrato do turno que este harness sabe usar (NewClaw, status.contracts.turn). O contrato só cresce
+# por campos novos (docs/CONTRATO_DO_TURNO.md): a versão 2 continua servindo a quem usa a 1. A janela aplica a mesma regra
+# (janela/src/turnos.ts, VERSAO_MINIMA_DO_CONTRATO). Exigir a versão exata recusava o login com o NewClaw da versão 2
+# (achado de 07/11/2026: a janela pedia senha com o painel sem senha).
+CONTRATO_MINIMO_DO_TURNO = 1
+
+
+def contrato_aceito(versao: object) -> bool:
+    """Inteiro (não bool) e maior ou igual ao mínimo; ausente ou de outro tipo é recusado."""
+    return isinstance(versao, int) and not isinstance(versao, bool) and versao >= CONTRATO_MINIMO_DO_TURNO
 
 COOKIE = "ivox_sessao"
 DURACAO_DA_SESSAO_S = 30 * 24 * 3600  # a mesma do painel do NewClaw
@@ -169,8 +177,9 @@ def criar_app(config: cfg.Configuracao, cliente_http=None, montar_motor=None, ja
         except (httpx.HTTPError, ValueError):
             return erro(502, "NewClaw respondeu ao login, mas não ao /api/status")
         versao = contratos.get("turn")
-        if versao != CONTRATO_DO_TURNO:
-            return erro(409, f"este NewClaw anuncia o contrato do turno {versao!r}; o harness usa a versão {CONTRATO_DO_TURNO}")
+        if not contrato_aceito(versao):
+            return erro(409, f"este NewClaw anuncia o contrato do turno {versao!r}; o harness precisa da versão "
+                             f"{CONTRATO_MINIMO_DO_TURNO} ou maior")
 
         # Idioma: o do .env (VOZ_IDIOMA) vence; vazio, vale o configurado no NewClaw. A rota /api/config não é do contrato
         # do turno — se ela não responder ou não trouxer um idioma aceito, a ausência continua reportada, sem adivinhar.
